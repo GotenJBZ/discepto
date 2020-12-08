@@ -1,5 +1,13 @@
-<html>
-	<body>
-		<h1>hello</h1>
-	</body>
-</html>
+{{ define "home" }}
+{{ template "head" . }}
+<h1>Wewe boys</h1>
+<ul>
+	<li>
+		<a href="/article/">Create new article</a>
+	</li>
+	<li>
+		<a href="/article/2">Fake article</a>
+	</li>
+</ul>
+{{ template "footer" . }}
+{{ end }}

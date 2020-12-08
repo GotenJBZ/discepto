@@ -1,14 +1,6 @@
 {{ define "article" }}
-<html>
-	<body>
-		<h1>{{.ID}}</h1>
-		<h2>{{.Name}}</h2>
-		<hr>
-		<p>Send another post</p>
-		<form action="/article/" method="post">
-			<input name="content" label="content"></input>
-			<button type="submit">Post another article</button>
-		</form>
-	</body>
-</html>
+{{ template "head" . }}
+<p>ID: {{.ID}}</p>
+<p>Name: {{.Name}}</p>
+{{ template "footer" . }}
 {{ end }}
