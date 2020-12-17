@@ -1,0 +1,9 @@
+{{ define "createEssay" }}
+{{ template "head" . }}
+<p>Create a new essay</p>
+<form action="/essay/" method="post">
+    <input name="content" label="content"></input>
+    <button type="submit">Post another essay</button>
+</form>
+{{ template "footer" . }}
+{{ end }}

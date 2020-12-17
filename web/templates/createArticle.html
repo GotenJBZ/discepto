@@ -1,9 +1,0 @@
-{{ define "createArticle" }}
-{{ template "head" . }}
-<p>Create a new article</p>
-<form action="/article/" method="post">
-    <input name="content" label="content"></input>
-    <button type="submit">Post another article</button>
-</form>
-{{ template "footer" . }}
-{{ end }}
