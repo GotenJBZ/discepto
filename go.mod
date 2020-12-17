@@ -1,4 +1,4 @@
-module palavy
+module gitlab.com/ranfdev/discepto
 
 go 1.15
 
