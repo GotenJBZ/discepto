@@ -3,6 +3,8 @@ image: golang:latest
 variables:
   REPO_NAME: gitlab.com/ranfdev/discepto
 
+include:
+  template: Jobs/Code-Quality.gitlab-ci.yml
 # The problem is that to be able to use go get, one needs to put
 # the repository in the $GOPATH. So for example if your gitlab domain
 # is gitlab.com, and that your repository is namespace/project, and
