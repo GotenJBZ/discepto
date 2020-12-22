@@ -1,17 +1,29 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/routes"
 )
 
 
 func main() {
+	err := db.Connect()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = db.Migrate()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -30,8 +42,17 @@ func main() {
 	// Serve dynamic routes
 	r.Get("/", routes.GetHome)
 
+	r.Get("/users", routes.GetUsers)
+
+	r.Get("/register", routes.GetRegister)
+	r.Post("/register", routes.PostRegister)
+
 	r.Route("/essay", routes.EssayRouter)
 
-	log.Println("Starting server at http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Println(fmt.Sprintf("Starting server at http://localhost:%s", port))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s",port), r))
 }

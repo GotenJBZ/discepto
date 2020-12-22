@@ -1,0 +1,16 @@
+{{ define "register" }}
+{{ template "head" }}
+<h1>Register</h1>
+<form action="/register" method="post">
+    <label name="name">Username</label>
+    <input type="text" name="name"/>
+    </br>
+    <label name="email">Email</label>
+    <input type="text" name="email"/>
+    </br>
+    <label name="password">Password</label>
+    <input type="text" name="password"/>
+    <button type="sumbit">Send</button>
+</form>
+{{ template "footer" }}
+{{ end }}

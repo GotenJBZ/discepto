@@ -1,15 +1,18 @@
 package models
 
-type Motivation int;
+type FlagType string
+
 const (
-	Insulting Motivation = iota
-	Spam
+	FlagTypeOffensive  FlagType = "offensive"
+	FlagTypeFake       FlagType = "fake"
+	FlagTypeSpam       FlagType = "spam"
+	FlagTypeInaccurate FlagType = "inaccurate"
 )
 type Report struct {
 	ID int
-	Motivation Motivation
-	Comment string
-	SpecificEssay Essay
-	FromUser User
-	ToUser User
+	Flag FlagType
+	Description string
+	Essay *Essay
+	FromUser *User
+	ToUser *User
 }

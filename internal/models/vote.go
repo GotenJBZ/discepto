@@ -1,9 +1,10 @@
 package models
 
-type VoteType int;
+type VoteType string
+
 const (
-	Upvote VoteType = 1
-	Downvote VoteType = -1
+	VoteTypeUpvote   VoteType = "upvote"
+	VoteTypeDownvote VoteType = "downvote"
 )
 type Vote struct {
 	From User

@@ -5,7 +5,7 @@ type Banned struct {
 	ID int
 	Start time.Time
 	End time.Time
-	Motivation Motivation
+	Motivation FlagType
 	Explanation string
 	Subdiscepto Subdiscepto
 }

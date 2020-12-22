@@ -5,6 +5,7 @@ import (
 	"github.com/go-chi/chi"
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/utils"
+	"gitlab.com/ranfdev/discepto/internal/db"
 	"log"
 	"net/http"
 	"time"
@@ -21,15 +22,15 @@ func GetCreateEssay(w http.ResponseWriter, r *http.Request) {
 	utils.RenderHTML(w, "createEssay", nil)
 }
 func GetEssay(w http.ResponseWriter, r *http.Request) {
-	// mock data
-	creator := models.User{
-		Name:  "pippo",
-		Email: "pippo@gmail.com",
+	users, err := db.ListUsers()
+	if err != nil {
+		panic(err)
 	}
+
 	essay := models.Essay{
 		Thesis:       "asdf",
 		Content:      "asdf",
-		AttributedTo: creator,
+		AttributedTo: users[0],
 		Published:    time.Now(),
 	}
 
