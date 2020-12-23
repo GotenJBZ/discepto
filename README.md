@@ -19,3 +19,8 @@ DEBUG=true DATABASE_URL="postgres://user:passwd@localhost/disceptoDb" go run cmd
 # To build release:
 go build main.go
 ```
+
+### Environment variables
+DEBUG: when `true`, reload html templates every request
+DATABASE_URL: you know
+PORT: you know. Default is 23495
