@@ -1,0 +1,11 @@
+[Unit]
+Description=discepto.service
+Wants=network.target
+After=network-online.target
+
+[Service]
+Restart=on-failure
+ExecStart=/home/gitlab/discepto start
+
+[Install]
+WantedBy=multi-user.target default.target
