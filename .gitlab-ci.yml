@@ -1,7 +1,14 @@
 image: golang:latest
 
+services:
+  - postgres:13-alpine
+
 variables:
   REPO_NAME: gitlab.com/ranfdev/discepto
+  POSTGRES_DB: discepto
+  POSTGRES_PASSWORD: discepto
+  POSTGRES_USER: discepto
+  POSTGRES_HOST_AUTH_METHOD: trust
 
 include:
   template: Jobs/Code-Quality.gitlab-ci.yml
