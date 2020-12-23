@@ -30,7 +30,7 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(5 * time.Second))
+	r.Use(middleware.Timeout(15 * time.Second))
 
 	// Serve static files
 	staticFileServer := http.FileServer(http.Dir("web/static"))

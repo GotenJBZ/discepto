@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi"
 	"gitlab.com/ranfdev/discepto/internal/models"
-	"gitlab.com/ranfdev/discepto/internal/utils"
+	"gitlab.com/ranfdev/discepto/internal/server"
 	"gitlab.com/ranfdev/discepto/internal/db"
 	"log"
 	"net/http"
@@ -19,7 +19,7 @@ func EssayRouter(r chi.Router) {
 	r.Delete("/{id}", DeleteEssay)
 }
 func GetCreateEssay(w http.ResponseWriter, r *http.Request) {
-	utils.RenderHTML(w, "createEssay", nil)
+	server.RenderHTML(w, "createEssay", nil)
 }
 func GetEssay(w http.ResponseWriter, r *http.Request) {
 	users, err := db.ListUsers()
@@ -34,7 +34,7 @@ func GetEssay(w http.ResponseWriter, r *http.Request) {
 		Published:    time.Now(),
 	}
 
-	utils.RenderHTML(w, "essay", essay)
+	server.RenderHTML(w, "essay", essay)
 }
 func PostEssay(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()

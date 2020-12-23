@@ -5,11 +5,11 @@ import (
 
 	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
-	"gitlab.com/ranfdev/discepto/internal/utils"
+	"gitlab.com/ranfdev/discepto/internal/server"
 )
 
 func GetHome(w http.ResponseWriter, r *http.Request) {
-	utils.RenderHTML(w, "home", nil)
+	server.RenderHTML(w, "home", nil)
 }
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := db.ListUsers()
@@ -17,10 +17,10 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	utils.RenderHTML(w, "users", users)
+	server.RenderHTML(w, "users", users)
 }
 func GetRegister(w http.ResponseWriter, r *http.Request) {
-	utils.RenderHTML(w, "register", nil)
+	server.RenderHTML(w, "register", nil)
 }
 func PostRegister(w http.ResponseWriter, r *http.Request) {
 	db.CreateUser(&models.User {
