@@ -13,21 +13,23 @@ variables:
 include:
   template: Jobs/Code-Quality.gitlab-ci.yml
 
-cache:
-  key: ${CI_COMMIT_REF_SLUG}
-  paths:
-    - vendor/
-
-before_script:
-  - go mod vendor
+.go-cache:
+  variables:
+    GOPATH: $CI_PROJECT_DIR/.go
+  before_script:
+    - mkdir -p .go
+  cache:
+    paths:
+      - .go/pkg/mod/
 
 stages:
   - test
   - build
-  - deploy
+  - staging
 
 format:
   stage: test
+  extends: .go-cache
   script:
     - go fmt $(go list ./... | grep -v /vendor/)
     - go vet $(go list ./... | grep -v /vendor/)
@@ -35,14 +37,15 @@ format:
 
 compile:
   stage: build
+  extends: .go-cache
   script:
-    - go build -race -ldflags "-extldflags '-static'" -o $CI_PROJECT_DIR/discepto
+    - go build -race -ldflags "-extldflags '-static'" -o $CI_PROJECT_DIR/discepto cmd/discepto/main.go
   artifacts:
     paths:
-      - mybinary
+      - discepto
 
-deploy:
-  stage: deploy
+deploy-to-staging:
+  stage: staging
   script:
   ##
   ## Install ssh-agent if not already installed, it is required by Docker.
