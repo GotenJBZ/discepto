@@ -14,7 +14,7 @@ cd $repo_url
 # To run:
 # When developing locally, set DEBUG to true.
 # Pass the correct database creds
-DEBUG=true DATABASE_URL="postgres://user:passwd@localhost/disceptoDb" go run main.go
+DEBUG=true DATABASE_URL="postgres://user:passwd@localhost/disceptoDb" go run cmd/discepto/main.go
 
 # To build release:
 go build main.go
