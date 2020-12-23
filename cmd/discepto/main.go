@@ -15,6 +15,13 @@ import (
 
 
 func main() {
+	switch os.Args[1] {
+	case "start":
+		Start()
+	}
+}
+
+func Start() {
 	err := db.Connect()
 	if err != nil {
 		log.Fatal(err)
