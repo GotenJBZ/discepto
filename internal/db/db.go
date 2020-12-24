@@ -27,7 +27,7 @@ func Connect() error {
 	var err error = nil
 	DB, err = pgxpool.Connect(context.Background(), dbUrl)
 	if err != nil {
-		err = fmt.Errorf("Failed to connect to postgres with url `%s`: %w", dbUrl, err)
+		err = fmt.Errorf("Failed to connect to postgres: %w", err)
 	}
 	return err
 }
