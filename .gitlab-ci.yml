@@ -78,5 +78,5 @@ deploy-to-staging:
 
   - ssh-keyscan "$STAGING_SERVER_DOMAIN" >> ~/.ssh/known_hosts
   - chmod 644 ~/.ssh/known_hosts
-  - rsync -r $CI_PROJECT_DIR/ "gitlab@$STAGING_SERVER_DOMAIN:~/CI/"
+  - rsync -r $CI_PROJECT_DIR/discepto "gitlab@$STAGING_SERVER_DOMAIN:~/discepto"
   - ssh "gitlab@$STAGING_SERVER_DOMAIN" "systemctl --user restart discepto.service"
