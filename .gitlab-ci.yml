@@ -9,7 +9,6 @@ variables:
   POSTGRES_PASSWORD: discepto
   POSTGRES_USER: discepto
   POSTGRES_HOST_AUTH_METHOD: trust
-  PATH: "${CI_PROJECT_DIR}/.go/bin/:${PATH}"
 
 include:
   template: Jobs/Code-Quality.gitlab-ci.yml
@@ -41,6 +40,7 @@ compile:
   extends: .go-cache
   before_script:
     - go get github.com/markbates/pkger/cmd/pkger
+    - export PATH="$GOPATH/bin/:$PATH"
   script:
     - make release
   artifacts:
