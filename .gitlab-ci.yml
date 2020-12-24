@@ -9,7 +9,7 @@ variables:
   POSTGRES_PASSWORD: discepto
   POSTGRES_USER: discepto
   POSTGRES_HOST_AUTH_METHOD: trust
-  PATH: "$CI_PROJECT_DIR/.go/bin/:${PATH}"
+  PATH: "${CI_PROJECT_DIR}/.go/bin/:${PATH}"
 
 include:
   template: Jobs/Code-Quality.gitlab-ci.yml
