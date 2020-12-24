@@ -6,6 +6,8 @@ A debate/discussion platform.
 You need
 - go
 - postgresql
+- make
+- pkger (`go get github.com/markbates/pkger/cmd/pkger`) 
 
 ```bash
 git clone $repo_url
@@ -14,10 +16,10 @@ cd $repo_url
 # To run:
 # When developing locally, set DEBUG to true.
 # Pass the correct database creds
-DEBUG=true DATABASE_URL="postgres://user:passwd@localhost/disceptoDb" go run cmd/discepto/main.go
+DEBUG=true DATABASE_URL="postgres://user:passwd@localhost/disceptoDb" make run
 
 # To build release:
-go build main.go
+make release
 ```
 
 ### Environment variables

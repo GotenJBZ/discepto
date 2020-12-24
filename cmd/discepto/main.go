@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/markbates/pkger"
 	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/routes"
 )
@@ -40,7 +41,7 @@ func Start() {
 	r.Use(middleware.Timeout(15 * time.Second))
 
 	// Serve static files
-	staticFileServer := http.FileServer(http.Dir("web/static"))
+	staticFileServer := http.FileServer(pkger.Dir("/web/static"))
 	r.Get("/static/*", func(w http.ResponseWriter, r *http.Request) {
 		fs := http.StripPrefix("/static", staticFileServer)
 		fs.ServeHTTP(w, r)

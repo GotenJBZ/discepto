@@ -38,8 +38,10 @@ format:
 compile:
   stage: build
   extends: .go-cache
+  before_script:
+    - go get github.com/markbates/pkger/cmd/pkger
   script:
-    - go build -race -ldflags "-extldflags '-static'" -o $CI_PROJECT_DIR/discepto cmd/discepto/main.go
+    - make release
   artifacts:
     paths:
       - discepto
@@ -76,3 +78,4 @@ deploy-to-staging:
   - ssh-keyscan "$STAGING_SERVER_DOMAIN" >> ~/.ssh/known_hosts
   - chmod 644 ~/.ssh/known_hosts
   - rsync -r $CI_PROJECT_DIR/ "gitlab@$STAGING_SERVER_DOMAIN:~/CI/"
+  - ssh "gitlab@$STAGING_SERVER_DOMAIN" "systemctl --user restart discepto.service"

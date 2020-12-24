@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"html/template"
 	"log"
-	"os"
 	"net/http"
+	"os"
+
+	"github.com/markbates/pkger"
 )
 
 var DEBUG bool
@@ -32,6 +34,7 @@ func RenderHTML(w http.ResponseWriter, tmplName string, data interface{}) {
 	w.Write(buff.Bytes())
 }
 func initTemplates() *template.Template {
+	pkger.Stat("/web/templates/")
 	return template.Must(template.ParseGlob("web/templates/*"))
 }
 func getTemplates() *template.Template {
