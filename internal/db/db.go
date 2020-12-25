@@ -53,9 +53,6 @@ func ListUsers() ([]models.User, error) {
 }
 
 func CreateUser(user *models.User) error {
-	if !utils.ValidateEmail(user.Email) {
-		return errors.New("Email validation not passed")
-	}
 	_, err := DB.Exec(context.Background(), "INSERT INTO users (name, email, role_id) VALUES ($1, $2, $3)", user.Name, user.Email, user.RoleID)
 	return err
 }
