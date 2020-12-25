@@ -10,9 +10,6 @@ variables:
   POSTGRES_USER: discepto
   POSTGRES_HOST_AUTH_METHOD: trust
 
-include:
-  template: Jobs/Code-Quality.gitlab-ci.yml
-
 .go-cache:
   variables:
     GOPATH: $CI_PROJECT_DIR/.go
