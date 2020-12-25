@@ -1,10 +1,11 @@
 package db
 
 import (
-	"testing"
-	"os"
 	"gitlab.com/ranfdev/discepto/internal/models"
+	"os"
+	"testing"
 )
+
 func init() {
 	err := os.Chdir("./../..")
 	if err != nil {
@@ -20,9 +21,9 @@ func init() {
 	}
 }
 func TestCreateUser(t *testing.T) {
-	user := models.User {
-		Name: "Pippo",
-		Email: "pippo@strana.com",
+	user := models.User{
+		Name:   "Pippo",
+		Email:  "pippo@strana.com",
 		RoleID: models.RoleAdmin,
 	}
 	err := CreateUser(&user)
@@ -31,9 +32,9 @@ func TestCreateUser(t *testing.T) {
 	}
 }
 func TestCreateUserBadEmail(t *testing.T) {
-	user := models.User {
-		Name: "Pippo",
-		Email: "pippoasdfjhasdflkjhs",
+	user := models.User{
+		Name:   "Pippo",
+		Email:  "pippoasdfjhasdflkjhs",
 		RoleID: models.RoleAdmin,
 	}
 	err := CreateUser(&user)

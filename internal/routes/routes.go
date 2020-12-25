@@ -29,9 +29,9 @@ func PostRegister(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid email", http.StatusInternalServerError)
 		return
 	}
-	err := db.CreateUser(&models.User {
-		Name: r.FormValue("name"),
-		Email: email,
+	err := db.CreateUser(&models.User{
+		Name:   r.FormValue("name"),
+		Email:  email,
 		RoleID: models.RoleAdmin,
 	})
 	if err != nil {

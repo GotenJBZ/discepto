@@ -3,9 +3,9 @@ package routes
 import (
 	"fmt"
 	"github.com/go-chi/chi"
+	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/server"
-	"gitlab.com/ranfdev/discepto/internal/db"
 	"log"
 	"net/http"
 	"time"

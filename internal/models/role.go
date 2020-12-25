@@ -8,14 +8,17 @@ const (
 	PermissionTypeBanUsers    PermissionType = "ban_users"
 	PermissionTypeFlagPosts   PermissionType = "flag_posts"
 )
-type RoleID int;
-const RoleAdmin = 1;
+
+type RoleID int
+
+const RoleAdmin = 1
+
 type Role struct {
-	ID int
-	Name string
+	ID          int
+	Name        string
 	Permissions []RolePermission
 }
 type RolePermission struct {
-	RoleID int
+	RoleID     int
 	Permission PermissionType
 }

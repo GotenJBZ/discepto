@@ -8,11 +8,12 @@ const (
 	FlagTypeSpam       FlagType = "spam"
 	FlagTypeInaccurate FlagType = "inaccurate"
 )
+
 type Report struct {
-	ID int
-	Flag FlagType
+	ID          int
+	Flag        FlagType
 	Description string
-	Essay *Essay
-	FromUser *User
-	ToUser *User
+	Essay       *Essay
+	FromUser    *User
+	ToUser      *User
 }

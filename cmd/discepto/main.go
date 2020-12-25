@@ -14,7 +14,6 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/routes"
 )
 
-
 func main() {
 	switch os.Args[1] {
 	case "start":
@@ -62,5 +61,5 @@ func Start() {
 		port = "23495"
 	}
 	log.Println(fmt.Sprintf("Starting server at http://localhost:%s", port))
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s",port), r))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), r))
 }

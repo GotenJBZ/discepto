@@ -6,8 +6,9 @@ const (
 	VoteTypeUpvote   VoteType = "upvote"
 	VoteTypeDownvote VoteType = "downvote"
 )
+
 type Vote struct {
-	From User
-	Essay Essay
+	From     User
+	Essay    Essay
 	VoteType VoteType
 }

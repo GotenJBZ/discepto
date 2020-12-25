@@ -1,6 +1,6 @@
 package models
 
 type Subdiscepto struct {
-	Name string
+	Name        string
 	Description string
 }
