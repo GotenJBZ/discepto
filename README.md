@@ -7,7 +7,6 @@ You need
 - go
 - postgresql
 - make
-- pkger (`go get github.com/markbates/pkger/cmd/pkger`) 
 
 ```bash
 git clone $repo_url

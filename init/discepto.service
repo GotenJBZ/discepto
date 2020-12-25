@@ -6,7 +6,7 @@ After=network-online.target
 [Service]
 Restart=on-failure
 EnvironmentFile=/home/gitlab/discepto.env
-ExecStart=/home/gitlab/discepto start
+ExecStart=/home/gitlab/discepto/discepto start
 
 [Install]
 WantedBy=multi-user.target default.target

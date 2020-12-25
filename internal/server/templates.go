@@ -3,12 +3,9 @@ package server
 import (
 	"bytes"
 	"html/template"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/markbates/pkger"
 )
 
 var DEBUG bool
@@ -35,30 +32,7 @@ func RenderHTML(w http.ResponseWriter, tmplName string, data interface{}) {
 	w.Write(buff.Bytes())
 }
 func initTemplates() *template.Template {
-	template := template.New("")
-	err := pkger.Walk("/web/templates/", func (path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			// skip dir
-			return nil
-		}
-		file, err := pkger.Open(path)
-		if err != nil {
-			return err
-		}
-		content, err := ioutil.ReadAll(file)
-		if err != nil {
-			return err
-		}
-		_, err = template.Parse(string(content))
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		panic(err)
-	}
-	return template
+	return template.Must(template.ParseGlob("web/templates/*"))
 }
 func getTemplates() *template.Template {
 	// Reload templates every time when developing locally.

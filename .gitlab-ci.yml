@@ -38,14 +38,11 @@ format:
 compile:
   stage: build
   extends: .go-cache
-  before_script:
-    - go get github.com/markbates/pkger/cmd/pkger
-    - export PATH="$GOPATH/bin/:$PATH"
   script:
-    - make release
+    - make pack
   artifacts:
     paths:
-      - discepto
+      - ./build/discepto.tar.gz
 
 deploy-to-staging:
   image: alpine
@@ -78,5 +75,4 @@ deploy-to-staging:
 
   - ssh-keyscan "$STAGING_SERVER_DOMAIN" >> ~/.ssh/known_hosts
   - chmod 644 ~/.ssh/known_hosts
-  - rsync -r $CI_PROJECT_DIR/discepto "gitlab@$STAGING_SERVER_DOMAIN:~/discepto"
-  - ssh "gitlab@$STAGING_SERVER_DOMAIN" "systemctl --user restart discepto.service"
+  - < ./build/discepto.tar.gz | ssh "gitlab@$STAGING_SERVER_DOMAIN" "tar -xzf - && systemctl --user restart discepto.service"
