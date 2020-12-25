@@ -13,8 +13,10 @@ import (
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/utils"
 )
 
+var ErrBadEmailSyntax error = errors.New("Bad email syntax")
 var DB *pgxpool.Pool
 
 func Connect() error {
@@ -52,6 +54,9 @@ func ListUsers() ([]models.User, error) {
 }
 
 func CreateUser(user *models.User) error {
+	if !utils.ValidateEmail(user.Email) {
+		return ErrBadEmailSyntax
+	}
 	_, err := DB.Exec(context.Background(), "INSERT INTO users (name, email, role_id) VALUES ($1, $2, $3)", user.Name, user.Email, user.RoleID)
 	return err
 }
