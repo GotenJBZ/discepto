@@ -13,7 +13,6 @@ import (
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"gitlab.com/ranfdev/discepto/internal/models"
-	"gitlab.com/ranfdev/discepto/internal/utils"
 )
 
 var DB *pgxpool.Pool
