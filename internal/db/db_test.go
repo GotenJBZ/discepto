@@ -18,16 +18,15 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	err = Migrate()
+	err = MigrateUp()
 	if err != nil {
 		panic(err)
 	}
 }
 func TestCreateUser(t *testing.T) {
 	user := models.User{
-		Name:   "Pippo",
-		Email:  "pippo@strana.com",
-		RoleID: models.RoleAdmin,
+		Name:  "Pippo",
+		Email: "pippo@strana.com",
 	}
 	err := CreateUser(&user)
 	if err != nil {
@@ -36,15 +35,17 @@ func TestCreateUser(t *testing.T) {
 }
 func TestCreateUserBadEmail(t *testing.T) {
 	user := models.User{
-		Name:   "Pippo",
-		Email:  "pippoasdfjhasdflkjhs",
-		RoleID: models.RoleAdmin,
+		Name:  "Pippo",
+		Email: "pippoasdfjhasdflkjhs",
 	}
 	err := CreateUser(&user)
 	// The email is invalid, so there should be an error
 	if err == nil {
 		t.Error(err)
 	}
+}
+func TestDeleteUser(t *testing.T) {
+
 }
 func TestListUsers(t *testing.T) {
 	_, err := ListUsers()
@@ -53,6 +54,10 @@ func TestListUsers(t *testing.T) {
 	}
 }
 func TestCreateEssay(t *testing.T) {
+	users, err := ListUsers()
+	if err != nil {
+		t.Error(err)
+	}
 	myurl, _ := url.Parse("https://fruit.com")
 	essay := &models.Essay{
 		Thesis: "Banana is the best fruit",
@@ -61,13 +66,16 @@ func TestCreateEssay(t *testing.T) {
 		Banana is the best fruit because...
 		Banana is the best fruit because...
 		Banana is the best fruit because...`,
-		AttributedToID: 1,
+		AttributedToID: users[0].ID,
 		Tags:           []string{"banana", "fruit", "best"},
 		Sources:        []*url.URL{myurl},
 		Published:      time.Now(),
 	}
-	err := CreateEssay(essay)
+	err = CreateEssay(essay)
 	if err != nil {
 		t.Errorf("Failed to create essay: %v", err)
 	}
+}
+func TestDeleteEssay(t *testing.T) {
+
 }

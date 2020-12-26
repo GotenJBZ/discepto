@@ -30,11 +30,15 @@ var ErrTooManyTags error = errors.New("You have inserted too many tags")
 var ErrBadContentLen error = errors.New("You have to respect the imposed content length limits")
 var DB *pgxpool.Pool
 
-func Connect() error {
+func CheckEnvDatabaseUrl() string {
 	dbUrl := os.Getenv("DATABASE_URL")
 	if dbUrl == "" {
-		return errors.New("DATABASE_URL env variable missing")
+		panic(errors.New("DATABASE_URL env variable missing"))
 	}
+	return dbUrl
+}
+func Connect() error {
+	dbUrl := CheckEnvDatabaseUrl()
 	// dbUrl := "postgres://discepto:passwd@localhost/disceptoDb"
 	var err error = nil
 	DB, err = pgxpool.Connect(context.Background(), dbUrl)
@@ -44,16 +48,42 @@ func Connect() error {
 	return err
 }
 
-func Migrate() error {
-	url := os.Getenv("DATABASE_URL")
-	m, err := migrate.New("file://migrations", url)
+func MigrateUp() error {
+	dbUrl := CheckEnvDatabaseUrl()
+	m, err := migrate.New("file://migrations", dbUrl)
 	if err != nil {
-		return fmt.Errorf("Error creating migrations: %s", err)
+		return fmt.Errorf("Error reading migrations: %s", err)
 	}
 	defer m.Close()
 	err = m.Up()
 	if err != nil && err != migrate.ErrNoChange {
-		return fmt.Errorf("While upping: %s", err)
+		return fmt.Errorf("While migrating up: %s", err)
+	}
+	return nil
+}
+func MigrateDown() error {
+	dbUrl := CheckEnvDatabaseUrl()
+	m, err := migrate.New("file://migrations", dbUrl)
+	if err != nil {
+		return fmt.Errorf("Error reading migrations: %s", err)
+	}
+	defer m.Close()
+	err = m.Down()
+	if err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("While migrating down: %s", err)
+	}
+	return nil
+}
+func Drop() error {
+	dbUrl := CheckEnvDatabaseUrl()
+	m, err := migrate.New("file://migrations", dbUrl)
+	if err != nil {
+		return fmt.Errorf("Error reading migrations: %s", err)
+	}
+	defer m.Close()
+	err = m.Drop()
+	if err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("While dropping: %s", err)
 	}
 	return nil
 }
@@ -73,6 +103,11 @@ func CreateUser(user *models.User) error {
 		Columns("name", "email", "role_id").
 		Values(user.Name, user.Email, user.RoleID).
 		ToSql()
+	_, err := DB.Exec(context.Background(), sql, args...)
+	return err
+}
+func DeleteUser(id int) error {
+	sql, args, _ := psql.Delete("users").Where("id == $1", id).ToSql()
 	_, err := DB.Exec(context.Background(), sql, args...)
 	return err
 }
@@ -122,4 +157,9 @@ func CreateEssay(essay *models.Essay) error {
 		return err
 	}
 	return nil
+}
+func DeleteEssay(id int) error {
+	sql, args, _ := psql.Delete("essays").Where("id == $1", id).ToSql()
+	_, err := DB.Exec(context.Background(), sql, args...)
+	return err
 }

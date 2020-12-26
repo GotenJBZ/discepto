@@ -2,6 +2,9 @@ package models
 
 type PermissionType string
 
+const RoleDefault = 0
+const RoleAdmin = -123
+
 const (
 	PermissionTypeAddMods     PermissionType = "add_mods"
 	PermissionTypeDeletePosts PermissionType = "delete_posts"
@@ -10,8 +13,6 @@ const (
 )
 
 type RoleID int
-
-const RoleAdmin = 1
 
 type Role struct {
 	ID          int

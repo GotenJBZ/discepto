@@ -6,8 +6,12 @@ release:
 pack: release
 	tar -czf build/discepto.tar.gz -C build/ discepto/ --remove-files
 
-run:
-	go run cmd/discepto/main.go
+build:
+	mkdir -p build/discepto/
+	go build -o build/discepto/discepto gitlab.com/ranfdev/discepto/cmd/discepto/
+
+run: build
+	./build/discepto/discepto start
 
 test:
 	go fmt `go list ./... | grep -v /vendor/`
@@ -16,4 +20,4 @@ test:
 clean:
 	rm -rf build/
 
-.PHONY: run release pack clean test
+.PHONY: run release pack clean test build

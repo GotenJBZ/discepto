@@ -14,10 +14,39 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/routes"
 )
 
+const usage = `Usage:
+	- start
+	- migrate [up/down]
+`
+
 func main() {
+	if len(os.Args) == 1 {
+		fmt.Println(usage)
+		return
+	}
 	switch os.Args[1] {
 	case "start":
 		Start()
+	case "migrate":
+		var err error
+		switch os.Args[2] {
+		case "up":
+			err = db.MigrateUp()
+		case "down":
+			err = db.MigrateDown()
+		case "drop":
+			err = db.Drop()
+		default:
+			fmt.Println(usage)
+			return
+		}
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println("Done")
+	default:
+		fmt.Println(usage)
 	}
 }
 
@@ -26,7 +55,7 @@ func Start() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = db.Migrate()
+	err = db.MigrateUp()
 	if err != nil {
 		log.Fatal(err)
 	}
