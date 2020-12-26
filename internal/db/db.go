@@ -10,13 +10,24 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/utils"
 )
 
+const (
+	LimitMaxTags       = 10
+	LimitMinContentLen = 150
+	LimitMaxContentLen = 5000 // 5K
+)
+
+var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+
 var ErrBadEmailSyntax error = errors.New("Bad email syntax")
+var ErrTooManyTags error = errors.New("You have inserted too many tags")
+var ErrBadContentLen error = errors.New("You have to respect the imposed content length limits")
 var DB *pgxpool.Pool
 
 func Connect() error {
@@ -57,6 +68,58 @@ func CreateUser(user *models.User) error {
 	if !utils.ValidateEmail(user.Email) {
 		return ErrBadEmailSyntax
 	}
-	_, err := DB.Exec(context.Background(), "INSERT INTO users (name, email, role_id) VALUES ($1, $2, $3)", user.Name, user.Email, user.RoleID)
+	sql, args, _ := psql.
+		Insert("users").
+		Columns("name", "email", "role_id").
+		Values(user.Name, user.Email, user.RoleID).
+		ToSql()
+	_, err := DB.Exec(context.Background(), sql, args...)
 	return err
+}
+func CreateEssay(essay *models.Essay) error {
+	clen := len(essay.Content)
+	if clen > LimitMaxContentLen || clen < LimitMinContentLen {
+		return ErrBadContentLen
+	}
+	tx, err := DB.Begin(context.Background())
+	defer tx.Rollback(context.Background())
+	if err != nil {
+		return err
+	}
+	sql, args, _ := psql.
+		Insert("essays").
+		Columns("thesis", "content", "attributed_to_id", "published").
+		Suffix("RETURNING id").
+		Values(essay.Thesis, essay.Content, essay.AttributedToID, essay.Published).
+		ToSql()
+
+	row := tx.QueryRow(context.Background(), sql, args...)
+	var id int
+	err = row.Scan(&id)
+	if err != nil {
+		return fmt.Errorf("Error inserting essay in db: %w", err)
+	}
+	essay.ID = id
+	if len(essay.Tags) > LimitMaxTags {
+		return ErrTooManyTags
+	}
+
+	for _, tag := range essay.Tags {
+		fmt.Println(tag)
+		sql, args, _ = psql.
+			Insert("essay_tags").
+			Columns("essay_id", "tag").
+			Values(essay.ID, tag).
+			ToSql()
+		_, err := tx.Exec(context.Background(),
+			sql, args...)
+		if err != nil {
+			return fmt.Errorf("Error inserting essay_tag in db: %w", err)
+		}
+	}
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -3,7 +3,6 @@ package routes
 import (
 	"fmt"
 	"github.com/go-chi/chi"
-	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/server"
 	"log"
@@ -22,16 +21,11 @@ func GetCreateEssay(w http.ResponseWriter, r *http.Request) {
 	server.RenderHTML(w, "createEssay", nil)
 }
 func GetEssay(w http.ResponseWriter, r *http.Request) {
-	users, err := db.ListUsers()
-	if err != nil {
-		panic(err)
-	}
-
 	essay := models.Essay{
-		Thesis:       "asdf",
-		Content:      "asdf",
-		AttributedTo: users[0],
-		Published:    time.Now(),
+		Thesis:         "asdf",
+		Content:        "asdf",
+		AttributedToID: 0,
+		Published:      time.Now(),
 	}
 
 	server.RenderHTML(w, "essay", essay)

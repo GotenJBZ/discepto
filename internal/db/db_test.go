@@ -1,9 +1,12 @@
 package db
 
 import (
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"net/url"
 	"os"
 	"testing"
+	"time"
+
+	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
 func init() {
@@ -47,5 +50,24 @@ func TestListUsers(t *testing.T) {
 	_, err := ListUsers()
 	if err != nil {
 		t.Error(err)
+	}
+}
+func TestCreateEssay(t *testing.T) {
+	myurl, _ := url.Parse("https://fruit.com")
+	essay := &models.Essay{
+		Thesis: "Banana is the best fruit",
+		Content: `Banana is the best fruit because...
+		Banana is the best fruit because...
+		Banana is the best fruit because...
+		Banana is the best fruit because...
+		Banana is the best fruit because...`,
+		AttributedToID: 1,
+		Tags:           []string{"banana", "fruit", "best"},
+		Sources:        []*url.URL{myurl},
+		Published:      time.Now(),
+	}
+	err := CreateEssay(essay)
+	if err != nil {
+		t.Errorf("Failed to create essay: %v", err)
 	}
 }

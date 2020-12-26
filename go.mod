@@ -3,6 +3,7 @@ module gitlab.com/ranfdev/discepto
 go 1.15
 
 require (
+	github.com/Masterminds/squirrel v1.5.0
 	github.com/georgysavva/scany v0.2.7
 	github.com/go-chi/chi v1.5.1
 	github.com/golang-migrate/migrate/v4 v4.14.1

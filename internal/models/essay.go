@@ -1,13 +1,16 @@
 package models
 
-import "time"
+import (
+	"net/url"
+	"time"
+)
 
 type Essay struct {
-	ID           int
-	Thesis       string
-	Content      string
-	AttributedTo User
-	Published    time.Time
-	Tags         []Tag
-	Source       []Source
+	ID             int
+	Thesis         string
+	Content        string
+	AttributedToID int `db:"attributed_to"`
+	Published      time.Time
+	Tags           []string
+	Sources        []*url.URL
 }
