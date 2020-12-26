@@ -102,12 +102,14 @@ func CreateUser(user *models.User) error {
 		Insert("users").
 		Columns("name", "email", "role_id").
 		Values(user.Name, user.Email, user.RoleID).
+		Suffix("RETURNING id").
 		ToSql()
-	_, err := DB.Exec(context.Background(), sql, args...)
+	row := DB.QueryRow(context.Background(), sql, args...)
+	err := row.Scan(&user.ID)
 	return err
 }
 func DeleteUser(id int) error {
-	sql, args, _ := psql.Delete("users").Where("id == $1", id).ToSql()
+	sql, args, _ := psql.Delete("users").Where("id = $1", id).ToSql()
 	_, err := DB.Exec(context.Background(), sql, args...)
 	return err
 }
@@ -129,12 +131,10 @@ func CreateEssay(essay *models.Essay) error {
 		ToSql()
 
 	row := tx.QueryRow(context.Background(), sql, args...)
-	var id int
-	err = row.Scan(&id)
+	err = row.Scan(&essay.ID)
 	if err != nil {
 		return fmt.Errorf("Error inserting essay in db: %w", err)
 	}
-	essay.ID = id
 	if len(essay.Tags) > LimitMaxTags {
 		return ErrTooManyTags
 	}
@@ -159,7 +159,7 @@ func CreateEssay(essay *models.Essay) error {
 	return nil
 }
 func DeleteEssay(id int) error {
-	sql, args, _ := psql.Delete("essays").Where("id == $1", id).ToSql()
+	sql, args, _ := psql.Delete("essays").Where("id = $1", id).ToSql()
 	_, err := DB.Exec(context.Background(), sql, args...)
 	return err
 }
