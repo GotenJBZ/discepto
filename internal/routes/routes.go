@@ -1,9 +1,10 @@
 package routes
 
 import (
-	"log"
 	"net/http"
 
+	"github.com/go-chi/chi/middleware"
+	"github.com/rs/zerolog/hlog"
 	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/server"
@@ -29,7 +30,11 @@ func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) 
 			err.Message = "Internal server error"
 		}
 		http.Error(w, err.Message, http.StatusInternalServerError)
-		log.Println(err)
+		hlog.FromRequest(r).
+		Error().
+		Str("request_id", middleware.GetReqID(r.Context())).
+		Err(err.Cause).
+		Msg(err.Message)
 	}
 	return res
 }

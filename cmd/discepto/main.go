@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -10,6 +11,8 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/markbates/pkger"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/routes"
 )
@@ -62,9 +65,34 @@ func Start() {
 
 	r := chi.NewRouter()
 
+	var writer io.Writer
+	if os.Getenv("DEBUG") == "true" {
+		writer = zerolog.ConsoleWriter{Out: os.Stdout}
+	} else {
+		writer = os.Stdout
+	}
+	log := zerolog.New(writer).With().Timestamp().Logger()
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
+	logger := hlog.AccessHandler(func (r *http.Request, status, size int, duration time.Duration) {
+		hlog.
+		FromRequest(r).
+		Info().
+		Str("request_id", middleware.GetReqID(r.Context())).
+		Int("status", status).
+		Str("url", r.URL.String()).
+		Str("method", r.Method).Int("size", size).
+		Dur("duration", duration).
+		Str("ip", r.RemoteAddr).
+		Str("user_agent", r.UserAgent()).
+		Msg("")
+	})
+
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
+	r.Use(hlog.NewHandler(log))
+	r.Use(logger)
+	
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(15 * time.Second))
 
@@ -90,6 +118,7 @@ func Start() {
 	if port == "" {
 		port = "23495"
 	}
-	log.Println(fmt.Sprintf("Starting server at http://localhost:%s", port))
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), r))
+	addr := fmt.Sprintf("http://localhost:%s", port)
+	log.Info().Str("server_address", addr).Msg("Server is starting")
+	log.Error().Err(http.ListenAndServe(fmt.Sprintf(":%s", port), r)).Msg("Server startup failed")
 }
