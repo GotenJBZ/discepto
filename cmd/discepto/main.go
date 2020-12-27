@@ -108,8 +108,8 @@ func Start() {
 
 	r.Get("/users", routes.AppHandler(routes.GetUsers))
 
-	r.Get("/register", routes.GetRegister)
-	r.Post("/register", routes.AppHandler(routes.PostRegister))
+	r.Get("/signup", routes.GetSignup)
+	r.Post("/signup", routes.AppHandler(routes.PostSignup))
 
 	r.Route("/essays", routes.EssaysRouter)
 	r.Get("/newessay", routes.GetNewEssay)

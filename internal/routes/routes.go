@@ -13,7 +13,7 @@ import (
 type AppError struct {
 	Message string
 	Code    int
-	Cause   error
+	Status   error
 }
 
 func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) http.HandlerFunc {
@@ -33,7 +33,7 @@ func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) 
 		hlog.FromRequest(r).
 		Error().
 		Str("request_id", middleware.GetReqID(r.Context())).
-		Err(err.Cause).
+		Err(err.Status).
 		Msg(err.Message)
 	}
 	return res
@@ -44,16 +44,16 @@ func GetHome(w http.ResponseWriter, r *http.Request) {
 func GetUsers(w http.ResponseWriter, r *http.Request) *AppError {
 	users, err := db.ListUsers()
 	if err != nil {
-		return &AppError{Cause: err}
+		return &AppError{Status: err}
 	}
 
 	server.RenderHTML(w, "users", users)
 	return nil
 }
-func GetRegister(w http.ResponseWriter, r *http.Request) {
-	server.RenderHTML(w, "register", nil)
+func GetSignup(w http.ResponseWriter, r *http.Request) {
+	server.RenderHTML(w, "signup", nil)
 }
-func PostRegister(w http.ResponseWriter, r *http.Request) *AppError {
+func PostSignup(w http.ResponseWriter, r *http.Request) *AppError {
 	email := r.FormValue("email")
 	err := db.CreateUser(&models.User{
 		Name:   r.FormValue("name"),
@@ -61,10 +61,10 @@ func PostRegister(w http.ResponseWriter, r *http.Request) *AppError {
 		RoleID: models.RoleAdmin,
 	})
 	if err == db.ErrBadEmailSyntax {
-		return &AppError{Cause: err, Message: "Bad email syntax"}
+		return &AppError{Status: err, Message: "Bad email syntax"}
 	}
 	if err != nil {
-		return &AppError{Cause: err}
+		return &AppError{Status: err}
 	}
 	http.Redirect(w, r, "/users", http.StatusSeeOther)
 	return nil

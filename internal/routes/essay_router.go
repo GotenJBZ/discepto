@@ -26,7 +26,7 @@ func GetEssays(w http.ResponseWriter, r *http.Request) *AppError {
 	essays, err := db.ListEssays()
 	server.RenderHTML(w, "essays", essays)
 	if err != nil {
-		return &AppError{Cause: err}
+		return &AppError{Status: err}
 	}
 	return nil
 }
@@ -48,7 +48,7 @@ func PostEssay(w http.ResponseWriter, r *http.Request) *AppError {
 	}
 	err := db.CreateEssay(&essay)
 	if err != nil {
-		return &AppError{Cause: err}
+		return &AppError{Status: err}
 	}
 	http.Redirect(w, r, "/essays", http.StatusSeeOther)
 	return nil
