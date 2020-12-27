@@ -1,0 +1,14 @@
+{{ define "newEssay" }}
+{{ template "head" . }}
+<p>Create a new essay</p>
+<form action="/essays" method="post">
+    <label name="thesis">Thesis</label><br>
+    <input type="area" name="thesis" label="thesis"><br>
+    <label name="content">Content (min: 150 chars)</label><br>
+    <textarea name="content" label="content"></textarea><br>
+    <label name="tags">Tags</label><br>
+    <input name="tags" label="tags"><br>
+    <button type="submit">Create</button>
+</form>
+{{ template "footer" . }}
+{{ end }}

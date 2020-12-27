@@ -9,7 +9,7 @@ type Essay struct {
 	ID             int
 	Thesis         string
 	Content        string
-	AttributedToID int `db:"attributed_to"`
+	AttributedToID int `db:"attributed_to_id"`
 	Published      time.Time
 	Tags           []string
 	Sources        []*url.URL

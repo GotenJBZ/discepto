@@ -83,7 +83,8 @@ func Start() {
 	r.Get("/register", routes.GetRegister)
 	r.Post("/register", routes.PostRegister)
 
-	r.Route("/essay", routes.EssayRouter)
+	r.Route("/essays", routes.EssaysRouter)
+	r.Get("/newessay", routes.GetNewEssay)
 
 	port := os.Getenv("PORT")
 	if port == "" {

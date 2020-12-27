@@ -113,6 +113,11 @@ func DeleteUser(id int) error {
 	_, err := DB.Exec(context.Background(), sql, args...)
 	return err
 }
+func ListEssays() ([]models.Essay, error) {
+	var essays []models.Essay
+	err := pgxscan.Select(context.Background(), DB, &essays, "SELECT * FROM essays")
+	return essays, err
+}
 func CreateEssay(essay *models.Essay) error {
 	clen := len(essay.Content)
 	if clen > LimitMaxContentLen || clen < LimitMinContentLen {

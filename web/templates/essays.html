@@ -1,9 +1,15 @@
-{{ define "essay" }}
+{{ define "essays" }}
 {{ template "head" . }}
+<ul>
+{{ range . }}
+<li>
 <p>ID: {{.ID}}</p>
 <p>Thesis: {{.Thesis}}</p>
 <p>Thesis: {{.Content}}</p>
 <p>AttributedToID: {{.AttributedToID}}</p>
-<p>Tags: {{ range .Tags }}{{ . }}{{ end }}</p>
+<p>Tags: {{range .Tags}}{{.}}{{end}}</p>
+</li>
+{{ end }}
+</ul>
 {{ template "footer" . }}
 {{ end }}
