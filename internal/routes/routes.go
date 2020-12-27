@@ -13,7 +13,7 @@ import (
 type AppError struct {
 	Message string
 	Code    int
-	Status   error
+	Status  error
 }
 
 func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) http.HandlerFunc {
@@ -31,10 +31,10 @@ func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) 
 		}
 		http.Error(w, err.Message, http.StatusInternalServerError)
 		hlog.FromRequest(r).
-		Error().
-		Str("request_id", middleware.GetReqID(r.Context())).
-		Err(err.Status).
-		Msg(err.Message)
+			Error().
+			Str("request_id", middleware.GetReqID(r.Context())).
+			Err(err.Status).
+			Msg(err.Message)
 	}
 	return res
 }

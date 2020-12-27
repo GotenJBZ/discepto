@@ -74,25 +74,25 @@ func Start() {
 	log := zerolog.New(writer).With().Timestamp().Logger()
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
-	logger := hlog.AccessHandler(func (r *http.Request, status, size int, duration time.Duration) {
+	logger := hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
 		hlog.
-		FromRequest(r).
-		Info().
-		Str("request_id", middleware.GetReqID(r.Context())).
-		Int("status", status).
-		Str("url", r.URL.String()).
-		Str("method", r.Method).Int("size", size).
-		Dur("duration", duration).
-		Str("ip", r.RemoteAddr).
-		Str("user_agent", r.UserAgent()).
-		Msg("")
+			FromRequest(r).
+			Info().
+			Str("request_id", middleware.GetReqID(r.Context())).
+			Int("status", status).
+			Str("url", r.URL.String()).
+			Str("method", r.Method).Int("size", size).
+			Dur("duration", duration).
+			Str("ip", r.RemoteAddr).
+			Str("user_agent", r.UserAgent()).
+			Msg("")
 	})
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(hlog.NewHandler(log))
 	r.Use(logger)
-	
+
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(15 * time.Second))
 
