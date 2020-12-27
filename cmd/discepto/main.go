@@ -78,10 +78,10 @@ func Start() {
 	// Serve dynamic routes
 	r.Get("/", routes.GetHome)
 
-	r.Get("/users", routes.GetUsers)
+	r.Get("/users", routes.AppHandler(routes.GetUsers))
 
 	r.Get("/register", routes.GetRegister)
-	r.Post("/register", routes.PostRegister)
+	r.Post("/register", routes.AppHandler(routes.PostRegister))
 
 	r.Route("/essays", routes.EssaysRouter)
 	r.Get("/newessay", routes.GetNewEssay)

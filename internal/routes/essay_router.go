@@ -2,7 +2,6 @@ package routes
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -14,22 +13,22 @@ import (
 )
 
 func EssaysRouter(r chi.Router) {
-	r.Get("/", GetEssays)
+	r.Get("/", AppHandler(GetEssays))
 	r.Get("/{id}", GetEssay)
-	r.Post("/", PostEssay)
+	r.Post("/", AppHandler(PostEssay))
 	r.Put("/", UpdateEssay)
 	r.Delete("/{id}", DeleteEssay)
 }
 func GetNewEssay(w http.ResponseWriter, r *http.Request) {
 	server.RenderHTML(w, "newEssay", nil)
 }
-func GetEssays(w http.ResponseWriter, r *http.Request) {
+func GetEssays(w http.ResponseWriter, r *http.Request) *AppError {
 	essays, err := db.ListEssays()
 	server.RenderHTML(w, "essays", essays)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Panic(err)
+		return &AppError{Cause: err}
 	}
+	return nil
 }
 func GetEssay(w http.ResponseWriter, r *http.Request) {
 	essay := models.Essay{
@@ -41,18 +40,18 @@ func GetEssay(w http.ResponseWriter, r *http.Request) {
 
 	server.RenderHTML(w, "essay", essay)
 }
-func PostEssay(w http.ResponseWriter, r *http.Request) {
+func PostEssay(w http.ResponseWriter, r *http.Request) *AppError {
 	essay := models.Essay{
-		Thesis: r.FormValue("thesis"),
+		Thesis:  r.FormValue("thesis"),
 		Content: r.FormValue("content"),
-		Tags: strings.Fields(r.FormValue("tags")),
+		Tags:    strings.Fields(r.FormValue("tags")),
 	}
 	err := db.CreateEssay(&essay)
 	if err != nil {
-		http.Error(w, "Error creating essay", http.StatusInternalServerError)
-		log.Panic(err)
+		return &AppError{Cause: err}
 	}
 	http.Redirect(w, r, "/essays", http.StatusSeeOther)
+	return nil
 }
 func DeleteEssay(w http.ResponseWriter, r *http.Request) {
 

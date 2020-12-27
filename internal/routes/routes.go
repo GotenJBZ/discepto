@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"log"
 	"net/http"
 
 	"gitlab.com/ranfdev/discepto/internal/db"
@@ -8,21 +9,46 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/server"
 )
 
+type AppError struct {
+	Message string
+	Code    int
+	Cause   error
+}
+
+func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) http.HandlerFunc {
+	res := func(w http.ResponseWriter, r *http.Request) {
+		err := handler(w, r)
+
+		if err == nil {
+			return
+		}
+		if err.Code == 0 {
+			err.Code = http.StatusInternalServerError
+		}
+		if err.Message == "" {
+			err.Message = "Internal server error"
+		}
+		http.Error(w, err.Message, http.StatusInternalServerError)
+		log.Println(err)
+	}
+	return res
+}
 func GetHome(w http.ResponseWriter, r *http.Request) {
 	server.RenderHTML(w, "home", nil)
 }
-func GetUsers(w http.ResponseWriter, r *http.Request) {
+func GetUsers(w http.ResponseWriter, r *http.Request) *AppError {
 	users, err := db.ListUsers()
 	if err != nil {
-		panic(err)
+		return &AppError{Cause: err}
 	}
 
 	server.RenderHTML(w, "users", users)
+	return nil
 }
 func GetRegister(w http.ResponseWriter, r *http.Request) {
 	server.RenderHTML(w, "register", nil)
 }
-func PostRegister(w http.ResponseWriter, r *http.Request) {
+func PostRegister(w http.ResponseWriter, r *http.Request) *AppError {
 	email := r.FormValue("email")
 	err := db.CreateUser(&models.User{
 		Name:   r.FormValue("name"),
@@ -30,12 +56,11 @@ func PostRegister(w http.ResponseWriter, r *http.Request) {
 		RoleID: models.RoleAdmin,
 	})
 	if err == db.ErrBadEmailSyntax {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return &AppError{Cause: err, Message: "Bad email syntax"}
 	}
 	if err != nil {
-		http.Error(w, "Error, status 500", http.StatusInternalServerError)
-		return
+		return &AppError{Cause: err}
 	}
 	http.Redirect(w, r, "/users", http.StatusSeeOther)
+	return nil
 }
