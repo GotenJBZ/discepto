@@ -1,5 +1,7 @@
 image: golang:alpine
 
+before_script:
+  - apk add make
 services:
   - postgres:13-alpine
 
