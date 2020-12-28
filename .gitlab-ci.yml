@@ -1,4 +1,4 @@
-image: golang:latest
+image: golang:alpine
 
 services:
   - postgres:13-alpine
