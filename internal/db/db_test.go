@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"net/url"
 	"os"
 	"testing"
@@ -44,38 +45,37 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	err = MigrateUp()
+	// Reset database before testing
+	err = MigrateDown()
 	if err != nil {
 		panic(err)
 	}
-}
-func TestCreateUser(t *testing.T) {
-	err := CreateUser(mockUser())
+	err = MigrateUp()
 	if err != nil {
-		t.Error(err)
-	}
-}
-func TestCreateUserBadEmail(t *testing.T) {
-	user := mockUser()
-	user.Email = "asdfhasdfkhlkjh"
-	err := CreateUser(user)
-	// The email is invalid, so there should be an error
-	if err == nil {
-		t.Error(err)
-	}
-}
-func TestDeleteUser(t *testing.T) {
-	user := &models.User{}
-	_ = CreateUser(user)
-	err := DeleteUser(user.ID)
-	if err != nil {
-		t.Error(err)
+		panic(err)
 	}
 }
 func TestListUsers(t *testing.T) {
 	_, err := ListUsers()
 	if err != nil {
 		t.Error(err)
+	}
+}
+func TestUser(t *testing.T) {
+	user := mockUser()
+	err := CreateUser(user)
+	if err != nil {
+		t.Error("Creating user:", err)
+	}
+	err = DeleteUser(user.ID)
+	if err != nil {
+		t.Error("Deleting user:", err)
+	}
+	user.Email = "asdfhasdfkhlkjh"
+	err = CreateUser(user)
+	// This SHOULD fail
+	if err == nil {
+		t.Error("Creating user with bad email:", err)
 	}
 }
 func TestEssay(t *testing.T) {
@@ -94,4 +94,5 @@ func TestEssay(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to DeleteEssay: %v", err)
 	}
+	DeleteUser(user.ID)
 }

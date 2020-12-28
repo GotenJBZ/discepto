@@ -8,7 +8,7 @@ INSERT INTO roles (id, name) OVERRIDING SYSTEM VALUE VALUES (0, 'default');
 CREATE TABLE users (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	name varchar(50) NOT NULL,
-	email varchar(100) NOT NULL,
+	email varchar(100) UNIQUE NOT NULL,
 	role_id int REFERENCES roles(id) DEFAULT 0
 );
 CREATE TYPE permission_type AS ENUM (

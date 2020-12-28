@@ -12,8 +12,8 @@ import (
 
 type AppError struct {
 	Message string
-	Code    int
-	Status  error
+	Status  int
+	Cause   error
 }
 
 func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) http.HandlerFunc {
@@ -23,8 +23,8 @@ func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) 
 		if err == nil {
 			return
 		}
-		if err.Code == 0 {
-			err.Code = http.StatusInternalServerError
+		if err.Status == 0 {
+			err.Status = http.StatusInternalServerError
 		}
 		if err.Message == "" {
 			err.Message = "Internal server error"
@@ -33,7 +33,7 @@ func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) 
 		hlog.FromRequest(r).
 			Error().
 			Str("request_id", middleware.GetReqID(r.Context())).
-			Err(err.Status).
+			Err(err.Cause).
 			Msg(err.Message)
 	}
 	return res
@@ -44,7 +44,7 @@ func GetHome(w http.ResponseWriter, r *http.Request) {
 func GetUsers(w http.ResponseWriter, r *http.Request) *AppError {
 	users, err := db.ListUsers()
 	if err != nil {
-		return &AppError{Status: err}
+		return &AppError{Cause: err}
 	}
 
 	server.RenderHTML(w, "users", users)
@@ -61,10 +61,13 @@ func PostSignup(w http.ResponseWriter, r *http.Request) *AppError {
 		RoleID: models.RoleAdmin,
 	})
 	if err == db.ErrBadEmailSyntax {
-		return &AppError{Status: err, Message: "Bad email syntax"}
+		return &AppError{Cause: err, Message: "Bad email syntax"}
+	}
+	if err == db.ErrEmailAlreadyUsed {
+		return &AppError{Cause: err, Message: "The email is already used"}
 	}
 	if err != nil {
-		return &AppError{Status: err}
+		return &AppError{Cause: err}
 	}
 	http.Redirect(w, r, "/users", http.StatusSeeOther)
 	return nil

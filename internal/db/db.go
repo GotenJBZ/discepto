@@ -28,6 +28,7 @@ var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 var ErrBadEmailSyntax error = errors.New("Bad email syntax")
 var ErrTooManyTags error = errors.New("You have inserted too many tags")
 var ErrBadContentLen error = errors.New("You have to respect the imposed content length limits")
+var ErrEmailAlreadyUsed error = errors.New("The email is already used")
 var DB *pgxpool.Pool
 
 func CheckEnvDatabaseUrl() string {
@@ -98,6 +99,23 @@ func CreateUser(user *models.User) error {
 	if !utils.ValidateEmail(user.Email) {
 		return ErrBadEmailSyntax
 	}
+
+	// Check if email is already used
+	var exists bool
+	err := pgxscan.Get(context.Background(),
+		DB,
+		&exists,
+		"SELECT exists(SELECT 1 FROM users WHERE email = $1)",
+		user.Email)
+
+	if err != nil {
+		return err
+	}
+	if exists {
+		return ErrEmailAlreadyUsed
+	}
+
+	// Insert the new user
 	sql, args, _ := psql.
 		Insert("users").
 		Columns("name", "email", "role_id").
@@ -105,8 +123,8 @@ func CreateUser(user *models.User) error {
 		Suffix("RETURNING id").
 		ToSql()
 	row := DB.QueryRow(context.Background(), sql, args...)
-	err := row.Scan(&user.ID)
-	return err
+	err = row.Scan(&user.ID)
+	return nil
 }
 func DeleteUser(id int) error {
 	sql, args, _ := psql.Delete("users").Where("id = $1", id).ToSql()
