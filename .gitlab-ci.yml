@@ -1,4 +1,4 @@
-image: golang:alpine
+image: golang:latest
 
 services:
   - postgres:13-alpine
@@ -27,16 +27,12 @@ stages:
 format:
   stage: test
   extends: .go-cache
-  before_script:
-  - apk add make
   script:
     - make test
 
 compile:
   stage: build
   extends: .go-cache
-  before_script:
-  - apk add make
   script:
     - make pack
   artifacts:
