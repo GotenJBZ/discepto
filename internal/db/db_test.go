@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"net/url"
 	"os"
 	"testing"
