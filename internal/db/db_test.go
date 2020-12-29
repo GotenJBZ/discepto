@@ -76,6 +76,9 @@ func TestUser(t *testing.T) {
 	if err == nil {
 		t.Fatalf("CreateUser(%v) = %v, want error", user, err)
 	}
+
+	// Clean
+	DeleteUser(user.ID)
 }
 func TestEssay(t *testing.T) {
 	user := mockUser()
@@ -154,4 +157,30 @@ func TestVotes(t *testing.T) {
 		t.Fatalf("DeleteVote(%v, %v) = %v, want nil",
 			vote.EssayID, vote.UserID, err)
 	}
+
+	DeleteEssay(essay.ID)
+	DeleteUser(user.ID)
+}
+func TestSubdiscepto(t *testing.T) {
+	// Setup needed data
+	user := mockUser()
+	CreateUser(user)
+
+	// Actual test
+	subdis := &models.Subdiscepto{
+		Name:        "subtest",
+		Description: "here we talk about tests",
+	}
+	err := CreateSubdiscepto(subdis, user.ID)
+	if err != nil {
+		t.Fatalf("CreateSubdiscepto(%v, %v) = %v, want nil", subdis, user.ID, err)
+	}
+
+	err = DeleteSubdiscepto(subdis.Name)
+	if err != nil {
+		t.Fatalf("DeleteSubdiscepto(%v) = %v, want nil", subdis.Name, err)
+	}
+
+	// Clean
+	DeleteUser(user.ID)
 }
