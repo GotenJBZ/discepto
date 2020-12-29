@@ -186,3 +186,112 @@ func DeleteEssay(id int) error {
 	_, err := DB.Exec(context.Background(), sql, args...)
 	return err
 }
+func CreateSubdiscepto(subd *models.Subdiscepto, firstUserID int) error {
+	tx, err := DB.Begin(context.Background())
+	if err != nil {
+		return err
+	}
+
+	// Insert subdiscepto
+	sql, args, _ := psql.
+		Insert("subdisceptos").
+		Columns("name", "description").
+		Values(subd.Name, subd.Description).
+		ToSql()
+	_, err = tx.Exec(context.Background(), sql, args...)
+
+	// Insert first user of subdiscepto
+	sql, args, _ = psql.
+		Insert("subdiscepto_users").
+		Columns("name", "user_id", "role_id").
+		Values(subd.Name, firstUserID, models.RoleAdmin).
+		ToSql()
+
+	_, err = tx.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return err
+	}
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func DeleteSubdiscepto(name string) error {
+	sql, args, _ := psql.
+		Delete("subdisceptos").
+		Where("name = $1", name).
+		ToSql()
+
+	_, err := DB.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func CreateReport(report *models.Report) error {
+	sql, args, _ := psql.
+		Insert("reports").
+		Columns("flag", "essay_id", "from_user_id", "to_user_id").
+		Values(report.Flag, report.EssayID, report.FromUserID, report.ToUserID).
+		Suffix("RETURNING id").
+		ToSql()
+	row := DB.QueryRow(context.Background(), sql, args...)
+	err := row.Scan(&report.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+//TODO: Add on delete cascade to schema
+func DeleteReport(report *models.Report) error {
+	sql, args, _ := psql.
+		Delete("reports").
+		Where("id = $1", report.ID).
+		ToSql()
+
+	_, err := DB.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func CreateVote(vote *models.Vote) error {
+	sql, args, _ := psql.
+		Insert("votes").
+		Columns("user_id", "essay_id", "vote_type").
+		Values(vote.UserID, vote.EssayID, vote.VoteType).
+		ToSql()
+	_, err := DB.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func CountVotes(essayID int, vote_type models.VoteType) (int, error) {
+	sql, args, _ := psql.
+		Select("count(votes)").
+		Where("essay_id = $1 AND vote_type", essayID, vote_type).
+		ToSql()
+
+	row := DB.QueryRow(context.Background(), sql, args...)
+	count := 0
+	err := row.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return 0, nil
+}
+func DeleteVote(userID int, essayID int) error {
+	sql, args, _ := psql.
+		Delete("votes").
+		Where("user_id = $1 AND essay_id = $2", userID, essayID).
+		ToSql()
+	_, err := DB.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return err
+	}
+	return nil
+}

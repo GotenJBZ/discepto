@@ -13,7 +13,7 @@ type Report struct {
 	ID          int
 	Flag        FlagType
 	Description string
-	Essay       *Essay
-	FromUser    *User
-	ToUser      *User
+	EssayID     *int `db:"essay_id"` // pointer because it can be null
+	FromUserID  int  `db:"from_user_id"`
+	ToUserID    int  `db:"to_user_id"`
 }

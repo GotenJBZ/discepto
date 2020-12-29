@@ -8,7 +8,7 @@ const (
 )
 
 type Vote struct {
-	From     User
-	Essay    Essay
+	UserID   int `db:"user_id"`
+	EssayID  int `db:"essay_id"`
 	VoteType VoteType
 }
