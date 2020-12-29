@@ -271,8 +271,9 @@ func CreateVote(vote *models.Vote) error {
 }
 func CountVotes(essayID int, vote_type models.VoteType) (int, error) {
 	sql, args, _ := psql.
-		Select("count(votes)").
-		Where("essay_id = $1 AND vote_type", essayID, vote_type).
+		Select("count(*)").
+		From("votes").
+		Where("essay_id = $1 AND vote_type = $2", essayID, vote_type).
 		ToSql()
 
 	row := DB.QueryRow(context.Background(), sql, args...)
@@ -282,9 +283,9 @@ func CountVotes(essayID int, vote_type models.VoteType) (int, error) {
 		return 0, err
 	}
 
-	return 0, nil
+	return count, nil
 }
-func DeleteVote(userID int, essayID int) error {
+func DeleteVote(essayID, userID int) error {
 	sql, args, _ := psql.
 		Delete("votes").
 		Where("user_id = $1 AND essay_id = $2", userID, essayID).
