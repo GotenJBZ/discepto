@@ -55,43 +55,42 @@ func init() {
 	}
 }
 func TestListUsers(t *testing.T) {
-	_, err := ListUsers()
+	users, err := ListUsers()
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("ListUsers() = %v, %v, want users, nil", users, err)
 	}
 }
 func TestUser(t *testing.T) {
 	user := mockUser()
 	err := CreateUser(user)
 	if err != nil {
-		t.Error("Creating user:", err)
+		t.Fatalf("CreateUser(%v) = %v, want nil", user, err)
 	}
 	err = DeleteUser(user.ID)
 	if err != nil {
-		t.Error("Deleting user:", err)
+		t.Fatalf("DeleteUser(%d) = %v, want nil", user.ID, err)
 	}
 	user.Email = "asdfhasdfkhlkjh"
 	err = CreateUser(user)
 	// This SHOULD fail
 	if err == nil {
-		t.Error("Creating user with bad email:", err)
+		t.Fatalf("CreateUser(%v) = %v, want error", user, err)
 	}
 }
 func TestEssay(t *testing.T) {
 	user := mockUser()
 	err := CreateUser(user)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	essay := mockEssay(user.ID)
 	err = CreateEssay(essay)
 	if err != nil {
-		t.Errorf("Failed to CreateEssay: %v", err)
+		t.Fatalf("CreateEssay(%v) = %v, want nil", essay, err)
 	}
 	err = DeleteEssay(essay.ID)
 	if err != nil {
-		t.Errorf("Failed to DeleteEssay: %v", err)
+		t.Fatalf("DeleteEssay(%v) = %v, want nil", essay.ID, err)
 	}
 	DeleteUser(user.ID)
 }
@@ -105,7 +104,8 @@ func TestVotes(t *testing.T) {
 	// Actual test
 	count, err := CountVotes(essay.ID, models.VoteTypeUpvote)
 	if err != nil || count != 0 {
-		t.Errorf("Counting upvotes: %v", err)
+		t.Fatalf("CountVotes(%v, %v) = %v, %v, want 0, nil",
+			essay.ID, models.VoteTypeUpvote, count, err)
 	}
 
 	// Add upvote
@@ -116,23 +116,20 @@ func TestVotes(t *testing.T) {
 	}
 	err = CreateVote(vote)
 	if err != nil {
-		t.Errorf("Creating vote: %v", err)
-		return
+		t.Fatalf("CreateVote(%v) = %v, want nil", vote, err)
 	}
 	count, err = CountVotes(essay.ID, models.VoteTypeUpvote)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if count != 1 {
-		t.Errorf("Expected 1 upvote, got %d", count)
+	if err != nil || count != 1 {
+		t.Fatalf("CountVotes(%v, %v) = %v, %v, want 1, nil",
+			essay.ID, models.VoteTypeUpvote, count, err)
 		return
 	}
 
 	// Delete (needed to change vote type for same user)
 	err = DeleteVote(vote.EssayID, vote.UserID)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("DeleteVote(%v, %v) = %v, want nil",
+			vote.EssayID, vote.UserID, err)
 	}
 
 	// Create downvote
@@ -143,22 +140,18 @@ func TestVotes(t *testing.T) {
 	}
 	err = CreateVote(vote)
 	if err != nil {
-		t.Errorf("Creating vote: %v", err)
-		return
+		t.Fatalf("CreateVote(%v) = %v, want nil", vote, err)
 	}
 	count, err = CountVotes(essay.ID, models.VoteTypeDownvote)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if count != 1 {
-		t.Errorf("Expected 1 downvote, got %d", count)
-		return
+	if err != nil || count != 1 {
+		t.Fatalf("CountVotes(%v, %v) = %v, %v, want 1, nil",
+			essay.ID, models.VoteTypeDownvote, count, err)
 	}
 
 	// Clean
 	err = DeleteVote(vote.EssayID, vote.UserID)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("DeleteVote(%v, %v) = %v, want nil",
+			vote.EssayID, vote.UserID, err)
 	}
 }
