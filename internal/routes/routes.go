@@ -2,13 +2,18 @@ package routes
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/middleware"
+	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog/hlog"
 	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/server"
+	//"github.com/gorilla/sessions"
 )
+
+var cookiestore = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
 
 type AppError struct {
 	Message string
@@ -39,7 +44,16 @@ func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) 
 	return res
 }
 func GetHome(w http.ResponseWriter, r *http.Request) {
-	server.RenderHTML(w, "home", nil)
+	type homeData struct {
+		User *models.User
+	}
+	session, _ := cookiestore.Get(r, "discepto")
+	token := session.Values["token"]
+	user, _ := db.GetUserByToken(token.(string))
+
+	server.RenderHTML(w, "home", homeData {
+		User: user,
+	})
 }
 func GetUsers(w http.ResponseWriter, r *http.Request) *AppError {
 	users, err := db.ListUsers()
@@ -55,11 +69,11 @@ func GetSignup(w http.ResponseWriter, r *http.Request) {
 }
 func PostSignup(w http.ResponseWriter, r *http.Request) *AppError {
 	email := r.FormValue("email")
-	err := db.CreateUser(&models.User{
+	token, err := db.CreateUser(&models.User{
 		Name:   r.FormValue("name"),
 		Email:  email,
 		RoleID: models.RoleAdmin,
-	})
+	}, r.FormValue("password"))
 	if err == db.ErrBadEmailSyntax {
 		return &AppError{Cause: err, Message: "Bad email syntax"}
 	}
@@ -69,6 +83,11 @@ func PostSignup(w http.ResponseWriter, r *http.Request) *AppError {
 	if err != nil {
 		return &AppError{Cause: err}
 	}
+
+	session, _ := cookiestore.Get(r, "discepto")
+	session.Values["token"] = token
+	session.Save(r, w)
+
 	http.Redirect(w, r, "/users", http.StatusSeeOther)
 	return nil
 }

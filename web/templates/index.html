@@ -1,6 +1,6 @@
 {{ define "home" }}
 {{ template "head" . }}
-<h1>Wewe boys</h1>
+<h1>Wewe {{.User.Email}}</h1>
 <ul>
 	<li>
 		<a href="/signup">Create new user</a>

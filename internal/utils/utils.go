@@ -1,8 +1,12 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"regexp"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 )
 
 func ValidateEmail(email string) bool {
@@ -28,4 +32,10 @@ func CheckPerms(provided string, needed string) (ok bool) {
 		}
 	}
 	return ok
+}
+func GenToken(l int) string {
+	randBytes := make([]byte, l)
+	_, err := rand.Read(randBytes)
+	log.Fatal().AnErr("Generating random token", err)
+	return hex.EncodeToString(randBytes)
 }

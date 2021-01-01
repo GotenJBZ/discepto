@@ -15,13 +15,17 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/utils"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
 	LimitMaxTags       = 10
 	LimitMinContentLen = 150
 	LimitMaxContentLen = 5000 // 5K
+	TokenLen           = 64   // 64 bytes
 )
+
+var BCryptCost = 11
 
 var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 
@@ -29,6 +33,13 @@ var ErrBadEmailSyntax error = errors.New("Bad email syntax")
 var ErrTooManyTags error = errors.New("You have inserted too many tags")
 var ErrBadContentLen error = errors.New("You have to respect the imposed content length limits")
 var ErrEmailAlreadyUsed error = errors.New("The email is already used")
+
+func init() {
+	if os.Getenv("DEBUG") == "true" {
+		BCryptCost = bcrypt.MinCost // To speed up testing
+	}
+}
+
 var DB *pgxpool.Pool
 
 func CheckEnvDatabaseUrl() string {
@@ -95,36 +106,107 @@ func ListUsers() ([]models.User, error) {
 	return users, err
 }
 
-func CreateUser(user *models.User) error {
+func CreateUser(user *models.User, passwd string) (token string, err error) {
+	// Check email format
 	if !utils.ValidateEmail(user.Email) {
-		return ErrBadEmailSyntax
+		return "", ErrBadEmailSyntax
 	}
 
 	// Check if email is already used
 	var exists bool
-	err := pgxscan.Get(context.Background(),
+	err = pgxscan.Get(context.Background(),
 		DB,
 		&exists,
 		"SELECT exists(SELECT 1 FROM users WHERE email = $1)",
 		user.Email)
 
 	if err != nil {
-		return err
+		return "", err
 	}
 	if exists {
-		return ErrEmailAlreadyUsed
+		return "", ErrEmailAlreadyUsed
 	}
 
 	// Insert the new user
+	tx, err := DB.Begin(context.Background())
 	sql, args, _ := psql.
 		Insert("users").
 		Columns("name", "email", "role_id").
 		Values(user.Name, user.Email, user.RoleID).
 		Suffix("RETURNING id").
 		ToSql()
-	row := DB.QueryRow(context.Background(), sql, args...)
+	row := tx.QueryRow(context.Background(), sql, args...)
 	err = row.Scan(&user.ID)
-	return nil
+	if err != nil {
+		return "", err
+	}
+
+	// Insert the password hash
+	hash, err := bcrypt.GenerateFromPassword([]byte(passwd), BCryptCost)
+	sql, args, _ = psql.
+		Insert("credentials").
+		Columns("user_id", "hash").
+		Values(user.ID, string(hash)).
+		ToSql()
+
+	_, err = tx.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return "", err
+	}
+
+	// Insert a new token
+	token = utils.GenToken(TokenLen)
+	sql, args, _ = psql.
+		Insert("tokens").
+		Columns("user_id", "token").
+		Values(user.ID, token).
+		ToSql()
+
+	_, err = tx.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return "", err
+	}
+
+	// Commit changes
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+func CheckPasswd(user *models.User, passwd string) (bool, error) {
+	var hash string
+	err := pgxscan.Get(
+		context.Background(),
+		DB,
+		&hash,
+		"SELECT hash FROM credentials WHERE user_id = $1",
+		user.ID,
+	)
+	compareErr := bcrypt.CompareHashAndPassword([]byte(hash), []byte(passwd))
+	if err != nil || compareErr != nil {
+		return false, err
+	}
+	return true, nil
+}
+func GetUserByToken(token string) (*models.User, error) {
+	user := &models.User{}
+	sql, args, _ := psql.
+		Select("users.name", "users.id", "users.role_id", "users.email").
+		From("users").
+		LeftJoin("tokens ON users.id = tokens.user_id").
+		Where("tokens.token = $1", token).
+		ToSql()
+
+	err := pgxscan.Get(
+		context.Background(),
+		DB, user,
+		sql, args...)
+
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 func DeleteUser(id int) error {
 	sql, args, _ := psql.Delete("users").Where("id = $1", id).ToSql()

@@ -15,7 +15,7 @@ cd $repo_url
 # To run:
 # When developing locally, set DEBUG to true.
 # Pass the correct database creds
-DEBUG=true DATABASE_URL="postgres://user:passwd@localhost/disceptoDb" make run
+DATABASE_URL="postgres://user:passwd@localhost/disceptoDb" make run
 
 # To build release:
 make release
@@ -25,3 +25,4 @@ make release
 DEBUG: when `true`, reload html templates every request
 DATABASE_URL: you know
 PORT: you know. Default is 23495
+SESSION_KEY: key used to encrypt cookies

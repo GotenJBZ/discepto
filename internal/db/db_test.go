@@ -9,6 +9,7 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
+const mockPasswd = "123456789" // hackerman
 func mockUser() *models.User {
 	return &models.User{
 		Name:  "Pippo",
@@ -62,27 +63,66 @@ func TestListUsers(t *testing.T) {
 }
 func TestUser(t *testing.T) {
 	user := mockUser()
-	err := CreateUser(user)
+	passwd := mockPasswd
+	token, err := CreateUser(user, passwd)
+	t.Log(token)
 	if err != nil {
-		t.Fatalf("CreateUser(%v) = %v, want nil", user, err)
+		t.Fatalf(
+			"CreateUser(%v, %v) = %v, %v, want token, nil",
+			user,
+			passwd,
+			token,
+			err,
+		)
+	}
+	ok, err := CheckPasswd(user, passwd)
+	if !ok || err != nil {
+		t.Fatalf("CheckPasswd(%v, %v) = %v, %v, want true, nil", user, passwd, ok, err)
+	}
+
+	// Now let's test a bad passwd
+	passwd = "93sdjfhkasdhfkjha"
+	ok, err = CheckPasswd(user, passwd)
+	if ok || err != nil {
+		t.Fatalf("CheckPasswd(%v, %v) = %v, %v, want false, nil", user, passwd, ok, err)
 	}
 	err = DeleteUser(user.ID)
 	if err != nil {
 		t.Fatalf("DeleteUser(%d) = %v, want nil", user.ID, err)
 	}
+	// With bad email
 	user.Email = "asdfhasdfkhlkjh"
-	err = CreateUser(user)
+	token, err = CreateUser(user, passwd)
 	// This SHOULD fail
 	if err == nil {
-		t.Fatalf("CreateUser(%v) = %v, want error", user, err)
+		t.Fatalf(
+			"CreateUser(%v, %v) = %v, %v, want nil, error",
+			user,
+			passwd,
+			token,
+			err,
+		)
 	}
 
 	// Clean
 	DeleteUser(user.ID)
 }
+func TestToken(t *testing.T) {
+	user := mockUser()
+	passwd := mockPasswd
+	token, _ := CreateUser(user, passwd)
+	user2, err := GetUserByToken(token)
+	if err != nil {
+		t.Fatalf("GetUserByToken(%v) = %v, %v, want user, nil", token, user2, err)
+	}
+	if user.ID != user2.ID {
+		t.Fatalf("User IDs are different: %v, %v", user, user2)
+	}
+	DeleteUser(user.ID)
+}
 func TestEssay(t *testing.T) {
 	user := mockUser()
-	err := CreateUser(user)
+	_, err := CreateUser(user, mockPasswd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +140,7 @@ func TestEssay(t *testing.T) {
 func TestVotes(t *testing.T) {
 	// Setup needed data
 	user := mockUser()
-	_ = CreateUser(user)
+	_, _ = CreateUser(user, mockPasswd)
 	essay := mockEssay(user.ID)
 	_ = CreateEssay(essay)
 
@@ -164,7 +204,7 @@ func TestVotes(t *testing.T) {
 func TestSubdiscepto(t *testing.T) {
 	// Setup needed data
 	user := mockUser()
-	CreateUser(user)
+	CreateUser(user, mockPasswd)
 
 	// Actual test
 	subdis := &models.Subdiscepto{

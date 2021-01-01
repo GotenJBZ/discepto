@@ -1,26 +1,29 @@
 CREATE TABLE roles (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	permissions varchar(500) NOT NULL,
 	name varchar(50) NOT NULL
 );
 -- Create initial roles. Manually set an easy to remember id.
-INSERT INTO roles (id, name) OVERRIDING SYSTEM VALUE VALUES (-123, 'admin');
-INSERT INTO roles (id, name) OVERRIDING SYSTEM VALUE VALUES (0, 'default');
+INSERT INTO roles (id, name, permissions) OVERRIDING SYSTEM VALUE VALUES (
+	-123, 
+	'admin', 
+	'delete_posts ban_users'
+);
+INSERT INTO roles (id, name, permissions) OVERRIDING SYSTEM VALUE VALUES (0, 'default', '');
 CREATE TABLE users (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	name varchar(50) NOT NULL,
 	email varchar(100) UNIQUE NOT NULL,
 	role_id int REFERENCES roles(id) DEFAULT 0
 );
-CREATE TYPE permission_type AS ENUM (
-	'add_mods',
-	'delete_posts', -- post is every type of content
-	'ban_users',
-	'flag_posts'
+CREATE TABLE credentials (
+	user_id int PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+	hash varchar(255)
 );
-CREATE TABLE role_permissions (
-	role_id int REFERENCES roles(id),
-	permission permission_type,
-	PRIMARY KEY(role_id, permission)
+CREATE TABLE tokens (
+	token varchar(255),
+	user_id int REFERENCES users(id) ON DELETE CASCADE,
+	PRIMARY KEY(user_id, token)
 );
 CREATE TABLE essays (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
