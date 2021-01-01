@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -49,7 +50,10 @@ func GetHome(w http.ResponseWriter, r *http.Request) {
 	}
 	session, _ := cookiestore.Get(r, "discepto")
 	token := session.Values["token"]
-	user, _ := db.GetUserByToken(token.(string))
+	user := &models.User{}
+	if u, err := db.GetUserByToken(fmt.Sprintf("%v", token)); err == nil {
+		user = u
+	}
 
 	server.RenderHTML(w, "home", homeData {
 		User: user,
