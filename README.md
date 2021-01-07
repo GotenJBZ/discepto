@@ -22,7 +22,9 @@ make release
 ```
 
 ### Environment variables
+```
 DEBUG: when `true`, reload html templates every request
 DATABASE_URL: you know
 PORT: you know. Default is 23495
 SESSION_KEY: key used to encrypt cookies
+```
