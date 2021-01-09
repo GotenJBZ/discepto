@@ -64,12 +64,46 @@ func GetUsers(w http.ResponseWriter, r *http.Request) *AppError {
 	server.RenderHTML(w, "users", users)
 	return nil
 }
+func GetSignout(w http.ResponseWriter, r *http.Request) *AppError {
+	session, _ := cookiestore.Get(r, "discepto")
+	token := session.Values["token"]
+
+	// Remove token before deleting from db, to signout in any case
+	session.Values["token"] = ""
+	session.Save(r, w)
+
+	err := db.Signout(fmt.Sprintf("%v", token))
+	if err != nil {
+		return &AppError { Cause: err }
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+	return nil
+}
 func GetSignup(w http.ResponseWriter, r *http.Request) {
 	server.RenderHTML(w, "signup", nil)
 }
+func GetLogin(w http.ResponseWriter, r *http.Request) {
+	server.RenderHTML(w, "login", nil)
+}
+func PostLogin(w http.ResponseWriter, r *http.Request) *AppError {
+	token, err := db.Login(r.FormValue("email"), r.FormValue("password"))
+	if err != nil {
+		return &AppError{
+			Cause:   err,
+			Message: "Bad email or password",
+		}
+	}
+	session, _ := cookiestore.Get(r, "discepto")
+	session.Values["token"] = token
+	session.Save(r, w)
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+	return nil
+}
 func PostSignup(w http.ResponseWriter, r *http.Request) *AppError {
 	email := r.FormValue("email")
-	token, err := db.CreateUser(&models.User{
+	err := db.CreateUser(&models.User{
 		Name:   r.FormValue("name"),
 		Email:  email,
 		RoleID: models.RoleAdmin,
@@ -84,10 +118,6 @@ func PostSignup(w http.ResponseWriter, r *http.Request) *AppError {
 		return &AppError{Cause: err}
 	}
 
-	session, _ := cookiestore.Get(r, "discepto")
-	session.Values["token"] = token
-	session.Save(r, w)
-
-	http.Redirect(w, r, "/users", http.StatusSeeOther)
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 	return nil
 }

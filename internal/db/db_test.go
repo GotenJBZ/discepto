@@ -64,27 +64,25 @@ func TestListUsers(t *testing.T) {
 func TestUser(t *testing.T) {
 	user := mockUser()
 	passwd := mockPasswd
-	token, err := CreateUser(user, passwd)
-	t.Log(token)
+	err := CreateUser(user, passwd)
 	if err != nil {
 		t.Fatalf(
-			"CreateUser(%v, %v) = %v, %v, want token, nil",
+			"CreateUser(%v, %v) = %v, want nil",
 			user,
 			passwd,
-			token,
 			err,
 		)
 	}
-	ok, err := CheckPasswd(user, passwd)
-	if !ok || err != nil {
-		t.Fatalf("CheckPasswd(%v, %v) = %v, %v, want true, nil", user, passwd, ok, err)
+	token, err := Login(user.Email, passwd)
+	if err != nil {
+		t.Fatalf("Login(%v, %v) = %v, %v, want token, nil", user, passwd, token, err)
 	}
 
 	// Now let's test a bad passwd
 	passwd = "93sdjfhkasdhfkjha"
-	ok, err = CheckPasswd(user, passwd)
-	if ok || err != nil {
-		t.Fatalf("CheckPasswd(%v, %v) = %v, %v, want false, nil", user, passwd, ok, err)
+	token, err = Login(user.Email, passwd)
+	if err != nil {
+		t.Fatalf("Login(%v, %v) = %v, %v, want token, nil", user, passwd, token, err)
 	}
 	err = DeleteUser(user.ID)
 	if err != nil {
@@ -92,14 +90,13 @@ func TestUser(t *testing.T) {
 	}
 	// With bad email
 	user.Email = "asdfhasdfkhlkjh"
-	token, err = CreateUser(user, passwd)
+	err = CreateUser(user, passwd)
 	// This SHOULD fail
 	if err == nil {
 		t.Fatalf(
-			"CreateUser(%v, %v) = %v, %v, want nil, error",
+			"CreateUser(%v, %v) = %v, want error",
 			user,
 			passwd,
-			token,
 			err,
 		)
 	}
@@ -110,7 +107,8 @@ func TestUser(t *testing.T) {
 func TestToken(t *testing.T) {
 	user := mockUser()
 	passwd := mockPasswd
-	token, _ := CreateUser(user, passwd)
+	_ = CreateUser(user, passwd)
+	token, _ := Login(user.Email, passwd)
 	user2, err := GetUserByToken(token)
 	if err != nil {
 		t.Fatalf("GetUserByToken(%v) = %v, %v, want user, nil", token, user2, err)
@@ -122,7 +120,7 @@ func TestToken(t *testing.T) {
 }
 func TestRole(t *testing.T) {
 	user := mockUser()
-	_, _ = CreateUser(user, mockPasswd)
+	_ = CreateUser(user, mockPasswd)
 	role, err := GetGlobalRole(user.ID)
 	if err != nil {
 		t.Fatalf("GetGlobalRole(%v) = %v, %v, want role, nil", user.ID, role, err)
@@ -131,7 +129,7 @@ func TestRole(t *testing.T) {
 }
 func TestEssay(t *testing.T) {
 	user := mockUser()
-	_, err := CreateUser(user, mockPasswd)
+	err := CreateUser(user, mockPasswd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +147,7 @@ func TestEssay(t *testing.T) {
 func TestVotes(t *testing.T) {
 	// Setup needed data
 	user := mockUser()
-	_, _ = CreateUser(user, mockPasswd)
+	_ = CreateUser(user, mockPasswd)
 	essay := mockEssay(user.ID)
 	_ = CreateEssay(essay)
 

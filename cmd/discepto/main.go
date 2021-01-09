@@ -111,6 +111,11 @@ func Start() {
 	r.Get("/signup", routes.GetSignup)
 	r.Post("/signup", routes.AppHandler(routes.PostSignup))
 
+	r.Get("/signout", routes.AppHandler(routes.GetSignout))
+
+	r.Get("/login", routes.GetLogin)
+	r.Post("/login", routes.AppHandler(routes.PostLogin))
+
 	r.Route("/essays", routes.EssaysRouter)
 	r.Get("/newessay", routes.GetNewEssay)
 

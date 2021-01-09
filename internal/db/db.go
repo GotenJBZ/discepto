@@ -106,10 +106,10 @@ func ListUsers() ([]models.User, error) {
 	return users, err
 }
 
-func CreateUser(user *models.User, passwd string) (token string, err error) {
+func CreateUser(user *models.User, passwd string) (err error) {
 	// Check email format
 	if !utils.ValidateEmail(user.Email) {
-		return "", ErrBadEmailSyntax
+		return ErrBadEmailSyntax
 	}
 
 	// Check if email is already used
@@ -121,10 +121,10 @@ func CreateUser(user *models.User, passwd string) (token string, err error) {
 		user.Email)
 
 	if err != nil {
-		return "", err
+		return err
 	}
 	if exists {
-		return "", ErrEmailAlreadyUsed
+		return ErrEmailAlreadyUsed
 	}
 
 	// Insert the new user
@@ -138,7 +138,7 @@ func CreateUser(user *models.User, passwd string) (token string, err error) {
 	row := tx.QueryRow(context.Background(), sql, args...)
 	err = row.Scan(&user.ID)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	// Insert the password hash
@@ -151,6 +151,38 @@ func CreateUser(user *models.User, passwd string) (token string, err error) {
 
 	_, err = tx.Exec(context.Background(), sql, args...)
 	if err != nil {
+		return err
+	}
+
+	// Commit changes
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func Login(email string, passwd string) (token string, err error) {
+	type res struct {
+		Hash string
+		ID   int
+	}
+	sql, args, _ := psql.
+		Select("credentials.hash, users.id").
+		From("credentials").
+		RightJoin("users ON users.id = credentials.user_id").
+		Where("users.email = $1", email).
+		ToSql()
+
+	var data res
+	err = pgxscan.Get(
+		context.Background(),
+		DB,
+		&data,
+		sql,
+		args...,
+	)
+	compareErr := bcrypt.CompareHashAndPassword([]byte(data.Hash), []byte(passwd))
+	if err != nil || compareErr != nil {
 		return "", err
 	}
 
@@ -159,35 +191,21 @@ func CreateUser(user *models.User, passwd string) (token string, err error) {
 	sql, args, _ = psql.
 		Insert("tokens").
 		Columns("user_id", "token").
-		Values(user.ID, token).
+		Values(data.ID, token).
 		ToSql()
 
-	_, err = tx.Exec(context.Background(), sql, args...)
-	if err != nil {
-		return "", err
-	}
-
-	// Commit changes
-	err = tx.Commit(context.Background())
+	_, err = DB.Exec(context.Background(), sql, args...)
 	if err != nil {
 		return "", err
 	}
 	return token, nil
 }
-func CheckPasswd(user *models.User, passwd string) (bool, error) {
-	var hash string
-	err := pgxscan.Get(
-		context.Background(),
-		DB,
-		&hash,
-		"SELECT hash FROM credentials WHERE user_id = $1",
-		user.ID,
-	)
-	compareErr := bcrypt.CompareHashAndPassword([]byte(hash), []byte(passwd))
-	if err != nil || compareErr != nil {
-		return false, err
+func Signout(token string) error {
+	_, err := DB.Exec(context.Background(), "DELETE FROM tokens WHERE tokens.token = $1", token)	
+	if err != nil {
+		return err
 	}
-	return true, nil
+	return nil
 }
 func GetUserByToken(token string) (*models.User, error) {
 	user := &models.User{}
