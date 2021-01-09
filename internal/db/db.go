@@ -169,7 +169,7 @@ func Login(email string, passwd string) (token string, err error) {
 	sql, args, _ := psql.
 		Select("credentials.hash, users.id").
 		From("credentials").
-		RightJoin("users ON users.id = credentials.user_id").
+		LeftJoin("users ON users.id = credentials.user_id").
 		Where("users.email = $1", email).
 		ToSql()
 
@@ -181,9 +181,12 @@ func Login(email string, passwd string) (token string, err error) {
 		sql,
 		args...,
 	)
-	compareErr := bcrypt.CompareHashAndPassword([]byte(data.Hash), []byte(passwd))
-	if err != nil || compareErr != nil {
+	if err != nil {
 		return "", err
+	}
+	compareErr := bcrypt.CompareHashAndPassword([]byte(data.Hash), []byte(passwd))
+	if compareErr != nil {
+		return "", compareErr
 	}
 
 	// Insert a new token
@@ -201,7 +204,7 @@ func Login(email string, passwd string) (token string, err error) {
 	return token, nil
 }
 func Signout(token string) error {
-	_, err := DB.Exec(context.Background(), "DELETE FROM tokens WHERE tokens.token = $1", token)	
+	_, err := DB.Exec(context.Background(), "DELETE FROM tokens WHERE tokens.token = $1", token)
 	if err != nil {
 		return err
 	}

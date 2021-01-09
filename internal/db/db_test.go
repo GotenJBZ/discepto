@@ -73,21 +73,6 @@ func TestUser(t *testing.T) {
 			err,
 		)
 	}
-	token, err := Login(user.Email, passwd)
-	if err != nil {
-		t.Fatalf("Login(%v, %v) = %v, %v, want token, nil", user, passwd, token, err)
-	}
-
-	// Now let's test a bad passwd
-	passwd = "93sdjfhkasdhfkjha"
-	token, err = Login(user.Email, passwd)
-	if err != nil {
-		t.Fatalf("Login(%v, %v) = %v, %v, want token, nil", user, passwd, token, err)
-	}
-	err = DeleteUser(user.ID)
-	if err != nil {
-		t.Fatalf("DeleteUser(%d) = %v, want nil", user.ID, err)
-	}
 	// With bad email
 	user.Email = "asdfhasdfkhlkjh"
 	err = CreateUser(user, passwd)
@@ -104,17 +89,38 @@ func TestUser(t *testing.T) {
 	// Clean
 	DeleteUser(user.ID)
 }
-func TestToken(t *testing.T) {
+func TestAuth(t *testing.T) {
 	user := mockUser()
 	passwd := mockPasswd
 	_ = CreateUser(user, passwd)
-	token, _ := Login(user.Email, passwd)
+
+	// With a bad passwd
+	passwd = "93sdjfhkasdhfkjha"
+	token, err := Login(user.Email, passwd)
+	if err == nil {
+		t.Fatalf("Login(%v, %v) = %v, %v, want \"\", err", user, passwd, token, err)
+	}
+
+	// Normal login
+	passwd = mockPasswd
+	token, err = Login(user.Email, passwd)
+	if err != nil {
+		t.Fatalf("Login(%v, %v) = %v, %v, want token, nil", user, passwd, token, err)
+	}
+
+	// Retrieve user by token
 	user2, err := GetUserByToken(token)
 	if err != nil {
 		t.Fatalf("GetUserByToken(%v) = %v, %v, want user, nil", token, user2, err)
 	}
 	if user.ID != user2.ID {
 		t.Fatalf("User IDs are different: %v, %v", user, user2)
+	}
+
+	// Sign out
+	err = Signout(token)
+	if err != nil {
+		t.Fatalf("Signout(%v) = %v, want nil", token, err)
 	}
 	DeleteUser(user.ID)
 }

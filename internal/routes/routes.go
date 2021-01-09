@@ -74,7 +74,7 @@ func GetSignout(w http.ResponseWriter, r *http.Request) *AppError {
 
 	err := db.Signout(fmt.Sprintf("%v", token))
 	if err != nil {
-		return &AppError { Cause: err }
+		return &AppError{Cause: err}
 	}
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
