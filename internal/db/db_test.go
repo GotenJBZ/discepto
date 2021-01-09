@@ -120,6 +120,15 @@ func TestToken(t *testing.T) {
 	}
 	DeleteUser(user.ID)
 }
+func TestRole(t *testing.T) {
+	user := mockUser()
+	_, _ = CreateUser(user, mockPasswd)
+	role, err := GetGlobalRole(user.ID)
+	if err != nil {
+		t.Fatalf("GetGlobalRole(%v) = %v, %v, want role, nil", user.ID, role, err)
+	}
+	DeleteUser(user.ID)
+}
 func TestEssay(t *testing.T) {
 	user := mockUser()
 	_, err := CreateUser(user, mockPasswd)

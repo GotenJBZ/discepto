@@ -208,6 +208,23 @@ func GetUserByToken(token string) (*models.User, error) {
 	}
 	return user, nil
 }
+
+var roleQuery = psql.
+	Select("roles.name", "roles.permissions").
+	From("roles").
+	LeftJoin("users ON roles.id = users.role_id")
+
+func GetGlobalRole(userID int) (role *models.Role, err error) {
+	sql, args, _ := roleQuery.
+		Where("users.id = $1", userID).ToSql()
+
+	role = &models.Role{}
+	err = pgxscan.Get(context.Background(), DB, role, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return role, nil
+}
 func DeleteUser(id int) error {
 	sql, args, _ := psql.Delete("users").Where("id = $1", id).ToSql()
 	_, err := DB.Exec(context.Background(), sql, args...)

@@ -17,9 +17,5 @@ type RoleID int
 type Role struct {
 	ID          int
 	Name        string
-	Permissions []RolePermission
-}
-type RolePermission struct {
-	RoleID     int
-	Permission PermissionType
+	Permissions string
 }
