@@ -46,17 +46,13 @@ func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) 
 }
 func GetHome(w http.ResponseWriter, r *http.Request) {
 	type homeData struct {
-		User *models.User
+		ActiveUser *models.User
 	}
 	session, _ := cookiestore.Get(r, "discepto")
 	token := session.Values["token"]
-	user := &models.User{}
-	if u, err := db.GetUserByToken(fmt.Sprintf("%v", token)); err == nil {
-		user = u
-	}
-
-	server.RenderHTML(w, "home", homeData {
-		User: user,
+	user, _ := db.GetUserByToken(fmt.Sprintf("%v", token))
+	server.RenderHTML(w, "home", homeData{
+		ActiveUser: user,
 	})
 }
 func GetUsers(w http.ResponseWriter, r *http.Request) *AppError {

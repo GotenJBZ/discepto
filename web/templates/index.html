@@ -1,15 +1,28 @@
 {{ define "home" }}
 {{ template "head" . }}
-<h1>Wewe {{.User.Email}}</h1>
+{{ if .ActiveUser }}
+<h1>Welcome back {{ .ActiveUser.Name }}</h1>
+{{ else }}
+<h1>Welcome to discepto</h1>
+{{ end }}
 <ul>
+	{{ if .ActiveUser }}
 	<li>
-		<a href="/signup">Create new user</a>
-	</li>
-	<li>
-		<a href="/users">List users</a>
+		<a href="/signout">Sign out</a>
 	</li>
 	<li>
 		<a href="/newessay">Create new essay</a>
+	</li>
+	{{ else }}
+	<li>
+		<a href="/signup">Sign up</a>
+	</li>
+	<li>
+		<a href="/login">Login</a>
+	</li>
+	{{ end }}
+	<li>
+		<a href="/users">List users</a>
 	</li>
 	<li>
 		<a href="/essays">List essays</a>
