@@ -41,12 +41,21 @@ func GetEssay(w http.ResponseWriter, r *http.Request) {
 	server.RenderHTML(w, "essay", essay)
 }
 func PostEssay(w http.ResponseWriter, r *http.Request) *AppError {
-	essay := models.Essay{
-		Thesis:  r.FormValue("thesis"),
-		Content: r.FormValue("content"),
-		Tags:    strings.Fields(r.FormValue("tags")),
+	session, _ := cookiestore.Get(r, "discepto")
+	token := session.Values["token"]
+
+	user, err := db.GetUserByToken(fmt.Sprintf("%v", token))
+	if err != nil {
+		return &AppError{Cause: err}
 	}
-	err := db.CreateEssay(&essay)
+
+	essay := models.Essay{
+		Thesis:         r.FormValue("thesis"),
+		Content:        r.FormValue("content"),
+		Tags:           strings.Fields(r.FormValue("tags")),
+		AttributedToID: user.ID,
+	}
+	err = db.CreateEssay(&essay)
 	if err != nil {
 		return &AppError{Cause: err}
 	}
