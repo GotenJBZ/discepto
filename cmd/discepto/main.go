@@ -96,6 +96,9 @@ func Start() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(15 * time.Second))
 
+	// Try retrieving basic user data for every request
+	r.Use(routes.UserCtx)
+
 	// Serve static files
 	staticFileServer := http.FileServer(pkger.Dir("/web/static"))
 	r.Get("/static/*", func(w http.ResponseWriter, r *http.Request) {

@@ -41,12 +41,9 @@ func GetEssay(w http.ResponseWriter, r *http.Request) {
 	server.RenderHTML(w, "essay", essay)
 }
 func PostEssay(w http.ResponseWriter, r *http.Request) *AppError {
-	session, _ := cookiestore.Get(r, "discepto")
-	token := session.Values["token"]
-
-	user, err := db.GetUserByToken(fmt.Sprintf("%v", token))
-	if err != nil {
-		return &AppError{Cause: err}
+	user, ok := r.Context().Value("user").(*models.User)
+	if !ok {
+		return &AppError{Message: "Must login to execute this action"}
 	}
 
 	essay := models.Essay{
@@ -55,7 +52,7 @@ func PostEssay(w http.ResponseWriter, r *http.Request) *AppError {
 		Tags:           strings.Fields(r.FormValue("tags")),
 		AttributedToID: user.ID,
 	}
-	err = db.CreateEssay(&essay)
+	err := db.CreateEssay(&essay)
 	if err != nil {
 		return &AppError{Cause: err}
 	}

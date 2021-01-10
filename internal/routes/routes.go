@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,10 +12,35 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/server"
-	//"github.com/gorilla/sessions"
 )
 
 var cookiestore = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
+
+func UserCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		session, _ := cookiestore.Get(r, "discepto")
+		token := session.Values["token"]
+		token = fmt.Sprintf("%v", token) // conv to string
+
+		if token == "" {
+			ctx := context.WithValue(r.Context(), "user", nil)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
+		}
+
+		user, err := db.GetUserByToken(fmt.Sprintf("%v", token))
+		if err != nil {
+			session.Values["token"] = ""
+			session.Save(r, w)
+			ctx := context.WithValue(r.Context(), "user", nil)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), "user", user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
 
 type AppError struct {
 	Message string
@@ -46,13 +72,13 @@ func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) 
 }
 func GetHome(w http.ResponseWriter, r *http.Request) {
 	type homeData struct {
-		ActiveUser *models.User
+		User     *models.User
+		LoggedIn bool
 	}
-	session, _ := cookiestore.Get(r, "discepto")
-	token := session.Values["token"]
-	user, _ := db.GetUserByToken(fmt.Sprintf("%v", token))
+	user, ok := r.Context().Value("user").(*models.User)
 	server.RenderHTML(w, "home", homeData{
-		ActiveUser: user,
+		User:     user,
+		LoggedIn: ok,
 	})
 }
 func GetUsers(w http.ResponseWriter, r *http.Request) *AppError {

@@ -1,12 +1,12 @@
 {{ define "home" }}
 {{ template "head" . }}
-{{ if .ActiveUser }}
-<h1>Welcome back {{ .ActiveUser.Name }}</h1>
+{{ if .LoggedIn }}
+<h1>Welcome back {{ .User.Name }}</h1>
 {{ else }}
 <h1>Welcome to discepto</h1>
 {{ end }}
 <ul>
-	{{ if .ActiveUser }}
+	{{ if .LoggedIn }}
 	<li>
 		<a href="/signout">Sign out</a>
 	</li>
