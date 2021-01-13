@@ -17,7 +17,8 @@ func EssaysRouter(r chi.Router) {
 	r.Delete("/{id}", DeleteEssay)
 }
 func GetNewEssay(w http.ResponseWriter, r *http.Request) {
-	server.RenderHTML(w, "newEssay", nil)
+	subdiscepto := r.URL.Query().Get("subdiscepto")
+	server.RenderHTML(w, "newEssay", subdiscepto)
 }
 func PostEssay(w http.ResponseWriter, r *http.Request) *AppError {
 	user, ok := r.Context().Value("user").(*models.User)
