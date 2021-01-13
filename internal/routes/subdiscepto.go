@@ -14,7 +14,16 @@ import (
 func SubdisceptoRouter(r chi.Router) {
 	r.Get("/{name}/{id}", AppHandler(GetEssay))
 	r.Get("/{name}", AppHandler(GetSubdiscepto))
+	r.Get("/", AppHandler(GetSubdisceptos))
 	r.Post("/", AppHandler(PostSubdiscepto))
+}
+func GetSubdisceptos(w http.ResponseWriter, r *http.Request) *AppError {
+	subs, err := db.ListSubdisceptos()
+	if err != nil {
+		return &AppError{Cause: err, Status: http.StatusNotFound}
+	}
+	server.RenderHTML(w, "subdisceptos", subs)
+	return nil
 }
 func GetSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
 	name := chi.URLParam(r, "name")

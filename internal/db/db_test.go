@@ -244,6 +244,11 @@ func TestSubdiscepto(t *testing.T) {
 		t.Fatalf("CreateSubdiscepto(%v, %v) = %v, want nil", subdis, user.ID, err)
 	}
 
+	subs, err := ListSubdisceptos()
+	if err != nil || len(subs) == 0 {
+		t.Fatalf("ListSubdisceptos() = %v, %v, want subs (len >= 1), nil", subdis, err)
+	}
+
 	err = DeleteSubdiscepto(subdis.Name)
 	if err != nil {
 		t.Fatalf("DeleteSubdiscepto(%v) = %v, want nil", subdis.Name, err)

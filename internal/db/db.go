@@ -383,6 +383,14 @@ func GetSubdiscepto(name string) (*models.Subdiscepto, error) {
 	}
 	return &sub, nil
 }
+func ListSubdisceptos() ([]*models.Subdiscepto, error) {
+	var subs []*models.Subdiscepto
+	err := pgxscan.Select(context.Background(), DB, &subs, "SELECT * FROM subdisceptos")
+	if err != nil {
+		return nil, err
+	}
+	return subs, nil
+}
 func DeleteSubdiscepto(name string) error {
 	sql, args, _ := psql.
 		Delete("subdisceptos").
