@@ -4,10 +4,11 @@
 <p>Description: {{.Description}}</p>
 <h2>Essays</h2>
 <ul>
-{{ range .Essays }}
+{{ range $e := .Essays }}
 <li>
-	<p>Thesis: {{ .Thesis }}</p>
-	<p>Content: {{ .Content }}</p>
+	<p>Thesis: {{ $e.Thesis }}</p>
+	<p>Content: {{ $e.Content }}</p>
+	<a href="/s/{{ $.Name }}/{{ $e.ID }}">View</a>
 </li>
 {{ end }}
 </ul>

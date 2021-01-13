@@ -1,8 +1,7 @@
 {{ define "essay" }}
 {{ template "head" . }}
-<p>ID: {{.ID}}</p>
-<p>Thesis: {{.Thesis}}</p>
-<p>Thesis: {{.Content}}</p>
+<h1>{{.Thesis}}</h1>
+<p>Content: {{.Content}}</p>
 <p>AttributedToID: {{.AttributedToID}}</p>
 <p>Tags: {{ range .Tags }}{{ . }}{{ end }}</p>
 {{ template "footer" . }}

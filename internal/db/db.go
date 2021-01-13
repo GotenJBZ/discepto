@@ -313,6 +313,21 @@ func CreateEssay(essay *models.Essay) error {
 	}
 	return nil
 }
+func GetEssay(id int) (*models.Essay, error) {
+	sql, args, _ := psql.
+		Select("*").
+		From("essays").
+		Where("id = $1", id).
+		ToSql()
+
+	var essay models.Essay
+	err := pgxscan.Get(context.Background(), DB, &essay, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &essay, nil
+}
 func DeleteEssay(id int) error {
 	sql, args, _ := psql.Delete("essays").Where("id = $1", id).ToSql()
 	_, err := DB.Exec(context.Background(), sql, args...)

@@ -3,6 +3,7 @@ package routes
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi"
 	"gitlab.com/ranfdev/discepto/internal/db"
@@ -11,6 +12,7 @@ import (
 )
 
 func SubdisceptoRouter(r chi.Router) {
+	r.Get("/{name}/{id}", AppHandler(GetEssay))
 	r.Get("/{name}", AppHandler(GetSubdiscepto))
 	r.Post("/", AppHandler(PostSubdiscepto))
 }
@@ -51,5 +53,18 @@ func PostSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
 		return &AppError{Message: "Error creating subdiscepto", Cause: err}
 	}
 	http.Redirect(w, r, fmt.Sprintf("/s/%s", sub.Name), http.StatusSeeOther)
+	return nil
+}
+func GetEssay(w http.ResponseWriter, r *http.Request) *AppError {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		return &AppError{Cause: err, Status: http.StatusNotFound}
+	}
+	essay, err := db.GetEssay(id)
+	if err != nil {
+		return &AppError{Cause: err, Status: http.StatusNotFound, Message: "Can't find essay"}
+	}
+
+	server.RenderHTML(w, "essay", essay)
 	return nil
 }
