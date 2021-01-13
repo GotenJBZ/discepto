@@ -3,6 +3,6 @@
 <h1>{{.Thesis}}</h1>
 <p>Content: {{.Content}}</p>
 <p>AttributedToID: {{.AttributedToID}}</p>
-<p>Tags: {{ range .Tags }}{{ . }}{{ end }}</p>
+<p>Tags: {{ range .Tags }}<span>{{ . }}</span> {{ end }}</p>
 {{ template "footer" . }}
 {{ end }}

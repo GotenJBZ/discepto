@@ -326,6 +326,16 @@ func GetEssay(id int) (*models.Essay, error) {
 		return nil, err
 	}
 
+	sql, args, _ = psql.
+		Select("tag").
+		From("essay_tags").
+		Where("essay_id = $1", id).
+		ToSql()
+	err = pgxscan.Select(context.Background(), DB, &essay.Tags, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+
 	return &essay, nil
 }
 func DeleteEssay(id int) error {
