@@ -25,11 +25,22 @@ CREATE TABLE tokens (
 	user_id int REFERENCES users(id) ON DELETE CASCADE,
 	PRIMARY KEY(user_id, token)
 );
+CREATE TABLE subdisceptos (
+	name varchar(50) PRIMARY KEY,
+	description varchar(500) NOT NULL
+);
+CREATE TABLE subdiscepto_users (
+	name varchar(50),
+	user_id int REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+	role_id int REFERENCES roles(id) DEFAULT 0,
+	PRIMARY KEY(name, user_id)
+);
 CREATE TABLE essays (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	thesis varchar(350) NOT NULL,
 	content text NOT NULL,
 	attributed_to_id int REFERENCES users(id) NOT NULL,
+	posted_in varchar(50) REFERENCES subdisceptos(name) NOT NULL,
 	published timestamp NOT NULL
 );
 CREATE TABLE essay_mentions (
@@ -46,16 +57,6 @@ CREATE TABLE essay_sources (
 	essay_id int REFERENCES essays(id) ON DELETE CASCADE,
 	source varchar(255),
 	PRIMARY KEY(essay_id, source)
-);
-CREATE TABLE subdisceptos (
-	name varchar(50) PRIMARY KEY,
-	description varchar(500) NOT NULL
-);
-CREATE TABLE subdiscepto_users (
-	name varchar(50),
-	user_id int REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-	role_id int REFERENCES roles(id) DEFAULT 0,
-	PRIMARY KEY(name, user_id)
 );
 CREATE TYPE flag_type as ENUM ('offensive', 'fake', 'spam', 'inaccurate');
 CREATE TABLE reports (

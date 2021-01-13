@@ -13,4 +13,5 @@ type Essay struct {
 	Published      time.Time
 	Tags           []string
 	Sources        []*url.URL
+	PostedIn       string
 }

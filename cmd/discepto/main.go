@@ -122,6 +122,9 @@ func Start() {
 	r.Route("/essays", routes.EssaysRouter)
 	r.Get("/newessay", routes.GetNewEssay)
 
+	r.Route("/s", routes.SubdisceptoRouter)
+	r.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "23495"

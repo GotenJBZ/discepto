@@ -33,6 +33,13 @@ func mockEssay(userID int) *models.Essay {
 		Tags:           []string{"banana", "fruit", "best"},
 		Sources:        []*url.URL{mockUrl()},
 		Published:      time.Now(),
+		PostedIn:       "mock",
+	}
+}
+func mockSubdiscepto() *models.Subdiscepto {
+	return &models.Subdiscepto{
+		Name:        "mock",
+		Description: "Mock subdiscepto",
 	}
 }
 
@@ -135,15 +142,23 @@ func TestRole(t *testing.T) {
 }
 func TestEssay(t *testing.T) {
 	user := mockUser()
-	err := CreateUser(user, mockPasswd)
+	CreateUser(user, mockPasswd)
+	err := CreateSubdiscepto(mockSubdiscepto(), user.ID)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("CreateSubdiscepto(%v, %v) = %v, want nil", mockSubdiscepto(), user.ID, err)
 	}
+
 	essay := mockEssay(user.ID)
 	err = CreateEssay(essay)
 	if err != nil {
 		t.Fatalf("CreateEssay(%v) = %v, want nil", essay, err)
 	}
+
+	essays, err := ListEssays("mock")
+	if err != nil {
+		t.Fatalf("ListEssays(%v) = %v, %v want essays, nil", "mock", essays, err)
+	}
+
 	err = DeleteEssay(essay.ID)
 	if err != nil {
 		t.Fatalf("DeleteEssay(%v) = %v, want nil", essay.ID, err)

@@ -251,9 +251,16 @@ func DeleteUser(id int) error {
 	_, err := DB.Exec(context.Background(), sql, args...)
 	return err
 }
-func ListEssays() ([]models.Essay, error) {
+func ListEssays(subName string) ([]models.Essay, error) {
 	var essays []models.Essay
-	err := pgxscan.Select(context.Background(), DB, &essays, "SELECT * FROM essays")
+
+	sql, args, _ := psql.
+		Select("*").
+		From("essays").
+		Where("posted_in = $1", subName).
+		ToSql()
+
+	err := pgxscan.Select(context.Background(), DB, &essays, sql, args...)
 	return essays, err
 }
 func CreateEssay(essay *models.Essay) error {
@@ -261,16 +268,19 @@ func CreateEssay(essay *models.Essay) error {
 	if clen > LimitMaxContentLen || clen < LimitMinContentLen {
 		return ErrBadContentLen
 	}
+
 	tx, err := DB.Begin(context.Background())
 	defer tx.Rollback(context.Background())
 	if err != nil {
 		return err
 	}
+
+	// Insert essay
 	sql, args, _ := psql.
 		Insert("essays").
-		Columns("thesis", "content", "attributed_to_id", "published").
+		Columns("thesis", "content", "attributed_to_id", "published", "posted_in").
 		Suffix("RETURNING id").
-		Values(essay.Thesis, essay.Content, essay.AttributedToID, essay.Published).
+		Values(essay.Thesis, essay.Content, essay.AttributedToID, essay.Published, essay.PostedIn).
 		ToSql()
 
 	row := tx.QueryRow(context.Background(), sql, args...)
@@ -278,10 +288,11 @@ func CreateEssay(essay *models.Essay) error {
 	if err != nil {
 		return fmt.Errorf("Error inserting essay in db: %w", err)
 	}
+
+	// Insert essay tags
 	if len(essay.Tags) > LimitMaxTags {
 		return ErrTooManyTags
 	}
-
 	for _, tag := range essay.Tags {
 		fmt.Println(tag)
 		sql, args, _ = psql.
@@ -295,6 +306,7 @@ func CreateEssay(essay *models.Essay) error {
 			return fmt.Errorf("Error inserting essay_tag in db: %w", err)
 		}
 	}
+
 	err = tx.Commit(context.Background())
 	if err != nil {
 		return err
@@ -318,6 +330,7 @@ func CreateSubdiscepto(subd *models.Subdiscepto, firstUserID int) error {
 		Columns("name", "description").
 		Values(subd.Name, subd.Description).
 		ToSql()
+
 	_, err = tx.Exec(context.Background(), sql, args...)
 
 	// Insert first user of subdiscepto
@@ -336,6 +349,14 @@ func CreateSubdiscepto(subd *models.Subdiscepto, firstUserID int) error {
 		return err
 	}
 	return nil
+}
+func GetSubdiscepto(name string) (*models.Subdiscepto, error) {
+	var sub models.Subdiscepto
+	err := pgxscan.Get(context.Background(), DB, &sub, "SELECT * FROM subdisceptos WHERE name = $1", name)
+	if err != nil {
+		return nil, err
+	}
+	return &sub, nil
 }
 func DeleteSubdiscepto(name string) error {
 	sql, args, _ := psql.

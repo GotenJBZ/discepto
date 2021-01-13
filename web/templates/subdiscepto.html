@@ -1,0 +1,15 @@
+{{ define "subdiscepto" }}
+{{ template "head" . }}
+<h1>Name: {{.Name}}</h1>
+<p>Description: {{.Description}}</p>
+<h2>Essays</h2>
+<ul>
+{{ range .Essays }}
+<li>
+	<p>Thesis: {{ .Thesis }}</p>
+	<p>Content: {{ .Content }}</p>
+</li>
+{{ end }}
+</ul>
+{{ template "footer" . }}
+{{ end }}

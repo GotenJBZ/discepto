@@ -2,12 +2,18 @@
 {{ template "head" . }}
 <p>Create a new essay</p>
 <form action="/essays" method="post">
-    <label name="thesis">Thesis</label><br>
-    <input type="area" name="thesis" label="thesis"><br>
-    <label name="content">Content (min: 150 chars)</label><br>
-    <textarea name="content" label="content"></textarea><br>
-    <label name="tags">Tags</label><br>
-    <input name="tags" label="tags"><br>
+    <label for="thesis">Thesis</label><br>
+    <input type="area" name="thesis" id="thesis"><br>
+
+    <label for="content">Content (min: 150 chars)</label><br>
+    <textarea name="content" id="content"></textarea><br>
+
+    <label for="tags">Tags</label><br>
+    <input name="tags" id="tags"><br>
+
+    <label for="postedIn">Community</label><br>
+    <input name="postedIn" id="postedIn"><br>
+
     <button type="submit">Create</button>
 </form>
 {{ template "footer" . }}

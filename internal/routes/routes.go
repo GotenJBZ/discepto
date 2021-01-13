@@ -76,6 +76,7 @@ func GetHome(w http.ResponseWriter, r *http.Request) {
 		LoggedIn bool
 	}
 	user, ok := r.Context().Value("user").(*models.User)
+
 	server.RenderHTML(w, "home", homeData{
 		User:     user,
 		LoggedIn: ok,
@@ -111,6 +112,9 @@ func GetSignup(w http.ResponseWriter, r *http.Request) {
 }
 func GetLogin(w http.ResponseWriter, r *http.Request) {
 	server.RenderHTML(w, "login", nil)
+}
+func GetNewSubdiscepto(w http.ResponseWriter, r *http.Request) {
+	server.RenderHTML(w, "newSubdiscepto", nil)
 }
 func PostLogin(w http.ResponseWriter, r *http.Request) *AppError {
 	token, err := db.Login(r.FormValue("email"), r.FormValue("password"))

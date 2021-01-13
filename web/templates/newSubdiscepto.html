@@ -1,0 +1,28 @@
+{{ define "newSubdiscepto" }}
+{{ template "head" . }}
+<h1>Create a community</h1>
+<form action="/s" method="post">
+    <label for="name">Name</label><br>
+    <input type="text" name="name" id="name"><br>
+
+    <label for="topics">Topics</label><br>
+    <input type="text" name="topics" id="topics"><br>
+
+    <label for="description">Description</label><br>
+    <textarea name="description" id="description"></textarea><br>
+
+    <p>Privacy</p>
+
+    <input type="radio" name="privacy" value="public" id="public">
+    <label for="public">Public</label><br>
+
+    <input type="radio" name="privacy" value="restricted" id="restricted">
+    <label for="restricted">Restricted</label><br>
+
+    <input type="radio" name="privacy" value="private" id="private">
+    <label for="private">Private</label><br>
+
+    <button type="submit">Create</button>
+</form>
+{{ template "footer" . }}
+{{ end }}

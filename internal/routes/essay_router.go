@@ -13,7 +13,6 @@ import (
 )
 
 func EssaysRouter(r chi.Router) {
-	r.Get("/", AppHandler(GetEssays))
 	r.Get("/{id}", GetEssay)
 	r.Post("/", AppHandler(PostEssay))
 	r.Put("/", UpdateEssay)
@@ -21,14 +20,6 @@ func EssaysRouter(r chi.Router) {
 }
 func GetNewEssay(w http.ResponseWriter, r *http.Request) {
 	server.RenderHTML(w, "newEssay", nil)
-}
-func GetEssays(w http.ResponseWriter, r *http.Request) *AppError {
-	essays, err := db.ListEssays()
-	server.RenderHTML(w, "essays", essays)
-	if err != nil {
-		return &AppError{Cause: err}
-	}
-	return nil
 }
 func GetEssay(w http.ResponseWriter, r *http.Request) {
 	essay := models.Essay{
@@ -51,12 +42,13 @@ func PostEssay(w http.ResponseWriter, r *http.Request) *AppError {
 		Content:        r.FormValue("content"),
 		Tags:           strings.Fields(r.FormValue("tags")),
 		AttributedToID: user.ID,
+		PostedIn:       r.FormValue("postedIn"),
 	}
 	err := db.CreateEssay(&essay)
 	if err != nil {
 		return &AppError{Cause: err}
 	}
-	http.Redirect(w, r, "/essays", http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/s/%s", essay.PostedIn), http.StatusSeeOther)
 	return nil
 }
 func DeleteEssay(w http.ResponseWriter, r *http.Request) {
