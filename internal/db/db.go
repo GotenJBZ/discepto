@@ -293,8 +293,14 @@ func CreateEssay(essay *models.Essay) error {
 	if len(essay.Tags) > LimitMaxTags {
 		return ErrTooManyTags
 	}
+
+	// Track and skip duplicate tags
+	duplicate := make(map[string]bool)
 	for _, tag := range essay.Tags {
-		fmt.Println(tag)
+		if duplicate[tag] {
+			continue
+		}
+		duplicate[tag] = true
 		sql, args, _ = psql.
 			Insert("essay_tags").
 			Columns("essay_id", "tag").
