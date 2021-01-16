@@ -259,12 +259,17 @@ func TestSubdiscepto(t *testing.T) {
 
 	err = JoinSubdiscepto(mockSubName, user2.ID)
 	if err != nil {
-		t.Fatalf("JoinSubdiscepto(%v,%v,%v) = %v, want nil", mockSubName, user2.ID, models.RoleDefault, err)
+		t.Fatalf("JoinSubdiscepto(%v,%v) = %v, want nil", mockSubName, user2.ID, err)
 	}
 
 	mySubs, err := ListMySubdisceptos(user2.ID)
 	if mySubs[0] != mockSubName || err != nil {
 		t.Fatalf("ListMySubdisceptos(%v) = %v,%v want mySubs, nil", user2.ID, mySubs, err)
+	}
+
+	err = LeaveSubdiscepto(mockSubName, user2.ID)
+	if err != nil {
+		t.Fatalf("LeaveSubdiscepto(%v,%v) = %v, want nil", mockSubName, user2.ID, err)
 	}
 
 	err = DeleteSubdiscepto(subdis.Name)

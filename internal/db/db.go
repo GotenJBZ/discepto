@@ -410,6 +410,18 @@ func JoinSubdiscepto(sub string, userID int) error {
 	}
 	return nil
 }
+func LeaveSubdiscepto(sub string, userID int) error {
+	sql, args, _ := psql.
+		Delete("subdiscepto_users").
+		Where("name = $1 AND user_id = $2", sub, userID).
+		ToSql()
+
+	_, err := DB.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func ListMySubdisceptos(userID int) (subs []string, err error) {
 	sql, args, _ := psql.
 		Select("name").
