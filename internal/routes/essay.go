@@ -34,6 +34,9 @@ func PostEssay(w http.ResponseWriter, r *http.Request) *AppError {
 		PostedIn:       r.FormValue("postedIn"),
 	}
 	err := db.CreateEssay(&essay)
+	if err == db.ErrBadContentLen {
+		return &AppError{Cause: err, Message: "You must respect required content length"}
+	}
 	if err != nil {
 		return &AppError{Cause: err}
 	}
