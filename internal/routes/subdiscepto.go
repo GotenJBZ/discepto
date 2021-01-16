@@ -12,7 +12,7 @@ import (
 )
 
 func SubdisceptoRouter(r chi.Router) {
-	r.Get("/{name}/join", AppHandler(JoinSubdiscepto))
+	r.Post("/{name}/join", AppHandler(JoinSubdiscepto))
 	r.Get("/{name}/{id}", AppHandler(GetEssay))
 	r.Get("/{name}", AppHandler(GetSubdiscepto))
 	r.Get("/", AppHandler(GetSubdisceptos))
@@ -27,6 +27,7 @@ func JoinSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
 	if err != nil {
 		return &AppError{Message: "Error joining", Cause: err}
 	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil
 }
 func GetSubdisceptos(w http.ResponseWriter, r *http.Request) *AppError {

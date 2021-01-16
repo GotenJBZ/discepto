@@ -107,7 +107,7 @@ func Start() {
 	})
 
 	// Serve dynamic routes
-	r.Get("/", routes.GetHome)
+	r.Get("/", routes.AppHandler(routes.GetHome))
 
 	r.Get("/users", routes.AppHandler(routes.GetUsers))
 

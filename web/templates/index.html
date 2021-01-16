@@ -31,5 +31,15 @@
 		<a href="/users">List users</a>
 	</li>
 </ul>
+{{ if .LoggedIn }}
+<h2>Your communities</h2>
+<ul>
+{{ range .MySubdisceptos }}
+<li>
+	<a href="/s/{{ . }}">s/{{ . }}</a>
+</li>
+{{ end }}
+</ul>
+{{ end }}
 {{ template "footer" . }}
 {{ end }}

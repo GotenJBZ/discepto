@@ -70,17 +70,24 @@ func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) 
 	}
 	return res
 }
-func GetHome(w http.ResponseWriter, r *http.Request) {
+func GetHome(w http.ResponseWriter, r *http.Request) *AppError {
 	type homeData struct {
-		User     *models.User
-		LoggedIn bool
+		User           *models.User
+		LoggedIn       bool
+		MySubdisceptos []string
 	}
 	user, ok := r.Context().Value("user").(*models.User)
+	data := homeData{User: user, LoggedIn: ok}
+	if data.LoggedIn {
+		mySubs, err := db.ListMySubdisceptos(user.ID)
+		if err != nil {
+			return &AppError{Message: "Can't list joined communities", Cause: err}
+		}
+		data.MySubdisceptos = mySubs
+	}
 
-	server.RenderHTML(w, "home", homeData{
-		User:     user,
-		LoggedIn: ok,
-	})
+	server.RenderHTML(w, "home", data)
+	return nil
 }
 func GetUsers(w http.ResponseWriter, r *http.Request) *AppError {
 	users, err := db.ListUsers()

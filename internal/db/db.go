@@ -410,6 +410,19 @@ func JoinSubdiscepto(sub string, userID int) error {
 	}
 	return nil
 }
+func ListMySubdisceptos(userID int) (subs []string, err error) {
+	sql, args, _ := psql.
+		Select("name").
+		From("subdiscepto_users").
+		Where("user_id = $1", userID).
+		ToSql()
+
+	err = pgxscan.Select(context.Background(), DB, &subs, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return subs, nil
+}
 func DeleteSubdiscepto(name string) error {
 	sql, args, _ := psql.
 		Delete("subdisceptos").
