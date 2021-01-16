@@ -10,6 +10,8 @@ import (
 )
 
 const mockPasswd = "123456789" // hackerman
+const mockSubName = "mock"
+
 func mockUser() *models.User {
 	return &models.User{
 		Name:  "Pippo",
@@ -33,12 +35,12 @@ func mockEssay(userID int) *models.Essay {
 		Tags:           []string{"banana", "fruit", "best"},
 		Sources:        []*url.URL{mockUrl()},
 		Published:      time.Now(),
-		PostedIn:       "mock",
+		PostedIn:       mockSubName,
 	}
 }
 func mockSubdiscepto() *models.Subdiscepto {
 	return &models.Subdiscepto{
-		Name:        "mock",
+		Name:        mockSubName,
 		Description: "Mock subdiscepto",
 	}
 }
@@ -154,9 +156,9 @@ func TestEssay(t *testing.T) {
 		t.Fatalf("CreateEssay(%v) = %v, want nil", essay, err)
 	}
 
-	essays, err := ListEssays("mock")
+	essays, err := ListEssays(mockSubName)
 	if err != nil {
-		t.Fatalf("ListEssays(%v) = %v, %v want essays, nil", "mock", essays, err)
+		t.Fatalf("ListEssays(%v) = %v, %v want essays, nil", mockSubName, essays, err)
 	}
 
 	err = DeleteEssay(essay.ID)
@@ -247,6 +249,17 @@ func TestSubdiscepto(t *testing.T) {
 	subs, err := ListSubdisceptos()
 	if err != nil || len(subs) == 0 {
 		t.Fatalf("ListSubdisceptos() = %v, %v, want subs (len >= 1), nil", subdis, err)
+	}
+
+	// Join a sub
+	user2 := mockUser()
+	user2.Email += "as"
+
+	CreateUser(user2, mockPasswd)
+
+	err = JoinSubdiscepto(mockSubName, user2.ID)
+	if err != nil {
+		t.Fatalf("JoinSubdiscepto(%v,%v,%v) = %v, want nil", mockSubName, user2.ID, models.RoleDefault, err)
 	}
 
 	err = DeleteSubdiscepto(subdis.Name)

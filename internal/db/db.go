@@ -397,6 +397,19 @@ func ListSubdisceptos() ([]*models.Subdiscepto, error) {
 	}
 	return subs, nil
 }
+func JoinSubdiscepto(sub string, userID int) error {
+	sql, args, _ := psql.
+		Insert("subdiscepto_users").
+		Columns("name", "user_id").
+		Values(sub, userID).
+		ToSql()
+
+	_, err := DB.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func DeleteSubdiscepto(name string) error {
 	sql, args, _ := psql.
 		Delete("subdisceptos").

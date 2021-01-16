@@ -2,6 +2,9 @@
 {{ template "head" . }}
 <h1>Name: {{.Name}}</h1>
 <p>Description: {{.Description}}</p>
+<form method="post" action="/s/{{ .Name }}/join">
+	<button type="submit">Join</button>
+</form>
 <h2>Essays</h2>
 <a href="/newessay?subdiscepto={{ .Name }}">Create new</a>
 <ul>

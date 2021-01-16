@@ -12,10 +12,22 @@ import (
 )
 
 func SubdisceptoRouter(r chi.Router) {
+	r.Get("/{name}/join", AppHandler(JoinSubdiscepto))
 	r.Get("/{name}/{id}", AppHandler(GetEssay))
 	r.Get("/{name}", AppHandler(GetSubdiscepto))
 	r.Get("/", AppHandler(GetSubdisceptos))
 	r.Post("/", AppHandler(PostSubdiscepto))
+}
+func JoinSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
+	user, ok := r.Context().Value("user").(*models.User)
+	if !ok {
+		return &AppError{Message: "Must login"}
+	}
+	err := db.JoinSubdiscepto(chi.URLParam(r, "name"), user.ID)
+	if err != nil {
+		return &AppError{Message: "Error joining", Cause: err}
+	}
+	return nil
 }
 func GetSubdisceptos(w http.ResponseWriter, r *http.Request) *AppError {
 	subs, err := db.ListSubdisceptos()
