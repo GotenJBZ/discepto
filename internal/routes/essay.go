@@ -3,6 +3,7 @@ package routes
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi"
@@ -13,6 +14,7 @@ import (
 
 func EssaysRouter(r chi.Router) {
 	r.Post("/", AppHandler(PostEssay))
+	r.Post("/{essayID}/vote", AppHandler(PostVote))
 	r.Put("/", UpdateEssay)
 	r.Delete("/{id}", DeleteEssay)
 }
@@ -48,4 +50,39 @@ func DeleteEssay(w http.ResponseWriter, r *http.Request) {
 }
 func UpdateEssay(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Nope")
+}
+func PostVote(w http.ResponseWriter, r *http.Request) *AppError {
+	user, ok := r.Context().Value("user").(*models.User)
+	if !ok {
+		return &AppError{Message: "Must login"}
+	}
+
+	essayIDStr := chi.URLParam(r, "essayID")
+	essayID, err := strconv.Atoi(essayIDStr)
+
+	var vote models.VoteType
+	switch r.FormValue("vote") {
+	case "upvote": 
+		vote = models.VoteTypeUpvote
+	case "downvote": 
+		vote = models.VoteTypeDownvote
+	}
+
+	db.DeleteVote(essayID, user.ID)
+	err = db.CreateVote(&models.Vote {
+		UserID: user.ID,
+		EssayID: essayID,
+		VoteType: vote,
+	})
+	if err != nil {
+		return &AppError{Cause: err}
+	}
+
+	essay, err := db.GetEssay(essayID)
+	if err != nil {
+		return &AppError{Cause: err}
+	}
+
+	http.Redirect(w,r,fmt.Sprintf("/s/%s/%d", essay.PostedIn, essayID), http.StatusSeeOther)
+	return nil
 }

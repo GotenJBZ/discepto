@@ -14,4 +14,6 @@ type Essay struct {
 	Tags           []string
 	Sources        []*url.URL
 	PostedIn       string
+	Upvotes        int
+	Downvotes      int
 }

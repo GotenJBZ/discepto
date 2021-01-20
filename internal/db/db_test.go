@@ -175,10 +175,10 @@ func TestVotes(t *testing.T) {
 	_ = CreateEssay(essay)
 
 	// Actual test
-	count, err := CountVotes(essay.ID, models.VoteTypeUpvote)
-	if err != nil || count != 0 {
-		t.Fatalf("CountVotes(%v, %v) = %v, %v, want 0, nil",
-			essay.ID, models.VoteTypeUpvote, count, err)
+	upvotes, downvotes, err := CountVotes(essay.ID)
+	if err != nil || upvotes != 0 || downvotes != 0 {
+		t.Fatalf("CountVotes(%v) = %v,%v,%v, want 0, 0, nil",
+			essay.ID, upvotes, downvotes, err)
 	}
 
 	// Add upvote
@@ -191,11 +191,12 @@ func TestVotes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateVote(%v) = %v, want nil", vote, err)
 	}
-	count, err = CountVotes(essay.ID, models.VoteTypeUpvote)
-	if err != nil || count != 1 {
-		t.Fatalf("CountVotes(%v, %v) = %v, %v, want 1, nil",
-			essay.ID, models.VoteTypeUpvote, count, err)
-		return
+
+	// Check added upvote
+	upvotes, downvotes, err = CountVotes(essay.ID)
+	if err != nil || upvotes == 0 || downvotes != 0 {
+		t.Fatalf("CountVotes(%v) = %v,%v,%v, want upvotes, 0, nil",
+			essay.ID, upvotes, downvotes, err)
 	}
 
 	// Delete (needed to change vote type for same user)
@@ -203,22 +204,6 @@ func TestVotes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DeleteVote(%v, %v) = %v, want nil",
 			vote.EssayID, vote.UserID, err)
-	}
-
-	// Create downvote
-	vote = &models.Vote{
-		UserID:   user.ID,
-		EssayID:  essay.ID,
-		VoteType: models.VoteTypeDownvote,
-	}
-	err = CreateVote(vote)
-	if err != nil {
-		t.Fatalf("CreateVote(%v) = %v, want nil", vote, err)
-	}
-	count, err = CountVotes(essay.ID, models.VoteTypeDownvote)
-	if err != nil || count != 1 {
-		t.Fatalf("CountVotes(%v, %v) = %v, %v, want 1, nil",
-			essay.ID, models.VoteTypeDownvote, count, err)
 	}
 
 	// Clean

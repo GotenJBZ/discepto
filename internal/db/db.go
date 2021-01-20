@@ -12,6 +12,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/utils"
@@ -481,27 +482,32 @@ func CreateVote(vote *models.Vote) error {
 		Columns("user_id", "essay_id", "vote_type").
 		Values(vote.UserID, vote.EssayID, vote.VoteType).
 		ToSql()
+
 	_, err := DB.Exec(context.Background(), sql, args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func CountVotes(essayID int, vote_type models.VoteType) (int, error) {
+func CountVotes(essayID int) (upvotes, downvotes int, err error) {
 	sql, args, _ := psql.
-		Select("count(*)").
+		Select("COUNT(*), SUM(CASE WHEN vote_type = 'upvote' THEN 1 ELSE 0 END) AS upvotes").
 		From("votes").
-		Where("essay_id = $1 AND vote_type = $2", essayID, vote_type).
+		Where("essay_id = $1", essayID).
+		GroupBy("vote_type").
 		ToSql()
 
 	row := DB.QueryRow(context.Background(), sql, args...)
-	count := 0
-	err := row.Scan(&count)
+	var total int
+	err = row.Scan(&total, &upvotes)
+	if err == pgx.ErrNoRows {
+		return 0, 0, nil
+	}
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	return count, nil
+	return upvotes, total - upvotes, nil
 }
 func DeleteVote(essayID, userID int) error {
 	sql, args, _ := psql.

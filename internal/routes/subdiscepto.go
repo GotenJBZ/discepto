@@ -69,7 +69,7 @@ func GetSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
 		if err != nil {
 			return &AppError{Cause: err, Message: "Error getting sub membership"}
 		}
-		for _,s := range subs {
+		for _, s := range subs {
 			if s == name {
 				isMember = true
 				break
@@ -80,12 +80,12 @@ func GetSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
 		Name        string
 		Description string
 		Essays      []models.Essay
-		IsMember bool
+		IsMember    bool
 	}{
 		Name:        sub.Name,
 		Description: sub.Description,
 		Essays:      essays,
-		IsMember: isMember,
+		IsMember:    isMember,
 	}
 	server.RenderHTML(w, "subdiscepto", data)
 	return nil
@@ -115,6 +115,11 @@ func GetEssay(w http.ResponseWriter, r *http.Request) *AppError {
 	essay, err := db.GetEssay(id)
 	if err != nil {
 		return &AppError{Cause: err, Status: http.StatusNotFound, Message: "Can't find essay"}
+	}
+
+	essay.Upvotes, essay.Downvotes, err = db.CountVotes(essay.ID)
+	if err != nil {
+		return &AppError{Cause: err}
 	}
 
 	server.RenderHTML(w, "essay", essay)

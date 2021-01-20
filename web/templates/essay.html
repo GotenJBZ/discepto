@@ -2,7 +2,16 @@
 {{ template "head" . }}
 <h1>{{.Thesis}}</h1>
 <p>Content: {{.Content}}</p>
-<p>AttributedToID: {{.AttributedToID}}</p>
+<p>Upvotes: {{ .Upvotes }}; Downvotes: {{ .Downvotes }}</p>
+<form action="/essays/{{ .ID }}/vote" method="post">
+	<input type="radio" name="vote" id="upvote" value="upvote">
+	<label for="upvote">Upvote</label>
+	<br>
+	<input type="radio" name="vote" id="downvote" value="downvote">
+	<label for="downvote">Downvotes</label>
+	<br>
+	<button type="submit">Vote</button>
+</form>
 <p>Tags: {{ range .Tags }}<span>{{ . }}</span> {{ end }}</p>
 {{ template "footer" . }}
 {{ end }}
