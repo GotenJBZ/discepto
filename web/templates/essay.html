@@ -1,6 +1,7 @@
 {{ define "essay" }}
 {{ template "head" . }}
 <h1>{{.Thesis}}</h1>
+<a href="/newessay?inReplyTo={{ .ID }}">Reply to this essay</a>
 <p>Content: {{.Content}}</p>
 <p>Upvotes: {{ .Upvotes }}; Downvotes: {{ .Downvotes }}</p>
 <form action="/essays/{{ .ID }}/vote" method="post">

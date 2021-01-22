@@ -36,6 +36,7 @@ func mockEssay(userID int) *models.Essay {
 		Sources:        []*url.URL{mockUrl()},
 		Published:      time.Now(),
 		PostedIn:       mockSubName,
+		ReplyType:      models.ParseReplyType(""),
 	}
 }
 func mockSubdiscepto() *models.Subdiscepto {

@@ -252,8 +252,8 @@ func DeleteUser(id int) error {
 	_, err := DB.Exec(context.Background(), sql, args...)
 	return err
 }
-func ListEssays(subName string) ([]models.Essay, error) {
-	var essays []models.Essay
+func ListEssays(subName string) ([]*models.Essay, error) {
+	var essays []*models.Essay
 
 	sql, args, _ := psql.
 		Select("*").
@@ -279,9 +279,17 @@ func CreateEssay(essay *models.Essay) error {
 	// Insert essay
 	sql, args, _ := psql.
 		Insert("essays").
-		Columns("thesis", "content", "attributed_to_id", "published", "posted_in").
+		Columns("thesis", "content", "attributed_to_id", "published", "posted_in", "in_reply_to", "reply_type").
 		Suffix("RETURNING id").
-		Values(essay.Thesis, essay.Content, essay.AttributedToID, essay.Published, essay.PostedIn).
+		Values(
+			essay.Thesis,
+			essay.Content,
+			essay.AttributedToID,
+			essay.Published,
+			essay.PostedIn,
+			essay.InReplyTo,
+			essay.ReplyType,
+		).
 		ToSql()
 
 	row := tx.QueryRow(context.Background(), sql, args...)
@@ -290,6 +298,18 @@ func CreateEssay(essay *models.Essay) error {
 		return fmt.Errorf("Error inserting essay in db: %w", err)
 	}
 
+	err = insertTags(tx, essay)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func insertTags(tx pgx.Tx, essay *models.Essay) error {
 	// Insert essay tags
 	if len(essay.Tags) > LimitMaxTags {
 		return ErrTooManyTags
@@ -297,26 +317,26 @@ func CreateEssay(essay *models.Essay) error {
 
 	// Track and skip duplicate tags
 	duplicate := make(map[string]bool)
+
+	insertCols := psql.
+		Insert("essay_tags").
+		Columns("essay_id", "tag")
+
 	for _, tag := range essay.Tags {
 		if duplicate[tag] {
 			continue
 		}
 		duplicate[tag] = true
-		sql, args, _ = psql.
-			Insert("essay_tags").
-			Columns("essay_id", "tag").
+
+		sql, args, _ := insertCols.
 			Values(essay.ID, tag).
 			ToSql()
+
 		_, err := tx.Exec(context.Background(),
 			sql, args...)
 		if err != nil {
 			return fmt.Errorf("Error inserting essay_tag in db: %w", err)
 		}
-	}
-
-	err = tx.Commit(context.Background())
-	if err != nil {
-		return err
 	}
 	return nil
 }

@@ -120,7 +120,7 @@ func Start() {
 	r.Post("/login", routes.AppHandler(routes.PostLogin))
 
 	r.Route("/essays", routes.EssaysRouter)
-	r.Get("/newessay", routes.GetNewEssay)
+	r.Get("/newessay", routes.AppHandler(routes.GetNewEssay))
 
 	r.Route("/s", routes.SubdisceptoRouter)
 	r.Get("/newsubdiscepto", routes.GetNewSubdiscepto)

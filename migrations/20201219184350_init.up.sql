@@ -41,11 +41,14 @@ CREATE TABLE essays (
 	content text NOT NULL,
 	attributed_to_id int REFERENCES users(id) NOT NULL,
 	posted_in varchar(50) REFERENCES subdisceptos(name) NOT NULL,
+	in_reply_to int REFERENCES essays(id),
+	reply_type int NOT NULL,
 	published timestamp NOT NULL
 );
 CREATE TABLE essay_mentions (
 	essay_id int REFERENCES essays(id) ON DELETE CASCADE,
 	mention_id int REFERENCES essays(id) ON DELETE CASCADE,
+	mention_type int,
 	PRIMARY KEY(essay_id, mention_id)
 );
 CREATE TABLE essay_tags (

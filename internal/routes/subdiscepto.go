@@ -79,7 +79,7 @@ func GetSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
 	data := struct {
 		Name        string
 		Description string
-		Essays      []models.Essay
+		Essays      []*models.Essay
 		IsMember    bool
 	}{
 		Name:        sub.Name,

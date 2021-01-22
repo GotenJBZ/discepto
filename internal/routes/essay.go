@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -18,9 +19,18 @@ func EssaysRouter(r chi.Router) {
 	r.Put("/", UpdateEssay)
 	r.Delete("/{id}", DeleteEssay)
 }
-func GetNewEssay(w http.ResponseWriter, r *http.Request) {
+func GetNewEssay(w http.ResponseWriter, r *http.Request) *AppError {
 	subdiscepto := r.URL.Query().Get("subdiscepto")
-	server.RenderHTML(w, "newEssay", subdiscepto)
+
+	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
+	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
+
+	essay := models.Essay{
+		PostedIn:  subdiscepto,
+		InReplyTo: inReplyTo,
+	}
+	server.RenderHTML(w, "newEssay", essay)
+	return nil
 }
 func PostEssay(w http.ResponseWriter, r *http.Request) *AppError {
 	user, ok := r.Context().Value("user").(*models.User)
@@ -28,14 +38,20 @@ func PostEssay(w http.ResponseWriter, r *http.Request) *AppError {
 		return &AppError{Message: "Must login to execute this action"}
 	}
 
+	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
+	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
+
+	tags := strings.Fields(r.FormValue("tags"))
 	essay := models.Essay{
 		Thesis:         r.FormValue("thesis"),
 		Content:        r.FormValue("content"),
-		Tags:           strings.Fields(r.FormValue("tags")),
+		Tags:           tags,
 		AttributedToID: user.ID,
 		PostedIn:       r.FormValue("postedIn"),
+		InReplyTo:      inReplyTo,
+		ReplyType:      models.ParseReplyType(r.FormValue("replyType")),
 	}
-	err := db.CreateEssay(&essay)
+	err = db.CreateEssay(&essay)
 	if err == db.ErrBadContentLen {
 		return &AppError{Cause: err, Message: "You must respect required content length"}
 	}
@@ -62,16 +78,16 @@ func PostVote(w http.ResponseWriter, r *http.Request) *AppError {
 
 	var vote models.VoteType
 	switch r.FormValue("vote") {
-	case "upvote": 
+	case "upvote":
 		vote = models.VoteTypeUpvote
-	case "downvote": 
+	case "downvote":
 		vote = models.VoteTypeDownvote
 	}
 
 	db.DeleteVote(essayID, user.ID)
-	err = db.CreateVote(&models.Vote {
-		UserID: user.ID,
-		EssayID: essayID,
+	err = db.CreateVote(&models.Vote{
+		UserID:   user.ID,
+		EssayID:  essayID,
 		VoteType: vote,
 	})
 	if err != nil {
@@ -83,6 +99,6 @@ func PostVote(w http.ResponseWriter, r *http.Request) *AppError {
 		return &AppError{Cause: err}
 	}
 
-	http.Redirect(w,r,fmt.Sprintf("/s/%s/%d", essay.PostedIn, essayID), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/s/%s/%d", essay.PostedIn, essayID), http.StatusSeeOther)
 	return nil
 }
