@@ -41,10 +41,10 @@
 {{ end }}
 </ul>
 
-{{ range .RecentEssays }}
 <h2>Recent essays</h2>
+{{ range .RecentEssays }}
 <p>
-	<a href="/s/{{ .PostedIn }}/{{ .ID }}">{{ .Thesis }}</a>
+	<a href="/s/{{ .PostedIn }}/{{ .ID }}">{{ .Thesis }}</a><br>
 	{{ .Content }}
 </p>
 {{ end }}
