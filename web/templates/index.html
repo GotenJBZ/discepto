@@ -40,6 +40,15 @@
 </li>
 {{ end }}
 </ul>
+
+{{ range .RecentEssays }}
+<h2>Recent essays</h2>
+<p>
+	<a href="/s/{{ .PostedIn }}/{{ .ID }}">{{ .Thesis }}</a>
+	{{ .Content }}
+</p>
+{{ end }}
+
 {{ end }}
 {{ template "footer" . }}
 {{ end }}

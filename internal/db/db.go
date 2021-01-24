@@ -456,6 +456,19 @@ func ListMySubdisceptos(userID int) (subs []string, err error) {
 	}
 	return subs, nil
 }
+func ListRecentEssaysIn(subs []string) (essays []*models.Essay, err error) {
+	sql, args, _ := psql.
+		Select("*").
+		From("essays").
+		Where(squirrel.Eq{"posted_in": subs}).
+		ToSql()
+
+	err = pgxscan.Select(context.Background(), DB, &essays, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return essays, nil
+}
 func DeleteSubdiscepto(name string) error {
 	sql, args, _ := psql.
 		Delete("subdisceptos").

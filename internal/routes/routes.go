@@ -75,8 +75,10 @@ func GetHome(w http.ResponseWriter, r *http.Request) *AppError {
 		User           *models.User
 		LoggedIn       bool
 		MySubdisceptos []string
+		RecentEssays []*models.Essay
 	}
 	user, ok := r.Context().Value("user").(*models.User)
+
 	data := homeData{User: user, LoggedIn: ok}
 	if data.LoggedIn {
 		mySubs, err := db.ListMySubdisceptos(user.ID)
@@ -84,6 +86,12 @@ func GetHome(w http.ResponseWriter, r *http.Request) *AppError {
 			return &AppError{Message: "Can't list joined communities", Cause: err}
 		}
 		data.MySubdisceptos = mySubs
+
+		recentEssays, err := db.ListRecentEssaysIn(mySubs)
+		if err != nil {
+			return &AppError{Message: "Can't list recent essays", Cause: err}
+		}
+		data.RecentEssays = recentEssays
 	}
 
 	server.RenderHTML(w, "home", data)

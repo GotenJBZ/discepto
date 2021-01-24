@@ -11,6 +11,7 @@ import (
 
 const mockPasswd = "123456789" // hackerman
 const mockSubName = "mock"
+const mockSubName2 = "mock2"
 
 func mockUser() *models.User {
 	return &models.User{
@@ -43,6 +44,12 @@ func mockSubdiscepto() *models.Subdiscepto {
 	return &models.Subdiscepto{
 		Name:        mockSubName,
 		Description: "Mock subdiscepto",
+	}
+}
+func mockSubdiscepto2() *models.Subdiscepto {
+	return &models.Subdiscepto{
+		Name:        mockSubName2,
+		Description: "Mock subdiscepto 2",
 	}
 }
 
@@ -162,10 +169,29 @@ func TestEssay(t *testing.T) {
 		t.Fatalf("ListEssays(%v) = %v, %v want essays, nil", mockSubName, essays, err)
 	}
 
+	// Test list recent essays from joined subs
+	// Create and fill second sub
+	CreateSubdiscepto(mockSubdiscepto2(), user.ID)
+	essay2 := mockEssay(user.ID)
+	CreateEssay(essay2)
+
+	// list
+	essays, err = ListRecentEssaysIn([]string{mockSubName, mockSubName2})
+	if err != nil || len(essays) < 2 {
+		t.Fatalf("ListRecentEssaysIn(%v) = %v,%v want essays (len > 2), nil", mockSubName, essays, err)
+	}
+
+	// Clean
+	err = DeleteEssay(essay2.ID)
+	if err != nil {
+		t.Fatalf("DeleteEssay(%v) = %v, want nil", essay2.ID, err)
+	}
+	DeleteSubdiscepto(mockSubdiscepto2().Name)
 	err = DeleteEssay(essay.ID)
 	if err != nil {
 		t.Fatalf("DeleteEssay(%v) = %v, want nil", essay.ID, err)
 	}
+	DeleteSubdiscepto(mockSubdiscepto().Name)
 	DeleteUser(user.ID)
 }
 func TestVotes(t *testing.T) {
@@ -173,6 +199,7 @@ func TestVotes(t *testing.T) {
 	user := mockUser()
 	_ = CreateUser(user, mockPasswd)
 	essay := mockEssay(user.ID)
+	CreateSubdiscepto(mockSubdiscepto(), user.ID)
 	_ = CreateEssay(essay)
 
 	// Actual test
