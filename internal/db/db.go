@@ -469,6 +469,30 @@ func ListRecentEssaysIn(subs []string) (essays []*models.Essay, err error) {
 	}
 	return essays, nil
 }
+func listEssayReplies(essayID int, opinion int) (essays []*models.Essay, err error) {
+	sql, args, _ := psql.
+		Select("*").
+		From("essays").
+		Where(squirrel.Eq{
+			"in_reply_to": essayID,
+			"reply_type":  opinion,
+		}).
+		ToSql()
+
+	err = pgxscan.Select(context.Background(), DB, &essays, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return essays, nil
+}
+func ListEssaysInFavor(essayID int) (essays []*models.Essay, err error) {
+	essays, err = listEssayReplies(essayID, models.ReplyTypeInFavor)
+	return
+}
+func ListEssaysAgainst(essayID int) (essays []*models.Essay, err error) {
+	essays, err = listEssayReplies(essayID, models.ReplyTypeAgainst)
+	return
+}
 func DeleteSubdiscepto(name string) error {
 	sql, args, _ := psql.
 		Delete("subdisceptos").

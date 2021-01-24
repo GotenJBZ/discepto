@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"net/url"
 	"os"
 	"testing"
@@ -176,22 +177,37 @@ func TestEssay(t *testing.T) {
 	CreateEssay(essay2)
 
 	// list
-	essays, err = ListRecentEssaysIn([]string{mockSubName, mockSubName2})
+	subs := []string{mockSubName, mockSubName2}
+	essays, err = ListRecentEssaysIn(subs)
 	if err != nil || len(essays) < 2 {
-		t.Fatalf("ListRecentEssaysIn(%v) = %v,%v want essays (len > 2), nil", mockSubName, essays, err)
+		t.Fatalf("ListRecentEssaysIn(%v) = %v,%v want essays (len > 2), nil", subs, essays, err)
+	}
+
+	// Test list essays in favor
+	// Add initial votes
+	essay3 := mockEssay(user.ID)
+	essay3.InReplyTo = sql.NullInt32{Int32: int32(essay2.ID), Valid: true}
+	essay3.ReplyType = models.ReplyTypeInFavor
+	CreateEssay(essay3)
+	// list
+	essays, err = ListEssaysInFavor(essay2.ID)
+	if err != nil || len(essays) != 1 {
+		t.Fatalf("ListEssaysInFavor(%v) = %v,%v want essays, nil", essay2.ID, essays, err)
 	}
 
 	// Clean
-	err = DeleteEssay(essay2.ID)
-	if err != nil {
-		t.Fatalf("DeleteEssay(%v) = %v, want nil", essay2.ID, err)
+	toDelete := []*models.Essay{
+		essay3,
+		essay2,
+		essay,
 	}
-	DeleteSubdiscepto(mockSubdiscepto2().Name)
-	err = DeleteEssay(essay.ID)
-	if err != nil {
-		t.Fatalf("DeleteEssay(%v) = %v, want nil", essay.ID, err)
+	for _, es := range toDelete {
+		err = DeleteEssay(es.ID)
+		if err != nil {
+			t.Fatalf("DeleteEssay(%v) = %v, want nil", es.ID, err)
+		}
+		DeleteSubdiscepto(es.PostedIn)
 	}
-	DeleteSubdiscepto(mockSubdiscepto().Name)
 	DeleteUser(user.ID)
 }
 func TestVotes(t *testing.T) {

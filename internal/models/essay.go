@@ -6,12 +6,17 @@ import (
 	"time"
 )
 
+const (
+	ReplyTypeInFavor = 1
+	ReplyTypeAgainst = -1
+)
+
 func ParseReplyType(s string) int {
 	switch s {
 	case "inFavor":
-		return 1
+		return ReplyTypeInFavor
 	case "against":
-		return -1
+		return ReplyTypeInFavor
 	}
 	return 0
 }

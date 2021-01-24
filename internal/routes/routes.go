@@ -75,7 +75,7 @@ func GetHome(w http.ResponseWriter, r *http.Request) *AppError {
 		User           *models.User
 		LoggedIn       bool
 		MySubdisceptos []string
-		RecentEssays []*models.Essay
+		RecentEssays   []*models.Essay
 	}
 	user, ok := r.Context().Value("user").(*models.User)
 
