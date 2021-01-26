@@ -10,7 +10,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 
-	"github.com/Masterminds/squirrel"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -28,7 +28,7 @@ const (
 
 var BCryptCost = 11
 
-var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 var ErrBadEmailSyntax error = errors.New("Bad email syntax")
 var ErrTooManyTags error = errors.New("You have inserted too many tags")
@@ -171,7 +171,7 @@ func Login(email string, passwd string) (token string, err error) {
 		Select("credentials.hash, users.id").
 		From("credentials").
 		LeftJoin("users ON users.id = credentials.user_id").
-		Where("users.email = $1", email).
+		Where(sq.Eq{"users.email": email}).
 		ToSql()
 
 	var data res
@@ -217,7 +217,7 @@ func GetUserByToken(token string) (*models.User, error) {
 		Select("users.name", "users.id", "users.role_id", "users.email").
 		From("users").
 		LeftJoin("tokens ON users.id = tokens.user_id").
-		Where("tokens.token = $1", token).
+		Where(sq.Eq{"tokens.token": token}).
 		ToSql()
 
 	err := pgxscan.Get(
@@ -238,7 +238,7 @@ var roleQuery = psql.
 
 func GetGlobalRole(userID int) (role *models.Role, err error) {
 	sql, args, _ := roleQuery.
-		Where("users.id = $1", userID).ToSql()
+		Where(sq.Eq{"users.id": userID}).ToSql()
 
 	role = &models.Role{}
 	err = pgxscan.Get(context.Background(), DB, role, sql, args...)
@@ -248,7 +248,7 @@ func GetGlobalRole(userID int) (role *models.Role, err error) {
 	return role, nil
 }
 func DeleteUser(id int) error {
-	sql, args, _ := psql.Delete("users").Where("id = $1", id).ToSql()
+	sql, args, _ := psql.Delete("users").Where(sq.Eq{"id": id}).ToSql()
 	_, err := DB.Exec(context.Background(), sql, args...)
 	return err
 }
@@ -258,7 +258,7 @@ func ListEssays(subName string) ([]*models.Essay, error) {
 	sql, args, _ := psql.
 		Select("*").
 		From("essays").
-		Where("posted_in = $1", subName).
+		Where(sq.Eq{"posted_in": subName}).
 		ToSql()
 
 	err := pgxscan.Select(context.Background(), DB, &essays, sql, args...)
@@ -344,7 +344,7 @@ func GetEssay(id int) (*models.Essay, error) {
 	sql, args, _ := psql.
 		Select("*").
 		From("essays").
-		Where("id = $1", id).
+		Where(sq.Eq{"id": id}).
 		ToSql()
 
 	var essay models.Essay
@@ -356,7 +356,7 @@ func GetEssay(id int) (*models.Essay, error) {
 	sql, args, _ = psql.
 		Select("tag").
 		From("essay_tags").
-		Where("essay_id = $1", id).
+		Where(sq.Eq{"essay_id": id}).
 		ToSql()
 	err = pgxscan.Select(context.Background(), DB, &essay.Tags, sql, args...)
 	if err != nil {
@@ -366,7 +366,7 @@ func GetEssay(id int) (*models.Essay, error) {
 	return &essay, nil
 }
 func DeleteEssay(id int) error {
-	sql, args, _ := psql.Delete("essays").Where("id = $1", id).ToSql()
+	sql, args, _ := psql.Delete("essays").Where(sq.Eq{"id": id}).ToSql()
 	_, err := DB.Exec(context.Background(), sql, args...)
 	return err
 }
@@ -434,7 +434,7 @@ func JoinSubdiscepto(sub string, userID int) error {
 func LeaveSubdiscepto(sub string, userID int) error {
 	sql, args, _ := psql.
 		Delete("subdiscepto_users").
-		Where("name = $1 AND user_id = $2", sub, userID).
+		Where(sq.Eq{"name": sub, "user_id": userID}).
 		ToSql()
 
 	_, err := DB.Exec(context.Background(), sql, args...)
@@ -447,7 +447,7 @@ func ListMySubdisceptos(userID int) (subs []string, err error) {
 	sql, args, _ := psql.
 		Select("name").
 		From("subdiscepto_users").
-		Where("user_id = $1", userID).
+		Where(sq.Eq{"user_id": userID}).
 		ToSql()
 
 	err = pgxscan.Select(context.Background(), DB, &subs, sql, args...)
@@ -460,7 +460,7 @@ func ListRecentEssaysIn(subs []string) (essays []*models.Essay, err error) {
 	sql, args, _ := psql.
 		Select("*").
 		From("essays").
-		Where(squirrel.Eq{"posted_in": subs}).
+		Where(sq.Eq{"posted_in": subs}).
 		ToSql()
 
 	err = pgxscan.Select(context.Background(), DB, &essays, sql, args...)
@@ -473,7 +473,7 @@ func listEssayReplies(essayID int, opinion int) (essays []*models.Essay, err err
 	sql, args, _ := psql.
 		Select("*").
 		From("essays").
-		Where(squirrel.Eq{
+		Where(sq.Eq{
 			"in_reply_to": essayID,
 			"reply_type":  opinion,
 		}).
@@ -496,7 +496,7 @@ func ListEssaysAgainst(essayID int) (essays []*models.Essay, err error) {
 func DeleteSubdiscepto(name string) error {
 	sql, args, _ := psql.
 		Delete("subdisceptos").
-		Where("name = $1", name).
+		Where(sq.Eq{"name": name}).
 		ToSql()
 
 	_, err := DB.Exec(context.Background(), sql, args...)
@@ -524,7 +524,7 @@ func CreateReport(report *models.Report) error {
 func DeleteReport(report *models.Report) error {
 	sql, args, _ := psql.
 		Delete("reports").
-		Where("id = $1", report.ID).
+		Where(sq.Eq{"id": report.ID}).
 		ToSql()
 
 	_, err := DB.Exec(context.Background(), sql, args...)
@@ -550,7 +550,7 @@ func CountVotes(essayID int) (upvotes, downvotes int, err error) {
 	sql, args, _ := psql.
 		Select("COUNT(*), SUM(CASE WHEN vote_type = 'upvote' THEN 1 ELSE 0 END) AS upvotes").
 		From("votes").
-		Where("essay_id = $1", essayID).
+		Where(sq.Eq{"essay_id": essayID}).
 		GroupBy("vote_type").
 		ToSql()
 
@@ -569,7 +569,7 @@ func CountVotes(essayID int) (upvotes, downvotes int, err error) {
 func DeleteVote(essayID, userID int) error {
 	sql, args, _ := psql.
 		Delete("votes").
-		Where("user_id = $1 AND essay_id = $2", userID, essayID).
+		Where(sq.Eq{"user_id": userID, "essay_id": essayID}).
 		ToSql()
 	_, err := DB.Exec(context.Background(), sql, args...)
 	if err != nil {
