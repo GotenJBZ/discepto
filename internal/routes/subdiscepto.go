@@ -22,11 +22,11 @@ func SubdisceptoRouter(r chi.Router) {
 func LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
-		return ErrMustLogin
+		return &ErrMustLogin{}
 	}
 	err := db.LeaveSubdiscepto(chi.URLParam(r, "name"), user.ID)
 	if err != nil {
-		return &AppErr{Message: "Error leaving", Cause: err}
+		return &ErrInternal{Message: "Error leaving", Cause: err}
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil
@@ -34,11 +34,11 @@ func LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 func JoinSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
-		return ErrMustLogin
+		return &ErrMustLogin{}
 	}
 	err := db.JoinSubdiscepto(chi.URLParam(r, "name"), user.ID)
 	if err != nil {
-		return &AppErr{Message: "Error joining", Cause: err}
+		return &ErrInternal{Message: "Error joining", Cause: err}
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil
@@ -46,7 +46,7 @@ func JoinSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 func GetSubdisceptos(w http.ResponseWriter, r *http.Request) AppError {
 	subs, err := db.ListSubdisceptos()
 	if err != nil {
-		return &AppErr{Cause: err, Status: http.StatusNotFound}
+		return &ErrNotFound{Cause: err, Thing: "subdisceptos"}
 	}
 	server.RenderHTML(w, "subdisceptos", subs)
 	return nil
@@ -55,11 +55,11 @@ func GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	name := chi.URLParam(r, "name")
 	sub, err := db.GetSubdiscepto(name)
 	if err != nil {
-		return &AppErr{Cause: err, Message: fmt.Sprintf("Community %s not found", name)}
+		return &ErrNotFound{Cause: err, Thing: "subdiscepto"}
 	}
 	essays, err := db.ListEssays(name)
 	if err != nil {
-		return &AppErr{Cause: err, Message: "Can't list essays"}
+		return &ErrInternal{Cause: err, Message: "Can't list essays"}
 	}
 
 	isMember := false
@@ -67,7 +67,7 @@ func GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	if ok {
 		subs, err := db.ListMySubdisceptos(user.ID)
 		if err != nil {
-			return &AppErr{Cause: err, Message: "Error getting sub membership"}
+			return &ErrInternal{Cause: err, Message: "Error getting sub membership"}
 		}
 		for _, s := range subs {
 			if s == name {
@@ -93,7 +93,7 @@ func GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 func PostSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
-		return ErrMustLogin
+		return &ErrMustLogin{}
 	}
 
 	sub := &models.Subdiscepto{
@@ -102,7 +102,7 @@ func PostSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	}
 	err := db.CreateSubdiscepto(sub, user.ID)
 	if err != nil {
-		return &AppErr{Message: "Error creating subdiscepto", Cause: err}
+		return &ErrInternal{Message: "Error creating subdiscepto", Cause: err}
 	}
 	http.Redirect(w, r, fmt.Sprintf("/s/%s", sub.Name), http.StatusSeeOther)
 	return nil
@@ -110,16 +110,16 @@ func PostSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 func GetEssay(w http.ResponseWriter, r *http.Request) AppError {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		return &AppErr{Cause: err, Status: http.StatusNotFound}
+		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 	essay, err := db.GetEssay(id)
 	if err != nil {
-		return &AppErr{Cause: err, Status: http.StatusNotFound, Message: "Can't find essay"}
+		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 
 	essay.Upvotes, essay.Downvotes, err = db.CountVotes(essay.ID)
 	if err != nil {
-		return &AppErr{Cause: err}
+		return &ErrInternal{Cause: err}
 	}
 
 	server.RenderHTML(w, "essay", essay)

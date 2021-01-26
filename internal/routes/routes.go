@@ -43,45 +43,94 @@ func UserCtx(next http.Handler) http.Handler {
 	})
 }
 
+// Interface shared by every custom http error.
+// Needed to provide custom error handling for each error type
 type AppError interface {
-	Respond(w http.ResponseWriter, r *http.Request)
+	Respond(w http.ResponseWriter, r *http.Request) LoggableErr
 }
-type AppErr struct {
+
+// Printable error data related to a request
+type LoggableErr struct {
 	Message string
 	Status  int
 	Cause   error
 }
 
-func (err *AppErr) Respond(w http.ResponseWriter, r *http.Request) {
-	if err.Status == 0 {
-		err.Status = http.StatusInternalServerError
-	}
-	if err.Message == "" {
-		err.Message = "Internal server error"
-	}
-	http.Error(w, err.Message, http.StatusInternalServerError)
-	hlog.FromRequest(r).
-		Error().
-		Str("request_id", middleware.GetReqID(r.Context())).
-		Err(err.Cause).
-		Msg(err.Message)
+// Specific errors
+type ErrInternal struct {
+	Message string
+	Cause   error
 }
 
-var ErrMustLogin = &AppErr{
-	Cause: errors.New("Not logged in"),
-	Status: http.StatusBadRequest,
-	Message: "You must login to execute this action",
+func (err *ErrInternal) Respond(w http.ResponseWriter, r *http.Request) LoggableErr {
+	loggableErr := LoggableErr{
+		Cause:   err.Cause,
+		Message: err.Message,
+		Status:  http.StatusInternalServerError,
+	}
+	http.Error(w, "Internal server error", loggableErr.Status)
+	return loggableErr
 }
 
+type ErrNotFound struct {
+	Cause error
+	Thing string
+}
+
+func (err *ErrNotFound) Respond(w http.ResponseWriter, r *http.Request) LoggableErr {
+	loggableErr := LoggableErr{
+		Cause:   errors.New("Not found"),
+		Status:  http.StatusNotFound,
+		Message: fmt.Sprintf("Retrieving %s", err.Thing),
+	}
+	http.NotFound(w, r)
+	return loggableErr
+}
+
+type ErrMustLogin struct{}
+
+func (err *ErrMustLogin) Respond(w http.ResponseWriter, r *http.Request) LoggableErr {
+	loggableErr := LoggableErr{
+		Cause:  errors.New("Not logged in"),
+		Status: http.StatusSeeOther,
+	}
+	http.Redirect(w, r, "/login", loggableErr.Status)
+	return loggableErr
+}
+
+type ErrBadRequest struct {
+	Cause      error
+	Motivation string
+}
+
+func (err *ErrBadRequest) Respond(w http.ResponseWriter, r *http.Request) LoggableErr {
+	loggableErr := LoggableErr{
+		Cause:   err.Cause,
+		Message: err.Motivation,
+		Status:  http.StatusBadRequest,
+	}
+	http.Error(w, err.Motivation, loggableErr.Status)
+	return loggableErr
+}
+
+// Wrapper to handle errors returned by routes
 func AppHandler(handler func(w http.ResponseWriter, r *http.Request) AppError) http.HandlerFunc {
 	res := func(w http.ResponseWriter, r *http.Request) {
 		err := handler(w, r)
 		if err != nil {
-			err.Respond(w, r)
+			loggableErr := err.Respond(w, r)
+
+			hlog.FromRequest(r).
+				Error().
+				Str("request_id", middleware.GetReqID(r.Context())).
+				Err(loggableErr.Cause).
+				Send()
 		}
 	}
 	return res
 }
+
+// Routes
 func GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	type homeData struct {
 		User           *models.User
@@ -95,13 +144,13 @@ func GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	if data.LoggedIn {
 		mySubs, err := db.ListMySubdisceptos(user.ID)
 		if err != nil {
-			return &AppErr{Message: "Can't list joined communities", Cause: err}
+			return &ErrInternal{Message: "Can't list joined communities", Cause: err}
 		}
 		data.MySubdisceptos = mySubs
 
 		recentEssays, err := db.ListRecentEssaysIn(mySubs)
 		if err != nil {
-			return &AppErr{Message: "Can't list recent essays", Cause: err}
+			return &ErrInternal{Message: "Can't list recent essays", Cause: err}
 		}
 		data.RecentEssays = recentEssays
 	}
@@ -112,13 +161,13 @@ func GetHome(w http.ResponseWriter, r *http.Request) AppError {
 func GetUsers(w http.ResponseWriter, r *http.Request) AppError {
 	users, err := db.ListUsers()
 	if err != nil {
-		return &AppErr{Cause: err}
+		return &ErrInternal{Cause: err}
 	}
 
 	server.RenderHTML(w, "users", users)
 	return nil
 }
-func GetSignout(w http.ResponseWriter, r *http.Request) AppError {
+func signOut(w http.ResponseWriter, r *http.Request) error {
 	session, _ := cookiestore.Get(r, "discepto")
 	token := session.Values["token"]
 
@@ -127,8 +176,12 @@ func GetSignout(w http.ResponseWriter, r *http.Request) AppError {
 	session.Save(r, w)
 
 	err := db.Signout(fmt.Sprintf("%v", token))
+	return err
+}
+func GetSignout(w http.ResponseWriter, r *http.Request) AppError {
+	err := signOut(w, r)
 	if err != nil {
-		return &AppErr{Cause: err}
+		return &ErrInternal{Cause: err}
 	}
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -146,9 +199,9 @@ func GetNewSubdiscepto(w http.ResponseWriter, r *http.Request) {
 func PostLogin(w http.ResponseWriter, r *http.Request) AppError {
 	token, err := db.Login(r.FormValue("email"), r.FormValue("password"))
 	if err != nil {
-		return &AppErr{
-			Cause:   err,
-			Message: "Bad email or password",
+		return &ErrBadRequest{
+			Cause:      err,
+			Motivation: "Bad email or password",
 		}
 	}
 	session, _ := cookiestore.Get(r, "discepto")
@@ -166,13 +219,13 @@ func PostSignup(w http.ResponseWriter, r *http.Request) AppError {
 		RoleID: models.RoleAdmin,
 	}, r.FormValue("password"))
 	if err == db.ErrBadEmailSyntax {
-		return &AppErr{Cause: err, Message: "Bad email syntax"}
+		return &ErrBadRequest{Cause: err, Motivation: "Bad email syntax"}
 	}
 	if err == db.ErrEmailAlreadyUsed {
-		return &AppErr{Cause: err, Message: "The email is already used"}
+		return &ErrBadRequest{Cause: err, Motivation: "The email is already used"}
 	}
 	if err != nil {
-		return &AppErr{Cause: err}
+		return &ErrInternal{Cause: err}
 	}
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)

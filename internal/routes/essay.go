@@ -35,7 +35,7 @@ func GetNewEssay(w http.ResponseWriter, r *http.Request) AppError {
 func PostEssay(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
-		return ErrMustLogin
+		return &ErrMustLogin{}
 	}
 
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
@@ -53,10 +53,10 @@ func PostEssay(w http.ResponseWriter, r *http.Request) AppError {
 	}
 	err = db.CreateEssay(&essay)
 	if err == db.ErrBadContentLen {
-		return &AppErr{Cause: err, Message: "You must respect required content length"}
+		return &ErrBadRequest{Cause: err, Motivation: "You must respect required content length"}
 	}
 	if err != nil {
-		return &AppErr{Cause: err}
+		return &ErrInternal{Cause: err}
 	}
 	http.Redirect(w, r, fmt.Sprintf("/s/%s", essay.PostedIn), http.StatusSeeOther)
 	return nil
@@ -70,7 +70,7 @@ func UpdateEssay(w http.ResponseWriter, r *http.Request) {
 func PostVote(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
-		return ErrMustLogin
+		return &ErrMustLogin{}
 	}
 
 	essayIDStr := chi.URLParam(r, "essayID")
@@ -91,12 +91,12 @@ func PostVote(w http.ResponseWriter, r *http.Request) AppError {
 		VoteType: vote,
 	})
 	if err != nil {
-		return &AppErr{Cause: err}
+		return &ErrInternal{Cause: err}
 	}
 
 	essay, err := db.GetEssay(essayID)
 	if err != nil {
-		return &AppErr{Cause: err}
+		return &ErrInternal{Cause: err}
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/s/%s/%d", essay.PostedIn, essayID), http.StatusSeeOther)
