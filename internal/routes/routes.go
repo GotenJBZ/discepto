@@ -2,6 +2,7 @@ package routes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -42,35 +43,46 @@ func UserCtx(next http.Handler) http.Handler {
 	})
 }
 
-type AppError struct {
+type AppError interface {
+	Respond(w http.ResponseWriter, r *http.Request)
+}
+type AppErr struct {
 	Message string
 	Status  int
 	Cause   error
 }
 
-func AppHandler(handler func(w http.ResponseWriter, r *http.Request) *AppError) http.HandlerFunc {
+func (err *AppErr) Respond(w http.ResponseWriter, r *http.Request) {
+	if err.Status == 0 {
+		err.Status = http.StatusInternalServerError
+	}
+	if err.Message == "" {
+		err.Message = "Internal server error"
+	}
+	http.Error(w, err.Message, http.StatusInternalServerError)
+	hlog.FromRequest(r).
+		Error().
+		Str("request_id", middleware.GetReqID(r.Context())).
+		Err(err.Cause).
+		Msg(err.Message)
+}
+
+var ErrMustLogin = &AppErr{
+	Cause: errors.New("Not logged in"),
+	Status: http.StatusBadRequest,
+	Message: "You must login to execute this action",
+}
+
+func AppHandler(handler func(w http.ResponseWriter, r *http.Request) AppError) http.HandlerFunc {
 	res := func(w http.ResponseWriter, r *http.Request) {
 		err := handler(w, r)
-
-		if err == nil {
-			return
+		if err != nil {
+			err.Respond(w, r)
 		}
-		if err.Status == 0 {
-			err.Status = http.StatusInternalServerError
-		}
-		if err.Message == "" {
-			err.Message = "Internal server error"
-		}
-		http.Error(w, err.Message, http.StatusInternalServerError)
-		hlog.FromRequest(r).
-			Error().
-			Str("request_id", middleware.GetReqID(r.Context())).
-			Err(err.Cause).
-			Msg(err.Message)
 	}
 	return res
 }
-func GetHome(w http.ResponseWriter, r *http.Request) *AppError {
+func GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	type homeData struct {
 		User           *models.User
 		LoggedIn       bool
@@ -83,13 +95,13 @@ func GetHome(w http.ResponseWriter, r *http.Request) *AppError {
 	if data.LoggedIn {
 		mySubs, err := db.ListMySubdisceptos(user.ID)
 		if err != nil {
-			return &AppError{Message: "Can't list joined communities", Cause: err}
+			return &AppErr{Message: "Can't list joined communities", Cause: err}
 		}
 		data.MySubdisceptos = mySubs
 
 		recentEssays, err := db.ListRecentEssaysIn(mySubs)
 		if err != nil {
-			return &AppError{Message: "Can't list recent essays", Cause: err}
+			return &AppErr{Message: "Can't list recent essays", Cause: err}
 		}
 		data.RecentEssays = recentEssays
 	}
@@ -97,16 +109,16 @@ func GetHome(w http.ResponseWriter, r *http.Request) *AppError {
 	server.RenderHTML(w, "home", data)
 	return nil
 }
-func GetUsers(w http.ResponseWriter, r *http.Request) *AppError {
+func GetUsers(w http.ResponseWriter, r *http.Request) AppError {
 	users, err := db.ListUsers()
 	if err != nil {
-		return &AppError{Cause: err}
+		return &AppErr{Cause: err}
 	}
 
 	server.RenderHTML(w, "users", users)
 	return nil
 }
-func GetSignout(w http.ResponseWriter, r *http.Request) *AppError {
+func GetSignout(w http.ResponseWriter, r *http.Request) AppError {
 	session, _ := cookiestore.Get(r, "discepto")
 	token := session.Values["token"]
 
@@ -116,7 +128,7 @@ func GetSignout(w http.ResponseWriter, r *http.Request) *AppError {
 
 	err := db.Signout(fmt.Sprintf("%v", token))
 	if err != nil {
-		return &AppError{Cause: err}
+		return &AppErr{Cause: err}
 	}
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -131,10 +143,10 @@ func GetLogin(w http.ResponseWriter, r *http.Request) {
 func GetNewSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	server.RenderHTML(w, "newSubdiscepto", nil)
 }
-func PostLogin(w http.ResponseWriter, r *http.Request) *AppError {
+func PostLogin(w http.ResponseWriter, r *http.Request) AppError {
 	token, err := db.Login(r.FormValue("email"), r.FormValue("password"))
 	if err != nil {
-		return &AppError{
+		return &AppErr{
 			Cause:   err,
 			Message: "Bad email or password",
 		}
@@ -146,7 +158,7 @@ func PostLogin(w http.ResponseWriter, r *http.Request) *AppError {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil
 }
-func PostSignup(w http.ResponseWriter, r *http.Request) *AppError {
+func PostSignup(w http.ResponseWriter, r *http.Request) AppError {
 	email := r.FormValue("email")
 	err := db.CreateUser(&models.User{
 		Name:   r.FormValue("name"),
@@ -154,13 +166,13 @@ func PostSignup(w http.ResponseWriter, r *http.Request) *AppError {
 		RoleID: models.RoleAdmin,
 	}, r.FormValue("password"))
 	if err == db.ErrBadEmailSyntax {
-		return &AppError{Cause: err, Message: "Bad email syntax"}
+		return &AppErr{Cause: err, Message: "Bad email syntax"}
 	}
 	if err == db.ErrEmailAlreadyUsed {
-		return &AppError{Cause: err, Message: "The email is already used"}
+		return &AppErr{Cause: err, Message: "The email is already used"}
 	}
 	if err != nil {
-		return &AppError{Cause: err}
+		return &AppErr{Cause: err}
 	}
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)

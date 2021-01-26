@@ -19,7 +19,7 @@ func EssaysRouter(r chi.Router) {
 	r.Put("/", UpdateEssay)
 	r.Delete("/{id}", DeleteEssay)
 }
-func GetNewEssay(w http.ResponseWriter, r *http.Request) *AppError {
+func GetNewEssay(w http.ResponseWriter, r *http.Request) AppError {
 	subdiscepto := r.URL.Query().Get("subdiscepto")
 
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
@@ -32,10 +32,10 @@ func GetNewEssay(w http.ResponseWriter, r *http.Request) *AppError {
 	server.RenderHTML(w, "newEssay", essay)
 	return nil
 }
-func PostEssay(w http.ResponseWriter, r *http.Request) *AppError {
+func PostEssay(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
-		return &AppError{Message: "Must login to execute this action"}
+		return ErrMustLogin
 	}
 
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
@@ -53,10 +53,10 @@ func PostEssay(w http.ResponseWriter, r *http.Request) *AppError {
 	}
 	err = db.CreateEssay(&essay)
 	if err == db.ErrBadContentLen {
-		return &AppError{Cause: err, Message: "You must respect required content length"}
+		return &AppErr{Cause: err, Message: "You must respect required content length"}
 	}
 	if err != nil {
-		return &AppError{Cause: err}
+		return &AppErr{Cause: err}
 	}
 	http.Redirect(w, r, fmt.Sprintf("/s/%s", essay.PostedIn), http.StatusSeeOther)
 	return nil
@@ -67,10 +67,10 @@ func DeleteEssay(w http.ResponseWriter, r *http.Request) {
 func UpdateEssay(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Nope")
 }
-func PostVote(w http.ResponseWriter, r *http.Request) *AppError {
+func PostVote(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
-		return &AppError{Message: "Must login"}
+		return ErrMustLogin
 	}
 
 	essayIDStr := chi.URLParam(r, "essayID")
@@ -91,12 +91,12 @@ func PostVote(w http.ResponseWriter, r *http.Request) *AppError {
 		VoteType: vote,
 	})
 	if err != nil {
-		return &AppError{Cause: err}
+		return &AppErr{Cause: err}
 	}
 
 	essay, err := db.GetEssay(essayID)
 	if err != nil {
-		return &AppError{Cause: err}
+		return &AppErr{Cause: err}
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/s/%s/%d", essay.PostedIn, essayID), http.StatusSeeOther)

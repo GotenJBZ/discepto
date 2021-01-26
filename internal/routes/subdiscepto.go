@@ -19,47 +19,47 @@ func SubdisceptoRouter(r chi.Router) {
 	r.Get("/", AppHandler(GetSubdisceptos))
 	r.Post("/", AppHandler(PostSubdiscepto))
 }
-func LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
+func LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
-		return &AppError{Message: "Must login"}
+		return ErrMustLogin
 	}
 	err := db.LeaveSubdiscepto(chi.URLParam(r, "name"), user.ID)
 	if err != nil {
-		return &AppError{Message: "Error leaving", Cause: err}
+		return &AppErr{Message: "Error leaving", Cause: err}
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil
 }
-func JoinSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
+func JoinSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
-		return &AppError{Message: "Must login"}
+		return ErrMustLogin
 	}
 	err := db.JoinSubdiscepto(chi.URLParam(r, "name"), user.ID)
 	if err != nil {
-		return &AppError{Message: "Error joining", Cause: err}
+		return &AppErr{Message: "Error joining", Cause: err}
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil
 }
-func GetSubdisceptos(w http.ResponseWriter, r *http.Request) *AppError {
+func GetSubdisceptos(w http.ResponseWriter, r *http.Request) AppError {
 	subs, err := db.ListSubdisceptos()
 	if err != nil {
-		return &AppError{Cause: err, Status: http.StatusNotFound}
+		return &AppErr{Cause: err, Status: http.StatusNotFound}
 	}
 	server.RenderHTML(w, "subdisceptos", subs)
 	return nil
 }
-func GetSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
+func GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	name := chi.URLParam(r, "name")
 	sub, err := db.GetSubdiscepto(name)
 	if err != nil {
-		return &AppError{Cause: err, Message: fmt.Sprintf("Community %s not found", name)}
+		return &AppErr{Cause: err, Message: fmt.Sprintf("Community %s not found", name)}
 	}
 	essays, err := db.ListEssays(name)
 	if err != nil {
-		return &AppError{Cause: err, Message: "Can't list essays"}
+		return &AppErr{Cause: err, Message: "Can't list essays"}
 	}
 
 	isMember := false
@@ -67,7 +67,7 @@ func GetSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
 	if ok {
 		subs, err := db.ListMySubdisceptos(user.ID)
 		if err != nil {
-			return &AppError{Cause: err, Message: "Error getting sub membership"}
+			return &AppErr{Cause: err, Message: "Error getting sub membership"}
 		}
 		for _, s := range subs {
 			if s == name {
@@ -90,10 +90,10 @@ func GetSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
 	server.RenderHTML(w, "subdiscepto", data)
 	return nil
 }
-func PostSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
+func PostSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
-		return &AppError{Message: "Must login to execute this action"}
+		return ErrMustLogin
 	}
 
 	sub := &models.Subdiscepto{
@@ -102,24 +102,24 @@ func PostSubdiscepto(w http.ResponseWriter, r *http.Request) *AppError {
 	}
 	err := db.CreateSubdiscepto(sub, user.ID)
 	if err != nil {
-		return &AppError{Message: "Error creating subdiscepto", Cause: err}
+		return &AppErr{Message: "Error creating subdiscepto", Cause: err}
 	}
 	http.Redirect(w, r, fmt.Sprintf("/s/%s", sub.Name), http.StatusSeeOther)
 	return nil
 }
-func GetEssay(w http.ResponseWriter, r *http.Request) *AppError {
+func GetEssay(w http.ResponseWriter, r *http.Request) AppError {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		return &AppError{Cause: err, Status: http.StatusNotFound}
+		return &AppErr{Cause: err, Status: http.StatusNotFound}
 	}
 	essay, err := db.GetEssay(id)
 	if err != nil {
-		return &AppError{Cause: err, Status: http.StatusNotFound, Message: "Can't find essay"}
+		return &AppErr{Cause: err, Status: http.StatusNotFound, Message: "Can't find essay"}
 	}
 
 	essay.Upvotes, essay.Downvotes, err = db.CountVotes(essay.ID)
 	if err != nil {
-		return &AppError{Cause: err}
+		return &AppErr{Cause: err}
 	}
 
 	server.RenderHTML(w, "essay", essay)
