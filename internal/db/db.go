@@ -469,13 +469,13 @@ func ListRecentEssaysIn(subs []string) (essays []*models.Essay, err error) {
 	}
 	return essays, nil
 }
-func listEssayReplies(essayID int, opinion int) (essays []*models.Essay, err error) {
+func ListEssayReplies(essayID int, replyType string) (essays []*models.Essay, err error) {
 	sql, args, _ := psql.
 		Select("*").
 		From("essays").
 		Where(sq.Eq{
 			"in_reply_to": essayID,
-			"reply_type":  opinion,
+			"reply_type":  replyType,
 		}).
 		ToSql()
 
@@ -484,14 +484,6 @@ func listEssayReplies(essayID int, opinion int) (essays []*models.Essay, err err
 		return nil, err
 	}
 	return essays, nil
-}
-func ListEssaysInFavor(essayID int) (essays []*models.Essay, err error) {
-	essays, err = listEssayReplies(essayID, models.ReplyTypeInFavor)
-	return
-}
-func ListEssaysAgainst(essayID int) (essays []*models.Essay, err error) {
-	essays, err = listEssayReplies(essayID, models.ReplyTypeAgainst)
-	return
 }
 func DeleteSubdiscepto(name string) error {
 	sql, args, _ := psql.

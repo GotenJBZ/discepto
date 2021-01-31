@@ -7,18 +7,17 @@ import (
 )
 
 const (
-	ReplyTypeInFavor = 1
-	ReplyTypeAgainst = -1
+	ReplyTypeInFavor    = "in favor"
+	ReplyTypeAgainst    = "against"
+	ReplyTypeCorrection = "correction"
+	ReplyTypeGeneral    = "general"
 )
 
-func ParseReplyType(s string) int {
-	switch s {
-	case "inFavor":
-		return ReplyTypeInFavor
-	case "against":
-		return ReplyTypeInFavor
-	}
-	return 0
+var AvailableReplyTypes = []string{
+	ReplyTypeInFavor,
+	ReplyTypeAgainst,
+	ReplyTypeCorrection,
+	ReplyTypeGeneral,
 }
 
 type Essay struct {
@@ -31,7 +30,7 @@ type Essay struct {
 	Sources        []*url.URL
 	PostedIn       string
 	InReplyTo      sql.NullInt32 `db:"in_reply_to"`
-	ReplyType      int           `db:"reply_type"`
+	ReplyType      string        `db:"reply_type"`
 	Upvotes        int
 	Downvotes      int
 }

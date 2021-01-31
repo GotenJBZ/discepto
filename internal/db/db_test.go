@@ -38,7 +38,7 @@ func mockEssay(userID int) *models.Essay {
 		Sources:        []*url.URL{mockUrl()},
 		Published:      time.Now(),
 		PostedIn:       mockSubName,
-		ReplyType:      models.ParseReplyType(""),
+		ReplyType:      models.ReplyTypeGeneral,
 	}
 }
 func mockSubdiscepto() *models.Subdiscepto {
@@ -184,15 +184,14 @@ func TestEssay(t *testing.T) {
 	}
 
 	// Test list essays in favor
-	// Add initial votes
 	essay3 := mockEssay(user.ID)
 	essay3.InReplyTo = sql.NullInt32{Int32: int32(essay2.ID), Valid: true}
 	essay3.ReplyType = models.ReplyTypeInFavor
 	CreateEssay(essay3)
 	// list
-	essays, err = ListEssaysInFavor(essay2.ID)
+	essays, err = ListEssayReplies(essay2.ID, essay3.ReplyType)
 	if err != nil || len(essays) != 1 {
-		t.Fatalf("ListEssaysInFavor(%v) = %v,%v want essays, nil", essay2.ID, essays, err)
+		t.Fatalf("ListEssayReplies(%v,%v) = %v,%v want essays, nil", essay2.ID, essay3.ReplyType, essays, err)
 	}
 
 	// Clean

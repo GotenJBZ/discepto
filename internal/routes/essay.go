@@ -41,7 +41,22 @@ func PostEssay(w http.ResponseWriter, r *http.Request) AppError {
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
 
+	// Parse reply type
+	replyType := r.FormValue("replyType")
+	found := false
+	for _, t := range models.AvailableReplyTypes {
+		if replyType == t {
+			found = true
+			break
+		}
+	}
+	if !found {
+		replyType = models.ReplyTypeGeneral
+	}
+
+	// Parse tags
 	tags := strings.Fields(r.FormValue("tags"))
+
 	essay := models.Essay{
 		Thesis:         r.FormValue("thesis"),
 		Content:        r.FormValue("content"),
@@ -49,7 +64,7 @@ func PostEssay(w http.ResponseWriter, r *http.Request) AppError {
 		AttributedToID: user.ID,
 		PostedIn:       r.FormValue("postedIn"),
 		InReplyTo:      inReplyTo,
-		ReplyType:      models.ParseReplyType(r.FormValue("replyType")),
+		ReplyType:      replyType,
 	}
 	err = db.CreateEssay(&essay)
 	if err == db.ErrBadContentLen {

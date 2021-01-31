@@ -42,7 +42,7 @@ CREATE TABLE essays (
 	attributed_to_id int REFERENCES users(id) NOT NULL,
 	posted_in varchar(50) REFERENCES subdisceptos(name) NOT NULL,
 	in_reply_to int REFERENCES essays(id),
-	reply_type int NOT NULL,
+	reply_type varchar(24) NOT NULL,
 	published timestamp NOT NULL
 );
 CREATE TABLE essay_mentions (
