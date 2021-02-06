@@ -379,8 +379,8 @@ func CreateSubdiscepto(subd *models.Subdiscepto, firstUserID int) error {
 	// Insert subdiscepto
 	sql, args, _ := psql.
 		Insert("subdisceptos").
-		Columns("name", "description").
-		Values(subd.Name, subd.Description).
+		Columns("name", "description", "min_length", "questions_required", "nsfw").
+		Values(subd.Name, subd.Description, subd.MinLength, subd.QuestionsRequired, subd.Nsfw).
 		ToSql()
 
 	_, err = tx.Exec(context.Background(), sql, args...)

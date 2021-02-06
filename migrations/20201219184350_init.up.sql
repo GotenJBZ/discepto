@@ -27,7 +27,10 @@ CREATE TABLE tokens (
 );
 CREATE TABLE subdisceptos (
 	name varchar(50) PRIMARY KEY,
-	description varchar(500) NOT NULL
+	description varchar(500) NOT NULL,
+	min_length int NOT NULL,
+	questions_required boolean NOT NULL,
+	nsfw boolean NOT NULL
 );
 CREATE TABLE subdiscepto_users (
 	name varchar(50),
