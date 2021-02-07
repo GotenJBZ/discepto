@@ -314,3 +314,39 @@ func TestSubdiscepto(t *testing.T) {
 	db.DeleteUser(user.ID)
 	db.DeleteUser(user2.ID)
 }
+func TestSearch(t *testing.T) {
+	user := mockUser()
+	db.CreateUser(user, mockPasswd)
+	db.CreateSubdiscepto(mockSubdiscepto(), user.ID)
+	essay := mockEssay(user.ID)
+	db.CreateEssay(essay)
+
+	testValues := []struct {
+		input []string
+		want  int
+	}{
+		{[]string{"happy"}, 0},
+		{[]string{"fruit"}, 1},
+		{[]string{"banana"}, 1},
+		{[]string{"banana", "best"}, 1},
+		{[]string{"best"}, 1},
+	}
+
+	for _, v := range testValues {
+		essays, err := db.SearchByTags(v.input)
+		if err != nil || len(essays) != v.want {
+			t.Fatalf(
+				"SearchByTags(%v) = %v,%v, want len(essays) = %v, nil",
+				v.input,
+				essays,
+				err,
+				v.want,
+			)
+		}
+	}
+
+	// Clean
+	db.DeleteEssay(essay.ID)
+	db.DeleteUser(user.ID)
+	db.DeleteSubdiscepto(mockSubName)
+}

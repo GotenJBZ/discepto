@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -559,4 +558,19 @@ func (db *DB) DeleteVote(essayID, userID int) error {
 		return err
 	}
 	return nil
+}
+func (db *DB) SearchByTags(tags []string) (essays []*models.Essay, err error) {
+	sql, args, _ := psql.
+		Select("thesis", "content", "reply_type").
+		Distinct().
+		From("essays").
+		LeftJoin("essay_tags ON id = essay_id").
+		Where(sq.Eq{"tag": tags}).
+		ToSql()
+
+	err = pgxscan.Select(context.Background(), db.db, &essays, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return essays, nil
 }
