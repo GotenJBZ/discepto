@@ -89,14 +89,10 @@ func (server *DisceptoServer) setupDB() {
 	server.database = db
 }
 func (server *DisceptoServer) listen() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "23495"
-	}
-	addr := fmt.Sprintf("http://localhost:%s", port)
+	addr := fmt.Sprintf("http://localhost:%s", server.EnvConfig.Port)
 	server.logger.Info().Str("server_address", addr).Msg("Server is starting")
 	server.logger.Error().
-		Err(http.ListenAndServe(fmt.Sprintf(":%s", port), server.router)).
+		Err(http.ListenAndServe(fmt.Sprintf(":%s", server.EnvConfig.Port), server.router)).
 		Msg("Server startup failed")
 }
 func (server *DisceptoServer) Start() {

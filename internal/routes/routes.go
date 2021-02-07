@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -18,16 +17,16 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/render"
 )
 
-var cookiestore = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
-
 type Routes struct {
-	envConfig *models.EnvConfig
-	db        *db.DB
-	tmpls     *render.Templates
+	envConfig   *models.EnvConfig
+	db          *db.DB
+	tmpls       *render.Templates
+	cookiestore *sessions.CookieStore
 }
 
 func NewRouter(config *models.EnvConfig, db *db.DB, log zerolog.Logger, tmpls *render.Templates) chi.Router {
-	routes := &Routes{envConfig: config, db: db, tmpls: tmpls}
+	cookiestore := sessions.NewCookieStore(config.SessionKey)
+	routes := &Routes{envConfig: config, db: db, tmpls: tmpls, cookiestore: cookiestore}
 	r := chi.NewRouter()
 
 	logger := hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
@@ -84,7 +83,7 @@ func NewRouter(config *models.EnvConfig, db *db.DB, log zerolog.Logger, tmpls *r
 }
 func (routes *Routes) UserCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, _ := cookiestore.Get(r, "discepto")
+		session, _ := routes.cookiestore.Get(r, "discepto")
 		token := session.Values["token"]
 		token = fmt.Sprintf("%v", token) // conv to string
 
@@ -233,7 +232,7 @@ func (routes *Routes) GetUsers(w http.ResponseWriter, r *http.Request) AppError 
 	return nil
 }
 func (routes *Routes) signOut(w http.ResponseWriter, r *http.Request) error {
-	session, _ := cookiestore.Get(r, "discepto")
+	session, _ := routes.cookiestore.Get(r, "discepto")
 	token := session.Values["token"]
 
 	// Remove token before deleting from db, to signout in any case
@@ -269,7 +268,7 @@ func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) AppError
 			Motivation: "Bad email or password",
 		}
 	}
-	session, _ := cookiestore.Get(r, "discepto")
+	session, _ := routes.cookiestore.Get(r, "discepto")
 	session.Values["token"] = token
 	session.Save(r, w)
 
