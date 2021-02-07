@@ -26,8 +26,6 @@ const (
 	TokenLen           = 64   // 64 bytes
 )
 
-var BCryptCost = 11
-
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 var ErrBadEmailSyntax error = errors.New("Bad email syntax")
@@ -35,15 +33,10 @@ var ErrTooManyTags error = errors.New("You have inserted too many tags")
 var ErrBadContentLen error = errors.New("You have to respect the imposed content length limits")
 var ErrEmailAlreadyUsed error = errors.New("The email is already used")
 
-func init() {
-	if os.Getenv("DEBUG") == "true" {
-		BCryptCost = bcrypt.MinCost // To speed up testing
-	}
-}
-
 type DB struct {
-	db     *pgxpool.Pool
-	config *models.EnvConfig
+	db         *pgxpool.Pool
+	config     *models.EnvConfig
+	bcryptCost int
 }
 
 func Connect(config *models.EnvConfig) (DB, error) {
@@ -51,9 +44,14 @@ func Connect(config *models.EnvConfig) (DB, error) {
 	if err != nil {
 		err = fmt.Errorf("Failed to connect to postgres: %w", err)
 	}
+	bcryptCost := bcrypt.DefaultCost + 2
+	if config.Debug {
+		bcryptCost = bcrypt.MinCost
+	}
 	return DB{
 		db,
 		config,
+		bcryptCost,
 	}, err
 }
 
@@ -136,7 +134,7 @@ func (db *DB) CreateUser(user *models.User, passwd string) (err error) {
 	}
 
 	// Insert the password hash
-	hash, err := bcrypt.GenerateFromPassword([]byte(passwd), BCryptCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(passwd), db.bcryptCost)
 	sql, args, _ = psql.
 		Insert("credentials").
 		Columns("user_id", "hash").
