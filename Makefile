@@ -11,7 +11,7 @@ build:
 	go build -o build/discepto/discepto gitlab.com/ranfdev/discepto/cmd/discepto/
 
 run: build
-	DEBUG=true ./build/discepto/discepto start
+	DISCEPTO_DEBUG=true ./build/discepto/discepto start
 
 test:
 	go fmt `go list ./... | grep -v /vendor/`

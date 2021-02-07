@@ -3,17 +3,14 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
-	"github.com/markbates/pkger"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/hlog"
 	"gitlab.com/ranfdev/discepto/internal/db"
+	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/render"
 	"gitlab.com/ranfdev/discepto/internal/routes"
 )
 
@@ -27,18 +24,20 @@ func main() {
 		fmt.Println(usage)
 		return
 	}
+	envConfig := models.ReadEnvConfig()
 	switch os.Args[1] {
 	case "start":
-		Start()
+		server := DisceptoServer{EnvConfig: envConfig}
+		server.Start()
 	case "migrate":
 		var err error
 		switch os.Args[2] {
 		case "up":
-			err = db.MigrateUp()
+			err = db.MigrateUp(envConfig.DatabaseURL)
 		case "down":
-			err = db.MigrateDown()
+			err = db.MigrateDown(envConfig.DatabaseURL)
 		case "drop":
-			err = db.Drop()
+			err = db.Drop(envConfig.DatabaseURL)
 		default:
 			fmt.Println(usage)
 			return
@@ -53,83 +52,57 @@ func main() {
 	}
 }
 
-func Start() {
-	err := db.Connect()
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = db.MigrateUp()
-	if err != nil {
-		log.Fatal(err)
-	}
+type DisceptoServer struct {
+	models.EnvConfig
+	logger    zerolog.Logger
+	router    chi.Router
+	database  db.DB
+	templates render.Templates
+}
 
-	r := chi.NewRouter()
-
+func (server *DisceptoServer) setupLogger() {
 	var writer io.Writer
-	if os.Getenv("DEBUG") == "true" {
+	if server.Debug {
 		writer = zerolog.ConsoleWriter{Out: os.Stdout}
 	} else {
 		writer = os.Stdout
 	}
 	log := zerolog.New(writer).With().Timestamp().Logger()
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-
-	logger := hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
-		hlog.
-			FromRequest(r).
-			Info().
-			Str("request_id", middleware.GetReqID(r.Context())).
-			Int("status", status).
-			Str("url", r.URL.String()).
-			Str("method", r.Method).Int("size", size).
-			Dur("duration", duration).
-			Str("ip", r.RemoteAddr).
-			Str("user_agent", r.UserAgent()).
-			Msg("")
-	})
-
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(hlog.NewHandler(log))
-	r.Use(logger)
-
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(15 * time.Second))
-
-	// Try retrieving basic user data for every request
-	r.Use(routes.UserCtx)
-
-	// Serve static files
-	staticFileServer := http.FileServer(pkger.Dir("/web/static"))
-	r.Get("/static/*", func(w http.ResponseWriter, r *http.Request) {
-		fs := http.StripPrefix("/static", staticFileServer)
-		fs.ServeHTTP(w, r)
-	})
-
-	// Serve dynamic routes
-	r.Get("/", routes.AppHandler(routes.GetHome))
-
-	r.Get("/users", routes.AppHandler(routes.GetUsers))
-
-	r.Get("/signup", routes.GetSignup)
-	r.Post("/signup", routes.AppHandler(routes.PostSignup))
-
-	r.Get("/signout", routes.AppHandler(routes.GetSignout))
-
-	r.Get("/login", routes.GetLogin)
-	r.Post("/login", routes.AppHandler(routes.PostLogin))
-
-	r.Route("/essays", routes.EssaysRouter)
-	r.Get("/newessay", routes.AppHandler(routes.GetNewEssay))
-
-	r.Route("/s", routes.SubdisceptoRouter)
-	r.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
-
+	server.logger = log
+}
+func (server *DisceptoServer) setupTemplates() {
+	server.templates = render.GetTemplates(&server.EnvConfig)
+}
+func (server *DisceptoServer) setupRouter() {
+	server.router = routes.NewRouter(&server.EnvConfig, &server.database, server.logger, &server.templates)
+}
+func (server *DisceptoServer) setupDB() {
+	err := db.MigrateUp(server.DatabaseURL)
+	if err != nil {
+		server.logger.Fatal().Err(err).Send()
+	}
+	db, err := db.Connect(&server.EnvConfig)
+	if err != nil {
+		server.logger.Fatal().AnErr("Connecting to db", err).Send()
+	}
+	server.database = db
+}
+func (server *DisceptoServer) listen() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "23495"
 	}
 	addr := fmt.Sprintf("http://localhost:%s", port)
-	log.Info().Str("server_address", addr).Msg("Server is starting")
-	log.Error().Err(http.ListenAndServe(fmt.Sprintf(":%s", port), r)).Msg("Server startup failed")
+	server.logger.Info().Str("server_address", addr).Msg("Server is starting")
+	server.logger.Error().
+		Err(http.ListenAndServe(fmt.Sprintf(":%s", port), server.router)).
+		Msg("Server startup failed")
+}
+func (server *DisceptoServer) Start() {
+	server.setupLogger()
+	server.setupTemplates()
+	server.setupRouter()
+	server.setupDB()
+	server.listen()
 }

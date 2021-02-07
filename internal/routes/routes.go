@@ -6,18 +6,83 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/gorilla/sessions"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
-	"gitlab.com/ranfdev/discepto/internal/server"
+	"gitlab.com/ranfdev/discepto/internal/render"
 )
 
 var cookiestore = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
 
-func UserCtx(next http.Handler) http.Handler {
+type Routes struct {
+	envConfig *models.EnvConfig
+	db        *db.DB
+	tmpls     *render.Templates
+}
+
+func NewRouter(config *models.EnvConfig, db *db.DB, log zerolog.Logger, tmpls *render.Templates) chi.Router {
+	routes := &Routes{envConfig: config, db: db, tmpls: tmpls}
+	r := chi.NewRouter()
+
+	logger := hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
+		hlog.
+			FromRequest(r).
+			Info().
+			Str("request_id", middleware.GetReqID(r.Context())).
+			Int("status", status).
+			Str("url", r.URL.String()).
+			Str("method", r.Method).Int("size", size).
+			Dur("duration", duration).
+			Str("ip", r.RemoteAddr).
+			Str("user_agent", r.UserAgent()).
+			Msg("")
+	})
+
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(hlog.NewHandler(log))
+	r.Use(logger)
+
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(15 * time.Second))
+
+	// Try retrieving basic user data for every request
+	r.Use(routes.UserCtx)
+
+	// Serve static files
+	staticFileServer := http.FileServer(http.Dir("/web/static"))
+	r.Get("/static/*", func(w http.ResponseWriter, r *http.Request) {
+		fs := http.StripPrefix("/static", staticFileServer)
+		fs.ServeHTTP(w, r)
+	})
+
+	// Serve dynamic routes
+	r.Get("/", routes.AppHandler(routes.GetHome))
+
+	r.Get("/users", routes.AppHandler(routes.GetUsers))
+
+	r.Get("/signup", routes.GetSignup)
+	r.Post("/signup", routes.AppHandler(routes.PostSignup))
+
+	r.Get("/signout", routes.AppHandler(routes.GetSignout))
+
+	r.Get("/login", routes.GetLogin)
+	r.Post("/login", routes.AppHandler(routes.PostLogin))
+
+	r.Route("/essays", routes.EssaysRouter)
+	r.Get("/newessay", routes.AppHandler(routes.GetNewEssay))
+
+	r.Route("/s", routes.SubdisceptoRouter)
+	r.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
+	return r
+}
+func (routes *Routes) UserCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, _ := cookiestore.Get(r, "discepto")
 		token := session.Values["token"]
@@ -29,7 +94,7 @@ func UserCtx(next http.Handler) http.Handler {
 			return
 		}
 
-		user, err := db.GetUserByToken(fmt.Sprintf("%v", token))
+		user, err := routes.db.GetUserByToken(fmt.Sprintf("%v", token))
 		if err != nil {
 			session.Values["token"] = ""
 			session.Save(r, w)
@@ -114,7 +179,7 @@ func (err *ErrBadRequest) Respond(w http.ResponseWriter, r *http.Request) Loggab
 }
 
 // Wrapper to handle errors returned by routes
-func AppHandler(handler func(w http.ResponseWriter, r *http.Request) AppError) http.HandlerFunc {
+func (routes *Routes) AppHandler(handler func(w http.ResponseWriter, r *http.Request) AppError) http.HandlerFunc {
 	res := func(w http.ResponseWriter, r *http.Request) {
 		err := handler(w, r)
 		if err != nil {
@@ -131,7 +196,7 @@ func AppHandler(handler func(w http.ResponseWriter, r *http.Request) AppError) h
 }
 
 // Routes
-func GetHome(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	type homeData struct {
 		User           *models.User
 		LoggedIn       bool
@@ -142,32 +207,32 @@ func GetHome(w http.ResponseWriter, r *http.Request) AppError {
 
 	data := homeData{User: user, LoggedIn: ok}
 	if data.LoggedIn {
-		mySubs, err := db.ListMySubdisceptos(user.ID)
+		mySubs, err := routes.db.ListMySubdisceptos(user.ID)
 		if err != nil {
 			return &ErrInternal{Message: "Can't list joined communities", Cause: err}
 		}
 		data.MySubdisceptos = mySubs
 
-		recentEssays, err := db.ListRecentEssaysIn(mySubs)
+		recentEssays, err := routes.db.ListRecentEssaysIn(mySubs)
 		if err != nil {
 			return &ErrInternal{Message: "Can't list recent essays", Cause: err}
 		}
 		data.RecentEssays = recentEssays
 	}
 
-	server.RenderHTML(w, "home", data)
+	routes.tmpls.RenderHTML(w, "home", data)
 	return nil
 }
-func GetUsers(w http.ResponseWriter, r *http.Request) AppError {
-	users, err := db.ListUsers()
+func (routes *Routes) GetUsers(w http.ResponseWriter, r *http.Request) AppError {
+	users, err := routes.db.ListUsers()
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
 
-	server.RenderHTML(w, "users", users)
+	routes.tmpls.RenderHTML(w, "users", users)
 	return nil
 }
-func signOut(w http.ResponseWriter, r *http.Request) error {
+func (routes *Routes) signOut(w http.ResponseWriter, r *http.Request) error {
 	session, _ := cookiestore.Get(r, "discepto")
 	token := session.Values["token"]
 
@@ -175,11 +240,11 @@ func signOut(w http.ResponseWriter, r *http.Request) error {
 	session.Values["token"] = ""
 	session.Save(r, w)
 
-	err := db.Signout(fmt.Sprintf("%v", token))
+	err := routes.db.Signout(fmt.Sprintf("%v", token))
 	return err
 }
-func GetSignout(w http.ResponseWriter, r *http.Request) AppError {
-	err := signOut(w, r)
+func (routes *Routes) GetSignout(w http.ResponseWriter, r *http.Request) AppError {
+	err := routes.signOut(w, r)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
@@ -187,17 +252,17 @@ func GetSignout(w http.ResponseWriter, r *http.Request) AppError {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil
 }
-func GetSignup(w http.ResponseWriter, r *http.Request) {
-	server.RenderHTML(w, "signup", nil)
+func (routes *Routes) GetSignup(w http.ResponseWriter, r *http.Request) {
+	routes.tmpls.RenderHTML(w, "signup", nil)
 }
-func GetLogin(w http.ResponseWriter, r *http.Request) {
-	server.RenderHTML(w, "login", nil)
+func (routes *Routes) GetLogin(w http.ResponseWriter, r *http.Request) {
+	routes.tmpls.RenderHTML(w, "login", nil)
 }
-func GetNewSubdiscepto(w http.ResponseWriter, r *http.Request) {
-	server.RenderHTML(w, "newSubdiscepto", nil)
+func (routes *Routes) GetNewSubdiscepto(w http.ResponseWriter, r *http.Request) {
+	routes.tmpls.RenderHTML(w, "newSubdiscepto", nil)
 }
-func PostLogin(w http.ResponseWriter, r *http.Request) AppError {
-	token, err := db.Login(r.FormValue("email"), r.FormValue("password"))
+func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) AppError {
+	token, err := routes.db.Login(r.FormValue("email"), r.FormValue("password"))
 	if err != nil {
 		return &ErrBadRequest{
 			Cause:      err,
@@ -211,9 +276,9 @@ func PostLogin(w http.ResponseWriter, r *http.Request) AppError {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil
 }
-func PostSignup(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) PostSignup(w http.ResponseWriter, r *http.Request) AppError {
 	email := r.FormValue("email")
-	err := db.CreateUser(&models.User{
+	err := routes.db.CreateUser(&models.User{
 		Name:   r.FormValue("name"),
 		Email:  email,
 		RoleID: models.RoleAdmin,

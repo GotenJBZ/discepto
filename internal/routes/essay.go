@@ -10,16 +10,15 @@ import (
 	"github.com/go-chi/chi"
 	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
-	"gitlab.com/ranfdev/discepto/internal/server"
 )
 
-func EssaysRouter(r chi.Router) {
-	r.Post("/", AppHandler(PostEssay))
-	r.Post("/{essayID}/vote", AppHandler(PostVote))
-	r.Put("/", UpdateEssay)
-	r.Delete("/{id}", DeleteEssay)
+func (routes *Routes) EssaysRouter(r chi.Router) {
+	r.Post("/", routes.AppHandler(routes.PostEssay))
+	r.Post("/{essayID}/vote", routes.AppHandler(routes.PostVote))
+	r.Put("/", routes.UpdateEssay)
+	r.Delete("/{id}", routes.DeleteEssay)
 }
-func GetNewEssay(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppError {
 	subdiscepto := r.URL.Query().Get("subdiscepto")
 
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
@@ -29,10 +28,10 @@ func GetNewEssay(w http.ResponseWriter, r *http.Request) AppError {
 		PostedIn:  subdiscepto,
 		InReplyTo: inReplyTo,
 	}
-	server.RenderHTML(w, "newEssay", essay)
+	routes.tmpls.RenderHTML(w, "newEssay", essay)
 	return nil
 }
-func PostEssay(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
 		return &ErrMustLogin{}
@@ -66,7 +65,7 @@ func PostEssay(w http.ResponseWriter, r *http.Request) AppError {
 		InReplyTo:      inReplyTo,
 		ReplyType:      replyType,
 	}
-	err = db.CreateEssay(&essay)
+	err = routes.db.CreateEssay(&essay)
 	if err == db.ErrBadContentLen {
 		return &ErrBadRequest{Cause: err, Motivation: "You must respect required content length"}
 	}
@@ -76,13 +75,13 @@ func PostEssay(w http.ResponseWriter, r *http.Request) AppError {
 	http.Redirect(w, r, fmt.Sprintf("/s/%s", essay.PostedIn), http.StatusSeeOther)
 	return nil
 }
-func DeleteEssay(w http.ResponseWriter, r *http.Request) {
+func (routes *Routes) DeleteEssay(w http.ResponseWriter, r *http.Request) {
 
 }
-func UpdateEssay(w http.ResponseWriter, r *http.Request) {
+func (routes *Routes) UpdateEssay(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Nope")
 }
-func PostVote(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
 		return &ErrMustLogin{}
@@ -99,8 +98,8 @@ func PostVote(w http.ResponseWriter, r *http.Request) AppError {
 		vote = models.VoteTypeDownvote
 	}
 
-	db.DeleteVote(essayID, user.ID)
-	err = db.CreateVote(&models.Vote{
+	routes.db.DeleteVote(essayID, user.ID)
+	err = routes.db.CreateVote(&models.Vote{
 		UserID:   user.ID,
 		EssayID:  essayID,
 		VoteType: vote,
@@ -109,7 +108,7 @@ func PostVote(w http.ResponseWriter, r *http.Request) AppError {
 		return &ErrInternal{Cause: err}
 	}
 
-	essay, err := db.GetEssay(essayID)
+	essay, err := routes.db.GetEssay(essayID)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}

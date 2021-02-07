@@ -41,29 +41,24 @@ func init() {
 	}
 }
 
-var DB *pgxpool.Pool
-
-func CheckEnvDatabaseUrl() string {
-	dbUrl := os.Getenv("DATABASE_URL")
-	if dbUrl == "" {
-		panic(errors.New("DATABASE_URL env variable missing"))
-	}
-	return dbUrl
+type DB struct {
+	db     *pgxpool.Pool
+	config *models.EnvConfig
 }
-func Connect() error {
-	dbUrl := CheckEnvDatabaseUrl()
-	// dbUrl := "postgres://discepto:passwd@localhost/disceptoDb"
-	var err error = nil
-	DB, err = pgxpool.Connect(context.Background(), dbUrl)
+
+func Connect(config *models.EnvConfig) (DB, error) {
+	db, err := pgxpool.Connect(context.Background(), config.DatabaseURL)
 	if err != nil {
 		err = fmt.Errorf("Failed to connect to postgres: %w", err)
 	}
-	return err
+	return DB{
+		db,
+		config,
+	}, err
 }
 
-func MigrateUp() error {
-	dbUrl := CheckEnvDatabaseUrl()
-	m, err := migrate.New("file://migrations", dbUrl)
+func MigrateUp(dbURL string) error {
+	m, err := migrate.New("file://migrations", dbURL)
 	if err != nil {
 		return fmt.Errorf("Error reading migrations: %s", err)
 	}
@@ -74,9 +69,8 @@ func MigrateUp() error {
 	}
 	return nil
 }
-func MigrateDown() error {
-	dbUrl := CheckEnvDatabaseUrl()
-	m, err := migrate.New("file://migrations", dbUrl)
+func MigrateDown(dbURL string) error {
+	m, err := migrate.New("file://migrations", dbURL)
 	if err != nil {
 		return fmt.Errorf("Error reading migrations: %s", err)
 	}
@@ -87,9 +81,8 @@ func MigrateDown() error {
 	}
 	return nil
 }
-func Drop() error {
-	dbUrl := CheckEnvDatabaseUrl()
-	m, err := migrate.New("file://migrations", dbUrl)
+func Drop(dbURL string) error {
+	m, err := migrate.New("file://migrations", dbURL)
 	if err != nil {
 		return fmt.Errorf("Error reading migrations: %s", err)
 	}
@@ -101,13 +94,13 @@ func Drop() error {
 	return nil
 }
 
-func ListUsers() ([]models.User, error) {
+func (db *DB) ListUsers() ([]models.User, error) {
 	var users []models.User
-	err := pgxscan.Select(context.Background(), DB, &users, "SELECT * FROM users")
+	err := pgxscan.Select(context.Background(), db.db, &users, "SELECT * FROM users")
 	return users, err
 }
 
-func CreateUser(user *models.User, passwd string) (err error) {
+func (db *DB) CreateUser(user *models.User, passwd string) (err error) {
 	// Check email format
 	if !utils.ValidateEmail(user.Email) {
 		return ErrBadEmailSyntax
@@ -116,7 +109,7 @@ func CreateUser(user *models.User, passwd string) (err error) {
 	// Check if email is already used
 	var exists bool
 	err = pgxscan.Get(context.Background(),
-		DB,
+		db.db,
 		&exists,
 		"SELECT exists(SELECT 1 FROM users WHERE email = $1)",
 		user.Email)
@@ -129,7 +122,7 @@ func CreateUser(user *models.User, passwd string) (err error) {
 	}
 
 	// Insert the new user
-	tx, err := DB.Begin(context.Background())
+	tx, err := db.db.Begin(context.Background())
 	sql, args, _ := psql.
 		Insert("users").
 		Columns("name", "email", "role_id").
@@ -162,7 +155,7 @@ func CreateUser(user *models.User, passwd string) (err error) {
 	}
 	return nil
 }
-func Login(email string, passwd string) (token string, err error) {
+func (db *DB) Login(email string, passwd string) (token string, err error) {
 	type res struct {
 		Hash string
 		ID   int
@@ -177,7 +170,7 @@ func Login(email string, passwd string) (token string, err error) {
 	var data res
 	err = pgxscan.Get(
 		context.Background(),
-		DB,
+		db.db,
 		&data,
 		sql,
 		args...,
@@ -198,20 +191,20 @@ func Login(email string, passwd string) (token string, err error) {
 		Values(data.ID, token).
 		ToSql()
 
-	_, err = DB.Exec(context.Background(), sql, args...)
+	_, err = db.db.Exec(context.Background(), sql, args...)
 	if err != nil {
 		return "", err
 	}
 	return token, nil
 }
-func Signout(token string) error {
-	_, err := DB.Exec(context.Background(), "DELETE FROM tokens WHERE tokens.token = $1", token)
+func (db *DB) Signout(token string) error {
+	_, err := db.db.Exec(context.Background(), "DELETE FROM tokens WHERE tokens.token = $1", token)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func GetUserByToken(token string) (*models.User, error) {
+func (db *DB) GetUserByToken(token string) (*models.User, error) {
 	user := &models.User{}
 	sql, args, _ := psql.
 		Select("users.name", "users.id", "users.role_id", "users.email").
@@ -222,7 +215,7 @@ func GetUserByToken(token string) (*models.User, error) {
 
 	err := pgxscan.Get(
 		context.Background(),
-		DB, user,
+		db.db, user,
 		sql, args...)
 
 	if err != nil {
@@ -236,23 +229,23 @@ var roleQuery = psql.
 	From("roles").
 	LeftJoin("users ON roles.id = users.role_id")
 
-func GetGlobalRole(userID int) (role *models.Role, err error) {
+func (db *DB) GetGlobalRole(userID int) (role *models.Role, err error) {
 	sql, args, _ := roleQuery.
 		Where(sq.Eq{"users.id": userID}).ToSql()
 
 	role = &models.Role{}
-	err = pgxscan.Get(context.Background(), DB, role, sql, args...)
+	err = pgxscan.Get(context.Background(), db.db, role, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 	return role, nil
 }
-func DeleteUser(id int) error {
+func (db *DB) DeleteUser(id int) error {
 	sql, args, _ := psql.Delete("users").Where(sq.Eq{"id": id}).ToSql()
-	_, err := DB.Exec(context.Background(), sql, args...)
+	_, err := db.db.Exec(context.Background(), sql, args...)
 	return err
 }
-func ListEssays(subName string) ([]*models.Essay, error) {
+func (db *DB) ListEssays(subName string) ([]*models.Essay, error) {
 	var essays []*models.Essay
 
 	sql, args, _ := psql.
@@ -261,16 +254,16 @@ func ListEssays(subName string) ([]*models.Essay, error) {
 		Where(sq.Eq{"posted_in": subName}).
 		ToSql()
 
-	err := pgxscan.Select(context.Background(), DB, &essays, sql, args...)
+	err := pgxscan.Select(context.Background(), db.db, &essays, sql, args...)
 	return essays, err
 }
-func CreateEssay(essay *models.Essay) error {
+func (db *DB) CreateEssay(essay *models.Essay) error {
 	clen := len(essay.Content)
 	if clen > LimitMaxContentLen || clen < LimitMinContentLen {
 		return ErrBadContentLen
 	}
 
-	tx, err := DB.Begin(context.Background())
+	tx, err := db.db.Begin(context.Background())
 	defer tx.Rollback(context.Background())
 	if err != nil {
 		return err
@@ -298,7 +291,7 @@ func CreateEssay(essay *models.Essay) error {
 		return fmt.Errorf("Error inserting essay in db: %w", err)
 	}
 
-	err = insertTags(tx, essay)
+	err = db.insertTags(tx, essay)
 	if err != nil {
 		return err
 	}
@@ -309,7 +302,7 @@ func CreateEssay(essay *models.Essay) error {
 	}
 	return nil
 }
-func insertTags(tx pgx.Tx, essay *models.Essay) error {
+func (db *DB) insertTags(tx pgx.Tx, essay *models.Essay) error {
 	// Insert essay tags
 	if len(essay.Tags) > LimitMaxTags {
 		return ErrTooManyTags
@@ -340,7 +333,7 @@ func insertTags(tx pgx.Tx, essay *models.Essay) error {
 	}
 	return nil
 }
-func GetEssay(id int) (*models.Essay, error) {
+func (db *DB) GetEssay(id int) (*models.Essay, error) {
 	sql, args, _ := psql.
 		Select("*").
 		From("essays").
@@ -348,7 +341,7 @@ func GetEssay(id int) (*models.Essay, error) {
 		ToSql()
 
 	var essay models.Essay
-	err := pgxscan.Get(context.Background(), DB, &essay, sql, args...)
+	err := pgxscan.Get(context.Background(), db.db, &essay, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -358,20 +351,20 @@ func GetEssay(id int) (*models.Essay, error) {
 		From("essay_tags").
 		Where(sq.Eq{"essay_id": id}).
 		ToSql()
-	err = pgxscan.Select(context.Background(), DB, &essay.Tags, sql, args...)
+	err = pgxscan.Select(context.Background(), db.db, &essay.Tags, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 
 	return &essay, nil
 }
-func DeleteEssay(id int) error {
+func (db *DB) DeleteEssay(id int) error {
 	sql, args, _ := psql.Delete("essays").Where(sq.Eq{"id": id}).ToSql()
-	_, err := DB.Exec(context.Background(), sql, args...)
+	_, err := db.db.Exec(context.Background(), sql, args...)
 	return err
 }
-func CreateSubdiscepto(subd *models.Subdiscepto, firstUserID int) error {
-	tx, err := DB.Begin(context.Background())
+func (db *DB) CreateSubdiscepto(subd *models.Subdiscepto, firstUserID int) error {
+	tx, err := db.db.Begin(context.Background())
 	if err != nil {
 		return err
 	}
@@ -402,74 +395,74 @@ func CreateSubdiscepto(subd *models.Subdiscepto, firstUserID int) error {
 	}
 	return nil
 }
-func GetSubdiscepto(name string) (*models.Subdiscepto, error) {
+func (db *DB) GetSubdiscepto(name string) (*models.Subdiscepto, error) {
 	var sub models.Subdiscepto
-	err := pgxscan.Get(context.Background(), DB, &sub, "SELECT * FROM subdisceptos WHERE name = $1", name)
+	err := pgxscan.Get(context.Background(), db.db, &sub, "SELECT * FROM subdisceptos WHERE name = $1", name)
 	if err != nil {
 		return nil, err
 	}
 	return &sub, nil
 }
-func ListSubdisceptos() ([]*models.Subdiscepto, error) {
+func (db *DB) ListSubdisceptos() ([]*models.Subdiscepto, error) {
 	var subs []*models.Subdiscepto
-	err := pgxscan.Select(context.Background(), DB, &subs, "SELECT * FROM subdisceptos")
+	err := pgxscan.Select(context.Background(), db.db, &subs, "SELECT * FROM subdisceptos")
 	if err != nil {
 		return nil, err
 	}
 	return subs, nil
 }
-func JoinSubdiscepto(sub string, userID int) error {
+func (db *DB) JoinSubdiscepto(sub string, userID int) error {
 	sql, args, _ := psql.
 		Insert("subdiscepto_users").
 		Columns("name", "user_id").
 		Values(sub, userID).
 		ToSql()
 
-	_, err := DB.Exec(context.Background(), sql, args...)
+	_, err := db.db.Exec(context.Background(), sql, args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func LeaveSubdiscepto(sub string, userID int) error {
+func (db *DB) LeaveSubdiscepto(sub string, userID int) error {
 	sql, args, _ := psql.
 		Delete("subdiscepto_users").
 		Where(sq.Eq{"name": sub, "user_id": userID}).
 		ToSql()
 
-	_, err := DB.Exec(context.Background(), sql, args...)
+	_, err := db.db.Exec(context.Background(), sql, args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func ListMySubdisceptos(userID int) (subs []string, err error) {
+func (db *DB) ListMySubdisceptos(userID int) (subs []string, err error) {
 	sql, args, _ := psql.
 		Select("name").
 		From("subdiscepto_users").
 		Where(sq.Eq{"user_id": userID}).
 		ToSql()
 
-	err = pgxscan.Select(context.Background(), DB, &subs, sql, args...)
+	err = pgxscan.Select(context.Background(), db.db, &subs, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 	return subs, nil
 }
-func ListRecentEssaysIn(subs []string) (essays []*models.Essay, err error) {
+func (db *DB) ListRecentEssaysIn(subs []string) (essays []*models.Essay, err error) {
 	sql, args, _ := psql.
 		Select("*").
 		From("essays").
 		Where(sq.Eq{"posted_in": subs}).
 		ToSql()
 
-	err = pgxscan.Select(context.Background(), DB, &essays, sql, args...)
+	err = pgxscan.Select(context.Background(), db.db, &essays, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 	return essays, nil
 }
-func ListEssayReplies(essayID int, replyType string) (essays []*models.Essay, err error) {
+func (db *DB) ListEssayReplies(essayID int, replyType string) (essays []*models.Essay, err error) {
 	sql, args, _ := psql.
 		Select("*").
 		From("essays").
@@ -479,32 +472,32 @@ func ListEssayReplies(essayID int, replyType string) (essays []*models.Essay, er
 		}).
 		ToSql()
 
-	err = pgxscan.Select(context.Background(), DB, &essays, sql, args...)
+	err = pgxscan.Select(context.Background(), db.db, &essays, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 	return essays, nil
 }
-func DeleteSubdiscepto(name string) error {
+func (db *DB) DeleteSubdiscepto(name string) error {
 	sql, args, _ := psql.
 		Delete("subdisceptos").
 		Where(sq.Eq{"name": name}).
 		ToSql()
 
-	_, err := DB.Exec(context.Background(), sql, args...)
+	_, err := db.db.Exec(context.Background(), sql, args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func CreateReport(report *models.Report) error {
+func (db *DB) CreateReport(report *models.Report) error {
 	sql, args, _ := psql.
 		Insert("reports").
 		Columns("flag", "essay_id", "from_user_id", "to_user_id").
 		Values(report.Flag, report.EssayID, report.FromUserID, report.ToUserID).
 		Suffix("RETURNING id").
 		ToSql()
-	row := DB.QueryRow(context.Background(), sql, args...)
+	row := db.db.QueryRow(context.Background(), sql, args...)
 	err := row.Scan(&report.ID)
 	if err != nil {
 		return err
@@ -513,32 +506,32 @@ func CreateReport(report *models.Report) error {
 }
 
 //TODO: Add on delete cascade to schema
-func DeleteReport(report *models.Report) error {
+func (db *DB) DeleteReport(report *models.Report) error {
 	sql, args, _ := psql.
 		Delete("reports").
 		Where(sq.Eq{"id": report.ID}).
 		ToSql()
 
-	_, err := DB.Exec(context.Background(), sql, args...)
+	_, err := db.db.Exec(context.Background(), sql, args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func CreateVote(vote *models.Vote) error {
+func (db *DB) CreateVote(vote *models.Vote) error {
 	sql, args, _ := psql.
 		Insert("votes").
 		Columns("user_id", "essay_id", "vote_type").
 		Values(vote.UserID, vote.EssayID, vote.VoteType).
 		ToSql()
 
-	_, err := DB.Exec(context.Background(), sql, args...)
+	_, err := db.db.Exec(context.Background(), sql, args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func CountVotes(essayID int) (upvotes, downvotes int, err error) {
+func (db *DB) CountVotes(essayID int) (upvotes, downvotes int, err error) {
 	sql, args, _ := psql.
 		Select("COUNT(*), SUM(CASE WHEN vote_type = 'upvote' THEN 1 ELSE 0 END) AS upvotes").
 		From("votes").
@@ -546,7 +539,7 @@ func CountVotes(essayID int) (upvotes, downvotes int, err error) {
 		GroupBy("vote_type").
 		ToSql()
 
-	row := DB.QueryRow(context.Background(), sql, args...)
+	row := db.db.QueryRow(context.Background(), sql, args...)
 	var total int
 	err = row.Scan(&total, &upvotes)
 	if err == pgx.ErrNoRows {
@@ -558,12 +551,12 @@ func CountVotes(essayID int) (upvotes, downvotes int, err error) {
 
 	return upvotes, total - upvotes, nil
 }
-func DeleteVote(essayID, userID int) error {
+func (db *DB) DeleteVote(essayID, userID int) error {
 	sql, args, _ := psql.
 		Delete("votes").
 		Where(sq.Eq{"user_id": userID, "essay_id": essayID}).
 		ToSql()
-	_, err := DB.Exec(context.Background(), sql, args...)
+	_, err := db.db.Exec(context.Background(), sql, args...)
 	if err != nil {
 		return err
 	}

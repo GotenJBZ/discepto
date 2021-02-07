@@ -6,58 +6,56 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi"
-	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
-	"gitlab.com/ranfdev/discepto/internal/server"
 )
 
-func SubdisceptoRouter(r chi.Router) {
-	r.Post("/{name}/leave", AppHandler(LeaveSubdiscepto))
-	r.Post("/{name}/join", AppHandler(JoinSubdiscepto))
-	r.Get("/{name}/{id}", AppHandler(GetEssay))
-	r.Get("/{name}", AppHandler(GetSubdiscepto))
-	r.Get("/", AppHandler(GetSubdisceptos))
-	r.Post("/", AppHandler(PostSubdiscepto))
+func (routes *Routes) SubdisceptoRouter(r chi.Router) {
+	r.Post("/{name}/leave", routes.AppHandler(routes.LeaveSubdiscepto))
+	r.Post("/{name}/join", routes.AppHandler(routes.JoinSubdiscepto))
+	r.Get("/{name}/{id}", routes.AppHandler(routes.GetEssay))
+	r.Get("/{name}", routes.AppHandler(routes.GetSubdiscepto))
+	r.Get("/", routes.AppHandler(routes.GetSubdisceptos))
+	r.Post("/", routes.AppHandler(routes.PostSubdiscepto))
 }
-func LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
 		return &ErrMustLogin{}
 	}
-	err := db.LeaveSubdiscepto(chi.URLParam(r, "name"), user.ID)
+	err := routes.db.LeaveSubdiscepto(chi.URLParam(r, "name"), user.ID)
 	if err != nil {
 		return &ErrInternal{Message: "Error leaving", Cause: err}
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil
 }
-func JoinSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
 		return &ErrMustLogin{}
 	}
-	err := db.JoinSubdiscepto(chi.URLParam(r, "name"), user.ID)
+	err := routes.db.JoinSubdiscepto(chi.URLParam(r, "name"), user.ID)
 	if err != nil {
 		return &ErrInternal{Message: "Error joining", Cause: err}
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil
 }
-func GetSubdisceptos(w http.ResponseWriter, r *http.Request) AppError {
-	subs, err := db.ListSubdisceptos()
+func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) AppError {
+	subs, err := routes.db.ListSubdisceptos()
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "subdisceptos"}
 	}
-	server.RenderHTML(w, "subdisceptos", subs)
+	routes.tmpls.RenderHTML(w, "subdisceptos", subs)
 	return nil
 }
-func GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	name := chi.URLParam(r, "name")
-	sub, err := db.GetSubdiscepto(name)
+	sub, err := routes.db.GetSubdiscepto(name)
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "subdiscepto"}
 	}
-	essays, err := db.ListEssays(name)
+	essays, err := routes.db.ListEssays(name)
 	if err != nil {
 		return &ErrInternal{Cause: err, Message: "Can't list essays"}
 	}
@@ -65,7 +63,7 @@ func GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	isMember := false
 	user, ok := r.Context().Value("user").(*models.User)
 	if ok {
-		subs, err := db.ListMySubdisceptos(user.ID)
+		subs, err := routes.db.ListMySubdisceptos(user.ID)
 		if err != nil {
 			return &ErrInternal{Cause: err, Message: "Error getting sub membership"}
 		}
@@ -87,10 +85,10 @@ func GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 		Essays:      essays,
 		IsMember:    isMember,
 	}
-	server.RenderHTML(w, "subdiscepto", data)
+	routes.tmpls.RenderHTML(w, "subdiscepto", data)
 	return nil
 }
-func PostSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := r.Context().Value("user").(*models.User)
 	if !ok {
 		return &ErrMustLogin{}
@@ -100,28 +98,28 @@ func PostSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 		Name:        r.FormValue("name"),
 		Description: r.FormValue("description"),
 	}
-	err := db.CreateSubdiscepto(sub, user.ID)
+	err := routes.db.CreateSubdiscepto(sub, user.ID)
 	if err != nil {
 		return &ErrInternal{Message: "Error creating subdiscepto", Cause: err}
 	}
 	http.Redirect(w, r, fmt.Sprintf("/s/%s", sub.Name), http.StatusSeeOther)
 	return nil
 }
-func GetEssay(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
-	essay, err := db.GetEssay(id)
+	essay, err := routes.db.GetEssay(id)
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 
-	essay.Upvotes, essay.Downvotes, err = db.CountVotes(essay.ID)
+	essay.Upvotes, essay.Downvotes, err = routes.db.CountVotes(essay.ID)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
 
-	server.RenderHTML(w, "essay", essay)
+	routes.tmpls.RenderHTML(w, "essay", essay)
 	return nil
 }
