@@ -30,7 +30,7 @@ CREATE TABLE subdisceptos (
 	nsfw boolean NOT NULL
 );
 CREATE TABLE subdiscepto_users (
-	name varchar(50),
+	name varchar(50) REFERENCES subdisceptos(name) ON DELETE CASCADE,
 	user_id int REFERENCES users(id) ON DELETE CASCADE NOT NULL,
 	role_id int REFERENCES roles(id) DEFAULT 0,
 	PRIMARY KEY(name, user_id)
