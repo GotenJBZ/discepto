@@ -118,53 +118,34 @@ func (db *DB) CreateUser(user *models.User, passwd string) (err error) {
 		return ErrEmailAlreadyUsed
 	}
 
+	hash, err := bcrypt.GenerateFromPassword([]byte(passwd), db.bcryptCost)
+
 	// Insert the new user
-	tx, err := db.db.Begin(context.Background())
 	sql, args, _ := psql.
 		Insert("users").
-		Columns("name", "email", "role_id").
-		Values(user.Name, user.Email, user.RoleID).
+		Columns("name", "email", "role_id", "passwd_hash").
+		Values(user.Name, user.Email, user.RoleID, hash).
 		Suffix("RETURNING id").
 		ToSql()
-	row := tx.QueryRow(context.Background(), sql, args...)
+	row := db.db.QueryRow(context.Background(), sql, args...)
 	err = row.Scan(&user.ID)
 	if err != nil {
 		return err
 	}
 
-	// Insert the password hash
-	hash, err := bcrypt.GenerateFromPassword([]byte(passwd), db.bcryptCost)
-	sql, args, _ = psql.
-		Insert("credentials").
-		Columns("user_id", "hash").
-		Values(user.ID, string(hash)).
-		ToSql()
-
-	_, err = tx.Exec(context.Background(), sql, args...)
-	if err != nil {
-		return err
-	}
-
-	// Commit changes
-	err = tx.Commit(context.Background())
-	if err != nil {
-		return err
-	}
 	return nil
 }
 func (db *DB) Login(email string, passwd string) (token string, err error) {
-	type res struct {
-		Hash string
-		ID   int
-	}
 	sql, args, _ := psql.
-		Select("credentials.hash, users.id").
-		From("credentials").
-		LeftJoin("users ON users.id = credentials.user_id").
-		Where(sq.Eq{"users.email": email}).
+		Select("id", "passwd_hash").
+		From("users").
+		Where(sq.Eq{"email": email}).
 		ToSql()
 
-	var data res
+	var data struct {
+		ID         int
+		PasswdHash string
+	}
 	err = pgxscan.Get(
 		context.Background(),
 		db.db,
@@ -175,7 +156,7 @@ func (db *DB) Login(email string, passwd string) (token string, err error) {
 	if err != nil {
 		return "", err
 	}
-	compareErr := bcrypt.CompareHashAndPassword([]byte(data.Hash), []byte(passwd))
+	compareErr := bcrypt.CompareHashAndPassword([]byte(data.PasswdHash), []byte(passwd))
 	if compareErr != nil {
 		return "", compareErr
 	}

@@ -14,11 +14,8 @@ CREATE TABLE users (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	name varchar(50) NOT NULL,
 	email varchar(100) UNIQUE NOT NULL,
+	passwd_hash varchar(255),
 	role_id int REFERENCES roles(id) DEFAULT 0
-);
-CREATE TABLE credentials (
-	user_id int PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-	hash varchar(255)
 );
 CREATE TABLE tokens (
 	token varchar(255),
@@ -47,12 +44,6 @@ CREATE TABLE essays (
 	in_reply_to int REFERENCES essays(id),
 	reply_type varchar(24) NOT NULL,
 	published timestamp NOT NULL
-);
-CREATE TABLE essay_mentions (
-	essay_id int REFERENCES essays(id) ON DELETE CASCADE,
-	mention_id int REFERENCES essays(id) ON DELETE CASCADE,
-	mention_type int,
-	PRIMARY KEY(essay_id, mention_id)
 );
 CREATE TABLE essay_tags (
 	essay_id int REFERENCES essays(id) ON DELETE CASCADE,
