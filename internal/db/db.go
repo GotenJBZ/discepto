@@ -94,7 +94,7 @@ func Drop(dbURL string) error {
 
 func (db *DB) ListUsers() ([]models.User, error) {
 	var users []models.User
-	err := pgxscan.Select(context.Background(), db.db, &users, "SELECT * FROM users")
+	err := pgxscan.Select(context.Background(), db.db, &users, "SELECT id, name, email FROM users")
 	return users, err
 }
 

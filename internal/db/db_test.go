@@ -78,39 +78,43 @@ func init() {
 		panic(err)
 	}
 }
-func TestListUsers(t *testing.T) {
-	users, err := db.ListUsers()
-	if err != nil {
-		t.Fatalf("ListUsers() = %v, %v, want users, nil", users, err)
-	}
-}
 func TestUser(t *testing.T) {
-	user := mockUser()
-	passwd := mockPasswd
-	err := db.CreateUser(user, passwd)
-	if err != nil {
-		t.Fatalf(
-			"CreateUser(%v, %v) = %v, want nil",
-			user,
-			passwd,
-			err,
-		)
-	}
-	// With bad email
-	user.Email = "asdfhasdfkhlkjh"
-	err = db.CreateUser(user, passwd)
-	// This SHOULD fail
-	if err == nil {
-		t.Fatalf(
-			"CreateUser(%v, %v) = %v, want error",
-			user,
-			passwd,
-			err,
-		)
+	user2 := mockUser()
+	user2.Email = "asdasdasdfjh"
+	testData := []struct{
+		user *models.User
+		err error
+	}{
+		{user: mockUser(),err: nil},
+		{user: mockUser(),err: ErrEmailAlreadyUsed},
+		{user: user2, err: ErrBadEmailSyntax},
 	}
 
-	// Clean
-	db.DeleteUser(user.ID)
+	passwd := mockPasswd
+	for _, td := range testData {
+		err := db.CreateUser(td.user, passwd)
+		if err != td.err {
+			t.Fatalf("CreateUser(%v, %v) = %v, want %v",
+				td.user, passwd, err, td.err)
+		}
+
+	}
+
+	users, err := db.ListUsers()
+	if len(users) == 0 || err != nil {
+		t.Fatalf("ListUsers() = %v,%v, n>0, want nil",
+			len(users), err)
+	}
+
+	for _, td := range testData {
+		if td.err == nil {
+			err = db.DeleteUser(td.user.ID)
+			if err != nil {
+				t.Fatalf("DeleteUser(%v) = %v, want nil",
+					td.user.ID, err)
+			}
+		}
+	}
 }
 func TestAuth(t *testing.T) {
 	user := mockUser()
