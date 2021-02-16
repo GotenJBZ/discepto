@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -123,10 +124,11 @@ func (db *DB) CreateUser(user *models.User, passwd string) (err error) {
 	// Insert the new user
 	sql, args, _ := psql.
 		Insert("users").
-		Columns("name", "email", "role_id", "passwd_hash").
-		Values(user.Name, user.Email, user.RoleID, hash).
+		Columns("name", "email", "passwd_hash").
+		Values(user.Name, user.Email, hash).
 		Suffix("RETURNING id").
 		ToSql()
+
 	row := db.db.QueryRow(context.Background(), sql, args...)
 	err = row.Scan(&user.ID)
 	if err != nil {
@@ -185,7 +187,7 @@ func (db *DB) Signout(token string) error {
 func (db *DB) GetUserByToken(token string) (*models.User, error) {
 	user := &models.User{}
 	sql, args, _ := psql.
-		Select("users.name", "users.id", "users.role_id", "users.email").
+		Select("users.name", "users.id", "users.email").
 		From("users").
 		LeftJoin("tokens ON users.id = tokens.user_id").
 		Where(sq.Eq{"tokens.token": token}).
@@ -203,20 +205,19 @@ func (db *DB) GetUserByToken(token string) (*models.User, error) {
 }
 
 var roleQuery = psql.
-	Select("roles.name", "roles.permissions").
-	From("roles").
-	LeftJoin("users ON roles.id = users.role_id")
+	Select("user_id", "role_id", "subdiscepto").
+	From("user_roles").
+	LeftJoin("roles ON role_id = roles.id")
 
-func (db *DB) GetGlobalRole(userID int) (role *models.Role, err error) {
+func (db *DB) GetRoles(userID int, subdiscepto sql.NullString) (roles []*models.Role, err error) {
 	sql, args, _ := roleQuery.
-		Where(sq.Eq{"users.id": userID}).ToSql()
+		Where(sq.Eq{"user_id": userID, "subdiscepto": subdiscepto}).ToSql()
 
-	role = &models.Role{}
-	err = pgxscan.Get(context.Background(), db.db, role, sql, args...)
+	err = pgxscan.Select(context.Background(), db.db, &roles, sql, args...)
 	if err != nil {
 		return nil, err
 	}
-	return role, nil
+	return roles, nil
 }
 func (db *DB) DeleteUser(id int) error {
 	sql, args, _ := psql.Delete("users").Where(sq.Eq{"id": id}).ToSql()
@@ -359,14 +360,26 @@ func (db *DB) CreateSubdiscepto(subd *models.Subdiscepto, firstUserID int) error
 	// Insert first user of subdiscepto
 	sql, args, _ = psql.
 		Insert("subdiscepto_users").
-		Columns("name", "user_id", "role_id").
-		Values(subd.Name, firstUserID, models.RoleAdmin).
+		Columns("name", "user_id").
+		Values(subd.Name, firstUserID).
 		ToSql()
 
 	_, err = tx.Exec(context.Background(), sql, args...)
 	if err != nil {
 		return err
 	}
+
+	sql, args, _ = psql.
+		Insert("user_roles").
+		Columns("user_id", "role_id", "subdiscepto").
+		Values(firstUserID, models.RoleAdmin, subd.Name).
+		ToSql()
+
+	_, err = tx.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return err
+	}
+
 	err = tx.Commit(context.Background())
 	if err != nil {
 		return err

@@ -278,9 +278,8 @@ func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) AppError
 func (routes *Routes) PostSignup(w http.ResponseWriter, r *http.Request) AppError {
 	email := r.FormValue("email")
 	err := routes.db.CreateUser(&models.User{
-		Name:   r.FormValue("name"),
-		Email:  email,
-		RoleID: models.RoleAdmin,
+		Name:  r.FormValue("name"),
+		Email: email,
 	}, r.FormValue("password"))
 	if err == db.ErrBadEmailSyntax {
 		return &ErrBadRequest{Cause: err, Motivation: "Bad email syntax"}

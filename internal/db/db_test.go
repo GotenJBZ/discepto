@@ -147,12 +147,13 @@ func TestAuth(t *testing.T) {
 	}
 	db.DeleteUser(user.ID)
 }
-func TestRole(t *testing.T) {
+func TestRoles(t *testing.T) {
 	user := mockUser()
 	_ = db.CreateUser(user, mockPasswd)
-	role, err := db.GetGlobalRole(user.ID)
+	sub := sql.NullString{Valid: false}
+	roles, err := db.GetRoles(user.ID, sub)
 	if err != nil {
-		t.Fatalf("GetGlobalRole(%v) = %v, %v, want role, nil", user.ID, role, err)
+		t.Fatalf("GetRoles(%v, %v) = %v, %v, want roles, nil", user.ID, sub, roles, err)
 	}
 	db.DeleteUser(user.ID)
 }
@@ -217,7 +218,7 @@ func TestEssay(t *testing.T) {
 func TestVotes(t *testing.T) {
 	// Setup needed data
 	user := mockUser()
-	_ = db.CreateUser(user, mockPasswd)
+	db.CreateUser(user, mockPasswd)
 	essay := mockEssay(user.ID)
 	db.CreateSubdiscepto(mockSubdiscepto(), user.ID)
 	_ = db.CreateEssay(essay)

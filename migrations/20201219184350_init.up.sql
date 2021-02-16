@@ -1,22 +1,24 @@
+CREATE TABLE users (
+	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	name varchar(50) NOT NULL,
+	email varchar(100) UNIQUE NOT NULL,
+	passwd_hash varchar(255)
+);
 CREATE TABLE roles (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	permissions varchar(500) NOT NULL,
-	name varchar(50) NOT NULL
+	name varchar(50) NOT NULL,
+	origin int REFERENCES users(id) NULL,
+	created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
 -- Create initial roles. Manually set an easy to remember id.
 INSERT INTO roles (id, name, permissions) OVERRIDING SYSTEM VALUE VALUES (
 	-123, 
 	'admin', 
 	'delete_posts ban_users'
-);
-INSERT INTO roles (id, name, permissions) OVERRIDING SYSTEM VALUE VALUES (0, 'default', '');
-CREATE TABLE users (
-	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-	name varchar(50) NOT NULL,
-	email varchar(100) UNIQUE NOT NULL,
-	passwd_hash varchar(255),
-	role_id int REFERENCES roles(id) DEFAULT 0
-);
+),
+(0, 'default', '');
 CREATE TABLE tokens (
 	token varchar(255),
 	user_id int REFERENCES users(id) ON DELETE CASCADE,
@@ -29,10 +31,15 @@ CREATE TABLE subdisceptos (
 	questions_required boolean NOT NULL,
 	nsfw boolean NOT NULL
 );
+CREATE TABLE user_roles (
+	user_id int REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+	role_id int REFERENCES roles(id) NOT NULL,
+	subdiscepto varchar(50) REFERENCES subdisceptos(name) ON DELETE CASCADE,
+	PRIMARY KEY(user_id, role_id, subdiscepto)
+);
 CREATE TABLE subdiscepto_users (
 	name varchar(50) REFERENCES subdisceptos(name) ON DELETE CASCADE,
 	user_id int REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-	role_id int REFERENCES roles(id) DEFAULT 0,
 	PRIMARY KEY(name, user_id)
 );
 CREATE TABLE essays (

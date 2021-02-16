@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type PermissionType string
 
 const RoleDefault = 0
@@ -18,4 +20,6 @@ type Role struct {
 	ID          int
 	Name        string
 	Permissions string
+	Origin      int
+	CreatedAt   time.Time
 }
