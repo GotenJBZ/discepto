@@ -7,16 +7,16 @@ import (
 )
 
 const (
-	ReplyTypeInFavor    = "in favor"
-	ReplyTypeAgainst    = "against"
-	ReplyTypeCorrection = "correction"
-	ReplyTypeGeneral    = "general"
+	ReplyTypeSupports = "supports"
+	ReplyTypeRefutes  = "refutes"
+	ReplyTypeCorrects = "corrects"
+	ReplyTypeGeneral  = "general"
 )
 
 var AvailableReplyTypes = []string{
-	ReplyTypeInFavor,
-	ReplyTypeAgainst,
-	ReplyTypeCorrection,
+	ReplyTypeSupports,
+	ReplyTypeRefutes,
+	ReplyTypeCorrects,
 	ReplyTypeGeneral,
 }
 

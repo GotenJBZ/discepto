@@ -192,7 +192,7 @@ func TestEssay(t *testing.T) {
 	// Test list essays in favor
 	essay3 := mockEssay(user.ID)
 	essay3.InReplyTo = sql.NullInt32{Int32: int32(essay2.ID), Valid: true}
-	essay3.ReplyType = models.ReplyTypeInFavor
+	essay3.ReplyType = models.ReplyTypeSupports
 	db.CreateEssay(essay3)
 	// list
 	essays, err = db.ListEssayReplies(essay2.ID, essay3.ReplyType)
