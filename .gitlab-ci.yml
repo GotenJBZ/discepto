@@ -42,6 +42,8 @@ compile:
 deploy-to-staging:
   image: alpine
   stage: staging
+  environment:
+    name: "staging"
   script:
   ##
   ## Install ssh-agent if not already installed, it is required by Docker.
