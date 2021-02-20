@@ -55,7 +55,7 @@ func NewRouter(config *models.EnvConfig, db *db.DB, log zerolog.Logger, tmpls *r
 	r.Use(routes.UserCtx)
 
 	// Serve static files
-	staticFileServer := http.FileServer(http.Dir("/web/static"))
+	staticFileServer := http.FileServer(http.Dir("./web/static"))
 	r.Get("/static/*", func(w http.ResponseWriter, r *http.Request) {
 		fs := http.StripPrefix("/static", staticFileServer)
 		fs.ServeHTTP(w, r)
