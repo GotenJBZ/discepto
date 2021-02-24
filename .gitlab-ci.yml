@@ -57,6 +57,5 @@ deploy-to-staging:
     ##
     echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
 
-    sshp="ssh -o StrictHostKeyChecking=no"
-    < ./build/discepto.tar.gz $sshp "gitlab@$STAGING_SERVER_DOMAIN" "tar -xzf -"
-    $sshp "systemctl --user restart discepto.service" 
+    alias sshp="ssh -o StrictHostKeyChecking=no"
+    < ./build/discepto.tar.gz sshp "gitlab@$STAGING_SERVER_DOMAIN" "tar -xzf - && systemctl --user restart discepto.service"
