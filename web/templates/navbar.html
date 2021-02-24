@@ -1,0 +1,49 @@
+{{ define "navbar" }}
+<header>
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="/"><img src="/static/img/logo.svg" width="112" height="28"></a>
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="mainNavbar">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+        <div id="mainNavbar" class="navbar-menu">
+            <div class="navbar-start">
+                <a class="navbar-item" href="/newsubdiscepto">New Comunity</a>
+                <a class="navbar-item" id="searchBtn">Search</a>
+                <div class="modal" id="searchModal">
+                    <div class="modal-background"></div>
+                    <div class="modal-card">
+                        <header class="modal-card-head">
+                            <p class="modal-card-title ">Search console</p>
+                            <button class="delete" aria-label="close" data-bulma-modal='close'></button>
+                        </header>
+                        <section class="modal-card-body ">
+                            <form action="/search" method="GET">
+                                <div class="field is-horizontal is-grouped ">
+                                    <input type="text" class="input is-primary" name="search"> &nbsp
+                                    <button class="button is-primary" type="">Search</button>
+                                </div>
+                            </form>
+                        </section>
+                    </div>
+                </div>
+
+
+
+
+                <a class="navbar-item " href="/settings.html ">settings</a>
+            </div>
+            <div class="navbar-end ">
+                <div class="navbar-item ">
+                    <div class="buttons "><a class="button is-primary " href="/newessay"><strong>New</strong></a></div>
+                </div>
+                <a class="navbar-item " href="/signout">Logout</a>
+            </div>
+        </div>
+    </nav>
+</header>
+<script src="https://disceptoepicdev.freemaker.it/static/js/navbar.js"></script>
+{{ end }}

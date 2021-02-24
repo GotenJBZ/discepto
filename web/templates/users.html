@@ -1,13 +1,11 @@
-{{ define "users" }}
-{{ template "head" . }}
+{{ define "users" }} {{ template "head" . }}
 <ul>
-{{ range . }}
-<li>
-<p>ID: {{.ID}}</p>
-<p>Name: {{.Name}}</p>
-<p>Email: {{.Email}}</p>
-</li>
-{{ end }}
+    {{ range . }}
+    <li>
+        <p>ID: {{.ID}}</p>
+        <p>Name: {{.Name}}</p>
+        <p>Email: {{.Email}}</p>
+    </li>
+    {{ end }}
 </ul>
-{{ template "footer" . }}
-{{ end }}
+{{ template "footer" . }} {{ end }}

@@ -1,26 +1,175 @@
-{{ define "subdiscepto" }}
-{{ template "head" . }}
-<h1>Name: {{.Name}}</h1>
-<p>Description: {{.Description}}</p>
-{{ if .IsMember }}
-<form method="post" action="/s/{{ .Name }}/leave">
-	<button type="submit">Leave</button>
-</form>
-{{ else }}
-<form method="post" action="/s/{{ .Name }}/join">
-	<button type="submit">Join</button>
-</form>
-{{ end }}
-<h2>Essays</h2>
-<a href="/newessay?subdiscepto={{ .Name }}">Create new</a>
-<ul>
-{{ range $e := .Essays }}
-<li>
-	<p>Thesis: {{ $e.Thesis }}</p>
-	<p>Content: {{ $e.Content }}</p>
-	<a href="/s/{{ $.Name }}/{{ $e.ID }}">View</a>
-</li>
-{{ end }}
-</ul>
-{{ template "footer" . }}
-{{ end }}
+{{ define "subdiscepto" }} {{ template "head" . }}
+</head>
+
+<body>
+    {{ template "navbar" .}}
+    <br>
+
+    <div class="container is-max-desktop">
+
+
+        <section class="hero is-primary">
+            <div class="hero-body">
+
+                <div class="container content">
+                    <div class="columns">
+                        <div class="column is-half">
+                            <h1 class="title">{{.Name}}</h1>
+                            <p>{{.Description}}</p>
+                            {{ if .IsMember }}
+                            <button class="button is-medium is-rouded" type="button" id="follow" onclick="join()">Leave</button> {{ else }}
+                            <button class="button is-medium is-rouded" type="button" id="follow" onclick="join()">Join</button> {{ end }}
+                        </div>
+                        <div class="column is-one-quarter"></div>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+        <section class="info-tiles">
+            <div class="tile is-ancestor has-text-centered">
+                <div class="tile is-parent">
+                    <article class="tile is-child box">
+                        <p class="title">0</p>
+                        <p class="subtitle">Members</p>
+                    </article>
+                </div>
+                <div class="tile is-parent">
+                    <article class="tile is-child box">
+                        <p class="title">6</p>
+                        <p class="subtitle">Essays</p>
+                    </article>
+                </div>
+                <div class="tile is-parent">
+                    <article class="tile is-child box">
+                        <p class="title">3</p>
+                        <p class="subtitle">Interaction</p>
+                    </article>
+                </div>
+                <div class="tile is-parent">
+                    <article class="tile is-child box">
+                        <p class="title">0</p>
+                        <p class="subtitle">Upvotes</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+        <div class="columns">
+            <div class="column is-6">
+                <div class="card events-card">
+                    <header class="card-header">
+                        <p class="card-header-title">
+                            Essays
+                        </p>
+                        <a href="/newessay?subdiscepto={{ .Name }}" class="card-header-icon" aria-label="more options">Create new</a>
+                    </header>
+                    <div class="card-table">
+                        <div class="content">
+                            <table class="table is-fullwidth is-striped">
+                                <tbody>
+                                    {{ range $e := .Essays }}
+                                    <tr>
+                                        <td width="5%"><i class="fa fa-arrow-up">5</i></td>
+                                        <td>{{ $e.Thesis }}</td>
+                                        <td class="level-right"><a class="button is-small is-primary" href="/s/{{ $.Name }}/{{ $e.ID }}">Enter</a></td>
+                                    </tr>
+                                    {{ end }}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <footer class="card-footer">
+                        <a href="/s/{{ .Name }}/essays" class="card-footer-item">View All</a>
+                    </footer>
+                </div>
+            </div>
+            <div class="column is-6">
+                <div class="card">
+                    <header class="card-header">
+                        <p class="card-header-title">
+                            Inventory Search
+                        </p>
+                        <a href="#" class="card-header-icon" aria-label="more options">
+                            <span class="icon">
+				<i class="fa fa-angle-down" aria-hidden="true"></i>
+			  </span>
+                        </a>
+                    </header>
+                    <div class="card-content">
+                        <div class="content">
+                            <div class="control has-icons-left has-icons-right">
+                                <input class="input is-large" type="text" placeholder="">
+                                <span class="icon is-medium is-left">
+				  <i class="fa fa-search"></i>
+				</span>
+                                <span class="icon is-medium is-right">
+				  <i class="fa fa-check"></i>
+				</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <br>
+                <div class="card">
+                    <header class="card-header">
+                        <p class="card-header-title">
+                            Members List
+                        </p>
+                        <a href="#" class="card-header-icon" aria-label="more options">
+                            <span class="icon">
+				<i class="fa fa-angle-down" aria-hidden="true"></i>
+			  </span>
+                        </a>
+                    </header>
+                    <div class="card-table">
+                        <div class="content">
+                            <table class="table is-fullwidth is-striped">
+                                <tbody>
+                                    <tr>
+                                        <td>Giorgio Gay</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Giorgio Gay</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Giorgio Gay</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Giorgio Gay</td>
+                                    </tr>
+
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <footer class="card-footer">
+                        <a href="/s/{{ .Name }}/members" class="card-footer-item">View All</a>
+                    </footer>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function join() {
+            var btn = document.getElementById('follow');
+            if (btn.textContent == 'Leave') {
+                fetch('/s/{{ .Name }}/leave', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                btn.textContent = 'Join'
+            } else {
+                fetch('/s/{{ .Name }}/join', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                btn.textContent = 'Leave'
+            }
+        }
+    </script>
+</body>
+
+</html>
+{{end}}
