@@ -62,8 +62,9 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 
 	isMember := false
 	user, ok := r.Context().Value("user").(*models.User)
+	var subs []string
 	if ok {
-		subs, err := routes.db.ListMySubdisceptos(user.ID)
+		subs, err = routes.db.ListMySubdisceptos(user.ID)
 		if err != nil {
 			return &ErrInternal{Cause: err, Message: "Error getting sub membership"}
 		}
@@ -79,11 +80,13 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 		Description string
 		Essays      []*models.Essay
 		IsMember    bool
+		SubdisceptoList []string
 	}{
 		Name:        sub.Name,
 		Description: sub.Description,
 		Essays:      essays,
 		IsMember:    isMember,
+		SubdisceptoList: subs,
 	}
 	routes.tmpls.RenderHTML(w, "subdiscepto", data)
 	return nil

@@ -1,18 +1,204 @@
-{{ define "essay" }}
-{{ template "head" . }}
-<h1>{{.Thesis}}</h1>
-<a href="/newessay?inReplyTo={{ .ID }}">Reply to this essay</a>
-<p>Content: {{.Content}}</p>
-<p>Upvotes: {{ .Upvotes }}; Downvotes: {{ .Downvotes }}</p>
-<form action="/essays/{{ .ID }}/vote" method="post">
-	<input type="radio" name="vote" id="upvote" value="upvote">
-	<label for="upvote">Upvote</label>
-	<br>
-	<input type="radio" name="vote" id="downvote" value="downvote">
-	<label for="downvote">Downvotes</label>
-	<br>
-	<button type="submit">Vote</button>
-</form>
-<p>Tags: {{ range .Tags }}<span>{{ . }}</span> {{ end }}</p>
-{{ template "footer" . }}
+{{ define "essay" }} {{ template "head" . }}
+</head>
+
+<body bgcolor="#EFEFEF">
+    {{ template "navbar" .}}
+    <br>
+    <div class="container">
+        <div class="columns">
+            <div class="column is-9">
+                <div class="box">
+                    <div class="media">
+                        <div class="media-left">
+                            <figure class="image is-48x48 is-rounded">
+                                <img class="is-rounded" src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
+                            </figure>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-4">{{.Thesis}}</p>
+                            <p class="subtitle is-6"><a href="#">@utente</a>&nbsp; <time datetime="2018-1-1">{{ .Published }}</time></p>
+                        </div>
+                        <div class="media-right">
+                            <button class="button is-warning is-light">General</button>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="card-image">
+                        <figure class="image is-2by1">
+                            <img src="https://bulma.io/images/placeholders/1280x960.png" alt="Placeholder image">
+                        </figure>
+                    </div>
+
+                    <div class="card-content">
+
+                        <div class="content" style="padding: 15px;">
+                            {{ .Content }}
+                            <br>
+
+                        </div>
+                        <nav class="level is-mobile">
+                            <div class="level-left">
+                                <a onclick="javascript:fetch('/essay/{{.ID}}/favourite')" class="level-item" aria-label="reply">
+                                    <span class="icon is-small has-text-primary">
+										<i class="fa fa-heart" aria-hidden="true"></i>
+									</span>
+                                </a>
+                                <p>{{ .Upvotes }} &nbsp;</p>
+                                <a onclick="javascript:fetch('/essay/{{.ID}}/like')" class="level-item" aria-label="reply">
+                                    <span class="icon is-small has-text-primary">
+										<i class="fa fa-arrow-up" aria-hidden="true"></i>
+									</span>
+                                </a>
+                                <p>{{ .Downvotes }} &nbsp;</p>
+                                <a onclick="javascript:fetch('/essay/{{.ID}}/dislike')" class="level-item" aria-label="retweet">
+                                    <span class="icon is-small has-text-primary">
+										<i class="fa fa-arrow-down" aria-hidden="true"></i>
+									</span>
+                                </a>
+                                <a href='/essay/{{.ID}}/report' class="level-item" aria-label="like">
+                                    <span class="icon is-small has-text-danger">
+										<i class="fa fa-ban" aria-hidden="true"></i>
+									</span>
+                                </a>
+                            </div>
+                            <button class="button is-rouded is-primary" onclick="javascript:window.location='/newessay?inReplyTo={{ .ID }}'" type="button" name="button">Reply</button>
+                        </nav>
+                    </div>
+                </div>
+
+                <br>
+                <h1 class="title is-2">Replies</h1>
+
+                <div class="box" style="cursor: pointer;" onclick="window.location='/essay/1';">
+                    <article class="media">
+                        <figure class="media-left">
+                            <p class="image is-64x64">
+                                <img class="is-rounded" src="https://bulma.io/images/placeholders/128x128.png">
+                            </p>
+                        </figure>
+
+                        <div class="media-content">
+                            <div class="content">
+                                <p>
+                                <strong>Title</strong> <small>@johnsmith</small> <small>31m</small>
+                                    <br> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin ornare magna eros, eu pellentesque tortor vestibulum ut. Maecenas non massa sem. Etiam finibus odio quis feugiat facilisis.
+                                </p>
+
+                            </div>
+                            <nav class="level is-mobile">
+                                <div class="level-left">
+
+
+                                    <a onclick="javascript:fetch('/essay/1/favourite')" class="level-item" aria-label="reply">
+                                        <span class="icon is-small has-text-danger">
+				 							<i class="far fa-heart" aria-hidden="true"></i>
+			 							</span>
+                                    </a>
+
+                                    <a onclick="javascript:fetch('/essay/1/like')" class="level-item" aria-label="reply">
+                                        <span class="icon is-small has-text-primary">
+				 							<i class="fa fa-arrow-up" aria-hidden="true"></i>
+			 							</span>
+                                    </a>
+                                    <a onclick="javascript:fetch('/essay/1/dislike')" class="level-item" aria-label="retweet">
+                                        <span class="icon is-small has-text-primary">
+				 							<i class="fa fa-arrow-down" aria-hidden="true"></i>
+			 							</span>
+                                    </a>
+                                    <a href='/essay/1/report' class="level-item" aria-label="like">
+                                        <span class="icon is-small has-text-danger">
+				 							<i class="fa fa-ban" aria-hidden="true"></i>
+			 							</span>
+                                    </a>
+                                </div>
+                            </nav>
+                        </div>
+                        <div class="media-right">
+                            <button class="button is-warning is-light">General</button>
+                        </div>
+                    </article>
+                </div>
+            </div>
+
+
+
+
+            <div class="column is-3">
+
+                <div class="card">
+                    <nav class="panel is-primary">
+                        <p class="panel-heading">Fonti</p>
+                        {{ range .Sources }}
+                        <a class="panel-block">{{ . }}</a> {{ end }}
+                    </nav>
+                </div>
+
+                <br>
+
+                <div class="card">
+                    <div class="card-content">
+                        <div class="media">
+                            <div class="media-left">
+                                <figure class="image is-48x48">
+                                    <img src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
+                                </figure>
+                            </div>
+                            &nbsp;&nbsp;
+                            <div class="media-content">
+                                <p class="title is-4">s/subdiscepto</p>
+                                <p class="subtitle is-6">666 mebri</p>
+                            </div>
+                        </div>
+
+                        <div class="content">
+                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus nec iaculis mauris.</p>
+                            <button class="button is-primary is-fullwidth is-rounded" id="follow" onclick="join()">join</button>
+                        </div>
+                    </div>
+                </div>
+
+                <br>
+
+                <div class="card">
+                    <nav class="panel is-primary">
+                        <p class="panel-heading">Your Communities</p>
+                        <a href="s/dio" class="panel-block">
+                            bulma
+                        </a>
+                        <a href="s/dio" class="panel-block">
+                            asdf
+                        </a>
+                        <a href="s/dio" class="panel-block">
+                            asdfg
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <script>
+                function join() {
+                    var btn = document.getElementById('follow');
+                    if (btn.textContent == 'Leave') {
+                        fetch('/s/lamer/leave', {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        btn.classList.add('is-primary');
+                        btn.textContent = 'Join'
+                    } else {
+                        fetch('/s/lamer/join', {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        btn.textContent = 'Leave'
+                        btn.classList.remove('is-primary');
+                    }
+                }
+            </script>
+
+
+
+</body>
+
+</html>
 {{ end }}

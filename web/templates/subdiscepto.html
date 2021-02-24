@@ -1,174 +1,142 @@
 {{ define "subdiscepto" }} {{ template "head" . }}
 </head>
 
-<body>
+<body bgcolor="#EFEFEF">
     {{ template "navbar" .}}
     <br>
 
     <div class="container is-max-desktop">
-
-
-        <section class="hero is-primary">
-            <div class="hero-body">
-
-                <div class="container content">
-                    <div class="columns">
-                        <div class="column is-half">
-                            <h1 class="title">{{.Name}}</h1>
-                            <p>{{.Description}}</p>
-                            {{ if .IsMember }}
-                            <button class="button is-medium is-rouded" type="button" id="follow" onclick="join()">Leave</button> {{ else }}
-                            <button class="button is-medium is-rouded" type="button" id="follow" onclick="join()">Join</button> {{ end }}
+        <div class="columns is-vcentered">
+            <section class="hero">
+                <div class="hero-body">
+                    <article class="media">
+                        <figure class="media-left">
+                            <p class="image is-64x64">
+                                <img class="is-rounded" src="https://bulma.io/images/placeholders/128x128.png">
+                            </p>
+                        </figure>
+                        &nbsp
+                        <div class="media-content">
+                            <p class="title" style="padding-top: 10px;">s/{{ .Name }}</p>
                         </div>
-                        <div class="column is-one-quarter"></div>
-                    </div>
-
-                </div>
-
-            </div>
-        </section>
-        <section class="info-tiles">
-            <div class="tile is-ancestor has-text-centered">
-                <div class="tile is-parent">
-                    <article class="tile is-child box">
-                        <p class="title">0</p>
-                        <p class="subtitle">Members</p>
                     </article>
                 </div>
-                <div class="tile is-parent">
-                    <article class="tile is-child box">
-                        <p class="title">6</p>
-                        <p class="subtitle">Essays</p>
-                    </article>
-                </div>
-                <div class="tile is-parent">
-                    <article class="tile is-child box">
-                        <p class="title">3</p>
-                        <p class="subtitle">Interaction</p>
-                    </article>
-                </div>
-                <div class="tile is-parent">
-                    <article class="tile is-child box">
-                        <p class="title">0</p>
-                        <p class="subtitle">Upvotes</p>
-                    </article>
-                </div>
-            </div>
-        </section>
+            </section>
+        </div>
         <div class="columns">
-            <div class="column is-6">
-                <div class="card events-card">
-                    <header class="card-header">
-                        <p class="card-header-title">
-                            Essays
-                        </p>
-                        <a href="/newessay?subdiscepto={{ .Name }}" class="card-header-icon" aria-label="more options">Create new</a>
-                    </header>
-                    <div class="card-table">
-                        <div class="content">
-                            <table class="table is-fullwidth is-striped">
-                                <tbody>
-                                    {{ range $e := .Essays }}
-                                    <tr>
-                                        <td width="5%"><i class="fa fa-arrow-up">5</i></td>
-                                        <td>{{ $e.Thesis }}</td>
-                                        <td class="level-right"><a class="button is-small is-primary" href="/s/{{ $.Name }}/{{ $e.ID }}">Enter</a></td>
-                                    </tr>
-                                    {{ end }}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <footer class="card-footer">
-                        <a href="/s/{{ .Name }}/essays" class="card-footer-item">View All</a>
-                    </footer>
-                </div>
-            </div>
-            <div class="column is-6">
-                <div class="card">
-                    <header class="card-header">
-                        <p class="card-header-title">
-                            Inventory Search
-                        </p>
-                        <a href="#" class="card-header-icon" aria-label="more options">
-                            <span class="icon">
-				<i class="fa fa-angle-down" aria-hidden="true"></i>
-			  </span>
-                        </a>
-                    </header>
-                    <div class="card-content">
-                        <div class="content">
-                            <div class="control has-icons-left has-icons-right">
-                                <input class="input is-large" type="text" placeholder="">
-                                <span class="icon is-medium is-left">
-				  <i class="fa fa-search"></i>
-				</span>
-                                <span class="icon is-medium is-right">
-				  <i class="fa fa-check"></i>
-				</span>
+            <div class="column is-9">
+                {{ range $e := .Essays }}
+                <div class="box" style="cursor: pointer;" onclick="window.location='/s/{{ $e.PostedIn }}/{{ $e.ID }}';">
+                    <article class="media">
+                        <figure class="media-left">
+                            <p class="image is-64x64">
+                                <img class="is-rounded" src="https://bulma.io/images/placeholders/128x128.png">
+                            </p>
+                        </figure>
+
+                        <div class="media-content">
+                            <div class="content">
+                                <p>
+                                    <strong>{{$e.Thesis}}</strong> <small>@autore</small> <small>{{$e.Published}}</small>
+                                    <br> {{$e.Content}}
+                                </p>
+
                             </div>
+
+                            <nav class="level is-mobile">
+                                <div class="level-left">
+
+                                    <a onclick="javascript:fetch('/s/{{ $e.PostedIn }}/{{ $e.ID }}/favourite')" class="level-item" aria-label="reply">
+                                        <span class="icon is-small has-text-danger">
+                            <i class="far fa-heart" aria-hidden="true"></i>
+                        </span>
+                                    </a>
+
+                                    <a onclick="javascript:fetch('/s/{{ $e.PostedIn }}/{{ $e.ID }}/like')" class="level-item" aria-label="reply">
+                                        <span class="icon is-small has-text-primary">
+                            <i class="fa fa-arrow-up" aria-hidden="true"></i>
+                        </span>
+                                    </a>
+                                    <a onclick="javascript:fetch('/s/{{ $e.PostedIn }}/{{ $e.ID }}/dislike')" class="level-item" aria-label="retweet">
+                                        <span class="icon is-small has-text-primary">
+                            <i class="fa fa-arrow-down" aria-hidden="true"></i>
+                        </span>
+                                    </a>
+                                    <a href='/s/{{ $e.PostedIn }}/{{ $e.ID }}/report' class="level-item" aria-label="like">
+                                        <span class="icon is-small has-text-danger">
+                            <i class="fa fa-ban" aria-hidden="true"></i>
+                        </span>
+                                    </a>
+                                </div>
+                            </nav>
+                        </div>
+                        <div class="media-right">
+                            {{if eq $e.ReplyType "against" }}
+                            <button class="button is-danger is-light">Agains</button> {{ else if eq $e.ReplyType "in favor"}}
+                            <button class="button is-success is-light">Favour</button> {{ else }}
+                            <button class="button is-warning is-light">General</button> {{ end }}
+
+                        </div>
+                    </article>
+                </div>
+                {{ end }}
+            </div>
+            <div class="column is-5">
+
+                <div class="card">
+                    <div class="card-content">
+                        <div class="media">
+                            <div class="media-left">
+                                <figure class="image is-48x48">
+                                    <img src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
+                                </figure>
+                            </div>
+                            &nbsp;&nbsp;
+                            <div class="media-content">
+                                <p class="title is-4">s/{{ .Name }}</p>
+                                <p class="subtitle is-6">Inserire membri</p>
+                            </div>
+                        </div>
+
+                        <div class="content">
+                            <p>{{ .Description }}</p>
+                            {{ if .IsMember }}
+                            <button class="button is-fullwidth is-rounded" id="follow" onclick="join()">Leave</button>{{ else }}
+                            <button class="button is-primary is-fullwidth is-rounded" id="follow" onclick="join()">Join</button> {{ end }}
                         </div>
                     </div>
                 </div>
                 <br>
-                <div class="card">
-                    <header class="card-header">
-                        <p class="card-header-title">
-                            Members List
-                        </p>
-                        <a href="#" class="card-header-icon" aria-label="more options">
-                            <span class="icon">
-				<i class="fa fa-angle-down" aria-hidden="true"></i>
-			  </span>
-                        </a>
-                    </header>
-                    <div class="card-table">
-                        <div class="content">
-                            <table class="table is-fullwidth is-striped">
-                                <tbody>
-                                    <tr>
-                                        <td>Giorgio Gay</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Giorgio Gay</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Giorgio Gay</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Giorgio Gay</td>
-                                    </tr>
-
-
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <footer class="card-footer">
-                        <a href="/s/{{ .Name }}/members" class="card-footer-item">View All</a>
-                    </footer>
+                <div class="card events-card">
+                    <nav class="panel is-primary">
+                        <p class="panel-heading">Your Communities</p>
+                        {{ range $s := .SubdisceptoList}}
+                        <a href="/s/{{.}}" class="panel-block">s/{{.}}</a>{{end}}
+                    </nav>
                 </div>
             </div>
+
         </div>
-    </div>
-    <script>
-        function join() {
-            var btn = document.getElementById('follow');
-            if (btn.textContent == 'Leave') {
-                fetch('/s/{{ .Name }}/leave', {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                btn.textContent = 'Join'
-            } else {
-                fetch('/s/{{ .Name }}/join', {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                btn.textContent = 'Leave'
+        <script>
+            function join() {
+                var btn = document.getElementById('follow');
+                if (btn.textContent == 'Leave') {
+                    fetch('/s/{{ .Name }}/leave', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    btn.classList.add('is-primary');
+                    btn.textContent = 'Join'
+                } else {
+                    fetch('/s/{{ .Name }}/join', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    btn.textContent = 'Leave'
+                    btn.classList.remove('is-primary');
+                }
             }
-        }
-    </script>
+        </script>
 </body>
 
 </html>
