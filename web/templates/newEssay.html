@@ -22,6 +22,22 @@
                     </div>
                 </div>
 
+
+                <div class="field">
+                    <label class="label">Community</label>
+
+
+
+                    <div class="select is-primary">
+                        <select name="postedIn">
+                            {{ range .MySubdisceptos }}
+                          <option value="{{ . }}">{{ . }}</option>
+                          {{ end }}
+                        </select>
+                    </div>
+                </div>
+
+
                 <div class="field">
                     <label for="" class="label">Content</label>
                     <div class="file is-warning">
@@ -39,6 +55,7 @@
                     </div>
                 </div>
 
+
                 <div class="field">
                     <label for="" class="label">Text</label>
                     <textarea id="DisceptoContent"></textarea>
@@ -52,6 +69,7 @@
                     </div>
                     <p class="help">Insert tags separated by commas e.g. tags1,tags2,tags3</p>
                 </div>
+
 
                 <div class="field">
                     <label for="" class="label">First Question</label>
@@ -180,7 +198,8 @@
 
     <script>
         var simplemde = new EasyMDE({
-            element: document.getElementById("DisceptoContent")
+            element: document.getElementById("DisceptoContent"),
+            spellChecker: false
         });
         var form = document.getElementById("formid");
         var about = document.querySelector('input[name=content]');

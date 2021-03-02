@@ -21,13 +21,25 @@ func (routes *Routes) EssaysRouter(r chi.Router) {
 func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppError {
 	subdiscepto := r.URL.Query().Get("subdiscepto")
 
+	user := r.Context().Value("user").(*models.User)
+	subs, err := routes.db.ListMySubdisceptos(user.ID)
+
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
 
-	essay := models.Essay{
-		PostedIn:  subdiscepto,
-		InReplyTo: inReplyTo,
+	essay := struct{
+		EssayModel		models.Essay
+		MySubdisceptos		[]string
+	}{
+		EssayModel: models.Essay{
+			PostedIn:	subdiscepto,
+			InReplyTo:	inReplyTo,
+		},
+		MySubdisceptos:	subs,
 	}
+
+
+
 	routes.tmpls.RenderHTML(w, "newEssay", essay)
 	return nil
 }
