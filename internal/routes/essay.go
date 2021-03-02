@@ -28,10 +28,10 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppErr
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
 
 	essay := struct{
-		EssayModel		models.Essay
+		*models.Essay
 		MySubdisceptos		[]string
 	}{
-		EssayModel: models.Essay{
+		Essay : &models.Essay{
 			PostedIn:	subdiscepto,
 			InReplyTo:	inReplyTo,
 		},
