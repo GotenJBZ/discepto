@@ -1,7 +1,7 @@
 {{ define "essay" }} {{ template "head" . }}
 </head>
 
-<body bgcolor="#EFEFEF">
+<body bgcolor="#EFEFEF" style="min-height: 100%;">
     {{ template "navbar" .}}
     <br>
     <div class="container">
@@ -42,7 +42,7 @@
                         <nav class="level is-mobile">
                             <div class="level-left">
                                 <a onclick="javascript:fetch('/essay/{{.ID}}/favourite')" class="level-item" aria-label="reply">
-                                    <span class="icon is-small has-text-primary">
+                                    <span class="icon is-small has-text-danger">
 										<i class="fa fa-heart" aria-hidden="true"></i>
 									</span>
                                 </a>
