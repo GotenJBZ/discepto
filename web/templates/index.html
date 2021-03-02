@@ -28,23 +28,24 @@
                             <nav class="level is-mobile">
                                 <div class="level-left">
 
-                                    <a onclick="javascript:fetch('/s/{{ .PostedIn }}/{{ .ID }}/favourite')" class="level-item" aria-label="reply">
+                                    <a class="level-item" aria-label="reply">
                                         <span class="icon is-small has-text-danger">
                                             <i class="far fa-heart" aria-hidden="true"></i>
                                         </span>
                                     </a>
-
-                                    <a onclick="javascript:fetch('/s/{{ .PostedIn }}/{{ .ID }}/like')" class="level-item" aria-label="reply">
+                                    <p>{{ .Upvotes }} &nbsp;</p>
+                                    <a class="level-item" aria-label="reply">
                                         <span class="icon is-small has-text-primary">
                                             <i class="fa fa-arrow-up" aria-hidden="true"></i>
                                         </span>
                                     </a>
-                                    <a onclick="javascript:fetch('/s/{{ .PostedIn }}/{{ .ID }}/dislike')" class="level-item" aria-label="retweet">
+                                    <p>{{ .Downvotes }} &nbsp;</p>
+                                    <a class="level-item" aria-label="retweet">
                                         <span class="icon is-small has-text-primary">
                                             <i class="fa fa-arrow-down" aria-hidden="true"></i>
                                         </span>
                                     </a>
-                                    <a href='/s/{{ .PostedIn }}/{{ .ID }}/report' class="level-item" aria-label="like">
+                                    <a class="level-item" aria-label="like">
                                         <span class="icon is-small has-text-danger">
                                             <i class="fa fa-ban" aria-hidden="true"></i>
                                         </span>
@@ -53,11 +54,10 @@
                             </nav>
                         </div>
                         <div class="media-right">
-                            {{if eq .ReplyType "against" }}
-                            <button class="button is-danger is-light">Agains</button> {{ else if eq .ReplyType "in favor"}}
-                            <button class="button is-success is-light">Favour</button> {{ else }}
+                            {{if eq .ReplyType "supports" }}
+                            <button class="button is-success is-light">supports</button> {{ else if eq .ReplyType "refutes"}}
+                            <button class="button is-danger is-light">refutes</button> {{ else }}
                             <button class="button is-warning is-light">General</button> {{ end }}
-
                         </div>
                     </article>
                 </div>

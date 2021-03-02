@@ -71,12 +71,12 @@
                             </nav>
                         </div>
                         <div class="media-right">
-                            {{if eq $e.ReplyType "against" }}
-                            <button class="button is-danger is-light">Agains</button> {{ else if eq $e.ReplyType "in favor"}}
-                            <button class="button is-success is-light">Favour</button> {{ else }}
+                            {{if eq .ReplyType "supports" }}
+                            <button class="button is-success is-light">supports</button> {{ else if eq .ReplyType "refutes"}}
+                            <button class="button is-danger is-light">refutes</button> {{ else }}
                             <button class="button is-warning is-light">General</button> {{ end }}
-
                         </div>
+
                     </article>
                 </div>
                 {{ end }}

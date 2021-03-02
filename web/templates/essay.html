@@ -19,7 +19,10 @@
                             <p class="subtitle is-6"><a href="#">@utente</a>&nbsp; <time datetime="2018-1-1">{{ .Published }}</time></p>
                         </div>
                         <div class="media-right">
-                            <button class="button is-warning is-light">General</button>
+                            {{if eq .ReplyType "supports" }}
+                            <button class="button is-success is-light">supports</button> {{ else if eq .ReplyType "refutes"}}
+                            <button class="button is-danger is-light">refutes</button> {{ else }}
+                            <button class="button is-warning is-light">General</button> {{ end }}
                         </div>
                     </div>
                     <br>
