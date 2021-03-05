@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -27,10 +28,10 @@ const (
 
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-var ErrBadEmailSyntax error = errors.New("Bad email syntax")
 var ErrTooManyTags error = errors.New("You have inserted too many tags")
 var ErrBadContentLen error = errors.New("You have to respect the imposed content length limits")
 var ErrEmailAlreadyUsed error = errors.New("The email is already used")
+var ErrInvalidFormat error = errors.New("Invalid format")
 
 type DB struct {
 	db         *pgxpool.Pool
@@ -100,7 +101,7 @@ func (db *DB) ListUsers() ([]models.User, error) {
 func (db *DB) CreateUser(user *models.User, passwd string) (err error) {
 	// Check email format
 	if !utils.ValidateEmail(user.Email) {
-		return ErrBadEmailSyntax
+		return ErrInvalidFormat
 	}
 
 	// Check if email is already used
@@ -327,6 +328,10 @@ func (db *DB) DeleteEssay(id int) error {
 	return err
 }
 func (db *DB) CreateSubdiscepto(subd *models.Subdiscepto, firstUserID int) error {
+	r := regexp.MustCompile("^\\w+$")
+	if !r.Match([]byte(subd.Name)) {
+		return ErrInvalidFormat
+	}
 	tx, err := db.db.Begin(context.Background())
 	if err != nil {
 		return err
@@ -335,8 +340,8 @@ func (db *DB) CreateSubdiscepto(subd *models.Subdiscepto, firstUserID int) error
 	// Insert subdiscepto
 	sql, args, _ := psql.
 		Insert("subdisceptos").
-		Columns("name", "description", "min_length", "questions_required", "nsfw", "owner_id").
-		Values(subd.Name, subd.Description, subd.MinLength, subd.QuestionsRequired, subd.Nsfw, firstUserID).
+		Columns("name", "description", "min_length", "questions_required", "nsfw").
+		Values(subd.Name, subd.Description, subd.MinLength, subd.QuestionsRequired, subd.Nsfw).
 		ToSql()
 
 	_, err = tx.Exec(context.Background(), sql, args...)

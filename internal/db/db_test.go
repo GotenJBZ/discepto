@@ -89,7 +89,7 @@ func TestUser(t *testing.T) {
 	}{
 		{mockUser(), nil},
 		{mockUser(), ErrEmailAlreadyUsed},
-		{user2, ErrBadEmailSyntax},
+		{user2, ErrInvalidFormat},
 	}
 
 	passwd := mockPasswd

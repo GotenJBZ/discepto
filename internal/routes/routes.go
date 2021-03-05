@@ -281,7 +281,7 @@ func (routes *Routes) PostSignup(w http.ResponseWriter, r *http.Request) AppErro
 		Name:  r.FormValue("name"),
 		Email: email,
 	}, r.FormValue("password"))
-	if err == db.ErrBadEmailSyntax {
+	if err == db.ErrInvalidFormat {
 		return &ErrBadRequest{Cause: err, Motivation: "Bad email syntax"}
 	}
 	if err == db.ErrEmailAlreadyUsed {

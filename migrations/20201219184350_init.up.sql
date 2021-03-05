@@ -8,7 +8,6 @@ CREATE TABLE users (
 CREATE TABLE subdisceptos (
 	name varchar(50) PRIMARY KEY,
 	description varchar(500) NOT NULL,
-	owner_id int REFERENCES users(id) NOT NULL,
 	min_length int NOT NULL,
 	questions_required boolean NOT NULL,
 	nsfw boolean NOT NULL
