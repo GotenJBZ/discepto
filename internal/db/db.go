@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 
@@ -204,21 +203,6 @@ func (db *DB) GetUserByToken(token string) (*models.User, error) {
 	return user, nil
 }
 
-var roleQuery = psql.
-	Select("user_id", "role_id", "subdiscepto").
-	From("user_roles").
-	LeftJoin("roles ON role_id = roles.id")
-
-func (db *DB) GetRoles(userID int, subdiscepto sql.NullString) (roles []*models.Role, err error) {
-	sql, args, _ := roleQuery.
-		Where(sq.Eq{"user_id": userID, "subdiscepto": subdiscepto}).ToSql()
-
-	err = pgxscan.Select(context.Background(), db.db, &roles, sql, args...)
-	if err != nil {
-		return nil, err
-	}
-	return roles, nil
-}
 func (db *DB) DeleteUser(id int) error {
 	sql, args, _ := psql.Delete("users").Where(sq.Eq{"id": id}).ToSql()
 	_, err := db.db.Exec(context.Background(), sql, args...)
@@ -351,16 +335,19 @@ func (db *DB) CreateSubdiscepto(subd *models.Subdiscepto, firstUserID int) error
 	// Insert subdiscepto
 	sql, args, _ := psql.
 		Insert("subdisceptos").
-		Columns("name", "description", "min_length", "questions_required", "nsfw").
-		Values(subd.Name, subd.Description, subd.MinLength, subd.QuestionsRequired, subd.Nsfw).
+		Columns("name", "description", "min_length", "questions_required", "nsfw", "owner_id").
+		Values(subd.Name, subd.Description, subd.MinLength, subd.QuestionsRequired, subd.Nsfw, firstUserID).
 		ToSql()
 
 	_, err = tx.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return err
+	}
 
 	// Insert first user of subdiscepto
 	sql, args, _ = psql.
 		Insert("subdiscepto_users").
-		Columns("name", "user_id").
+		Columns("subdiscepto", "user_id").
 		Values(subd.Name, firstUserID).
 		ToSql()
 
@@ -369,10 +356,11 @@ func (db *DB) CreateSubdiscepto(subd *models.Subdiscepto, firstUserID int) error
 		return err
 	}
 
+	// Insert first user of subdiscepto
 	sql, args, _ = psql.
-		Insert("user_roles").
-		Columns("user_id", "role_id", "subdiscepto").
-		Values(firstUserID, models.RoleAdmin, subd.Name).
+		Insert("user_preset_sub_roles").
+		Columns("subdiscepto", "user_id", "role_name").
+		Values(subd.Name, firstUserID, "admin").
 		ToSql()
 
 	_, err = tx.Exec(context.Background(), sql, args...)
@@ -396,7 +384,7 @@ func (db *DB) GetSubdiscepto(name string) (*models.Subdiscepto, error) {
 }
 func (db *DB) ListSubdisceptos() ([]*models.Subdiscepto, error) {
 	var subs []*models.Subdiscepto
-	err := pgxscan.Select(context.Background(), db.db, &subs, "SELECT * FROM subdisceptos")
+	err := pgxscan.Select(context.Background(), db.db, &subs, "SELECT name, description, min_length, questions_required, nsfw FROM subdisceptos")
 	if err != nil {
 		return nil, err
 	}
@@ -405,7 +393,7 @@ func (db *DB) ListSubdisceptos() ([]*models.Subdiscepto, error) {
 func (db *DB) JoinSubdiscepto(sub string, userID int) error {
 	sql, args, _ := psql.
 		Insert("subdiscepto_users").
-		Columns("name", "user_id").
+		Columns("subdiscepto", "user_id").
 		Values(sub, userID).
 		ToSql()
 
@@ -418,7 +406,7 @@ func (db *DB) JoinSubdiscepto(sub string, userID int) error {
 func (db *DB) LeaveSubdiscepto(sub string, userID int) error {
 	sql, args, _ := psql.
 		Delete("subdiscepto_users").
-		Where(sq.Eq{"name": sub, "user_id": userID}).
+		Where(sq.Eq{"subdiscepto": sub, "user_id": userID}).
 		ToSql()
 
 	_, err := db.db.Exec(context.Background(), sql, args...)
@@ -429,7 +417,7 @@ func (db *DB) LeaveSubdiscepto(sub string, userID int) error {
 }
 func (db *DB) ListMySubdisceptos(userID int) (subs []string, err error) {
 	sql, args, _ := psql.
-		Select("name").
+		Select("subdiscepto").
 		From("subdiscepto_users").
 		Where(sq.Eq{"user_id": userID}).
 		ToSql()
@@ -567,4 +555,40 @@ func (db *DB) SearchByTags(tags []string) (essays []*models.Essay, err error) {
 		return nil, err
 	}
 	return essays, nil
+}
+func (db *DB) GetSubPerms(userID int, subName string) (perms models.SubPerms, err error) {
+	queryPresetSubRoles := sq.Select("sub_perms_id").
+		From("user_preset_sub_roles").
+		Join("preset_sub_roles ON user_preset_sub_roles.role_name = preset_sub_roles.name").
+		Where(sq.Eq{"user_preset_sub_roles.subdiscepto": subName, "user_id": userID})
+
+	queryCustomSubPerms := sq.Select("sub_perms_id").
+		From("user_custom_sub_roles").
+		Join("custom_sub_roles ON user_custom_sub_roles.role_name = custom_sub_roles.name AND user_custom_sub_roles.subdiscepto = custom_sub_roles.subdiscepto").
+		Where(sq.Eq{"custom_sub_roles.subdiscepto": subName, "user_id": userID})
+
+	queryAllSubPerms := queryPresetSubRoles.Suffix("UNION").SuffixExpr(queryCustomSubPerms)
+
+	bool_or := func(col string) string {
+		return fmt.Sprintf("bool_or(%s) AS %s", col, col)
+	}
+
+	sql, args, _ := psql.
+		Select(
+			bool_or("create_essay"),
+			bool_or("delete_essay"),
+			bool_or("ban_user"),
+			bool_or("change_ranking"),
+			bool_or("delete_subdiscepto"),
+			bool_or("add_mod"),
+		).
+		FromSelect(queryAllSubPerms, "user_perms_ids").
+		Join("sub_perms ON sub_perms.id = user_perms_ids.sub_perms_id").
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+
+	fmt.Println(sql, args)
+
+	err = pgxscan.Get(context.Background(), db.db, &perms, sql, args...)
+	return perms, err
 }

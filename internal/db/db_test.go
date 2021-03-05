@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"net/url"
 	"os"
 	"testing"
@@ -81,13 +82,13 @@ func init() {
 func TestUser(t *testing.T) {
 	user2 := mockUser()
 	user2.Email = "asdasdasdfjh"
-	testData := []struct{
+	testData := []struct {
 		user *models.User
-		err error
+		err  error
 	}{
-		{user: mockUser(),err: nil},
-		{user: mockUser(),err: ErrEmailAlreadyUsed},
-		{user: user2, err: ErrBadEmailSyntax},
+		{mockUser(), nil},
+		{mockUser(), ErrEmailAlreadyUsed},
+		{user2, ErrBadEmailSyntax},
 	}
 
 	passwd := mockPasswd
@@ -151,16 +152,6 @@ func TestAuth(t *testing.T) {
 	}
 	db.DeleteUser(user.ID)
 }
-func TestRoles(t *testing.T) {
-	user := mockUser()
-	_ = db.CreateUser(user, mockPasswd)
-	sub := sql.NullString{Valid: false}
-	roles, err := db.GetRoles(user.ID, sub)
-	if err != nil {
-		t.Fatalf("GetRoles(%v, %v) = %v, %v, want roles, nil", user.ID, sub, roles, err)
-	}
-	db.DeleteUser(user.ID)
-}
 func TestEssay(t *testing.T) {
 	user := mockUser()
 	db.CreateUser(user, mockPasswd)
@@ -184,6 +175,7 @@ func TestEssay(t *testing.T) {
 	// Create and fill second sub
 	db.CreateSubdiscepto(mockSubdiscepto2(), user.ID)
 	essay2 := mockEssay(user.ID)
+	essay2.PostedIn = mockSubName2
 	db.CreateEssay(essay2)
 
 	// list
@@ -215,17 +207,18 @@ func TestEssay(t *testing.T) {
 		if err != nil {
 			t.Fatalf("DeleteEssay(%v) = %v, want nil", es.ID, err)
 		}
-		db.DeleteSubdiscepto(es.PostedIn)
+		err = db.DeleteSubdiscepto(es.PostedIn)
 	}
 	db.DeleteUser(user.ID)
 }
+
 func TestVotes(t *testing.T) {
 	// Setup needed data
 	user := mockUser()
 	db.CreateUser(user, mockPasswd)
 	essay := mockEssay(user.ID)
 	db.CreateSubdiscepto(mockSubdiscepto(), user.ID)
-	_ = db.CreateEssay(essay)
+	err := db.CreateEssay(essay)
 
 	// Actual test
 	upvotes, downvotes, err := db.CountVotes(essay.ID)
@@ -267,19 +260,19 @@ func TestVotes(t *testing.T) {
 	}
 
 	db.DeleteEssay(essay.ID)
+	db.DeleteSubdiscepto(mockSubName)
 	db.DeleteUser(user.ID)
 }
 func TestSubdiscepto(t *testing.T) {
 	// Setup needed data
 	user := mockUser()
-	db.CreateUser(user, mockPasswd)
+	err := db.CreateUser(user, mockPasswd)
+	fmt.Printf("%v\n", err)
 
 	// Actual test
-	subdis := &models.Subdiscepto{
-		Name:        "subtest",
-		Description: "here we talk about tests",
-	}
-	err := db.CreateSubdiscepto(subdis, user.ID)
+	subdis := mockSubdiscepto()
+
+	err = db.CreateSubdiscepto(subdis, user.ID)
 	if err != nil {
 		t.Fatalf("CreateSubdiscepto(%v, %v) = %v, want nil", subdis, user.ID, err)
 	}
@@ -352,6 +345,19 @@ func TestSearch(t *testing.T) {
 
 	// Clean
 	db.DeleteEssay(essay.ID)
-	db.DeleteUser(user.ID)
 	db.DeleteSubdiscepto(mockSubName)
+	db.DeleteUser(user.ID)
+}
+func TestSubPerms(t *testing.T) {
+	user := mockUser()
+	db.CreateUser(user, "asdfasdf")
+	db.CreateSubdiscepto(mockSubdiscepto(), user.ID)
+
+	perms, err := db.GetSubPerms(user.ID, mockSubName)
+	if err != nil || perms != models.SubPermsOwner {
+		t.Fatalf("GetSubPerms(%v,%v) = %v,%v, want permissions, nil", user.ID, mockSubName, perms, err)
+	}
+
+	db.DeleteSubdiscepto(mockSubName)
+	db.DeleteUser(user.ID)
 }
