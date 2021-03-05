@@ -2,12 +2,12 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 	"net/url"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
@@ -80,6 +80,7 @@ func init() {
 	}
 }
 func TestUser(t *testing.T) {
+	require := require.New(t)
 	user2 := mockUser()
 	user2.Email = "asdasdasdfjh"
 	testData := []struct {
@@ -94,107 +95,84 @@ func TestUser(t *testing.T) {
 	passwd := mockPasswd
 	for _, td := range testData {
 		err := db.CreateUser(td.user, passwd)
-		if err != td.err {
-			t.Fatalf("CreateUser(%v, %v) = %v, want %v",
-				td.user, passwd, err, td.err)
-		}
+		require.Equal(err, td.err)
 
 	}
 
 	users, err := db.ListUsers()
-	if len(users) == 0 || err != nil {
-		t.Fatalf("ListUsers() = %v,%v, n>0, want nil",
-			len(users), err)
-	}
+	require.Nil(err)
+	require.Len(users, 1)
 
 	for _, td := range testData {
 		if td.err == nil {
-			err = db.DeleteUser(td.user.ID)
-			if err != nil {
-				t.Fatalf("DeleteUser(%v) = %v, want nil",
-					td.user.ID, err)
-			}
+			require.Nil(db.DeleteUser(td.user.ID))
 		}
 	}
 }
 func TestAuth(t *testing.T) {
+	require := require.New(t)
 	user := mockUser()
 	passwd := mockPasswd
-	_ = db.CreateUser(user, passwd)
+	err := db.CreateUser(user, passwd)
+	require.Nil(err)
 
 	// With a bad passwd
 	passwd = "93sdjfhkasdhfkjha"
 	token, err := db.Login(user.Email, passwd)
-	if err == nil {
-		t.Fatalf("Login(%v, %v) = %v, %v, want \"\", err", user, passwd, token, err)
-	}
+	require.NotNil(err)
 
 	// Normal login
 	passwd = mockPasswd
 	token, err = db.Login(user.Email, passwd)
-	if err != nil {
-		t.Fatalf("Login(%v, %v) = %v, %v, want token, nil", user, passwd, token, err)
-	}
+	require.Nil(err)
 
 	// Retrieve user by token
 	user2, err := db.GetUserByToken(token)
-	if err != nil {
-		t.Fatalf("GetUserByToken(%v) = %v, %v, want user, nil", token, user2, err)
-	}
-	if user.ID != user2.ID {
-		t.Fatalf("User IDs are different: %v, %v", user, user2)
-	}
+	require.Nil(err)
+	require.Equal(user.ID, user2.ID)
 
 	// Sign out
-	err = db.Signout(token)
-	if err != nil {
-		t.Fatalf("Signout(%v) = %v, want nil", token, err)
-	}
-	db.DeleteUser(user.ID)
+	require.Nil(db.Signout(token))
+
+	// Clean
+	require.Nil(db.DeleteUser(user.ID))
 }
 func TestEssay(t *testing.T) {
+	require := require.New(t)
 	user := mockUser()
-	db.CreateUser(user, mockPasswd)
-	err := db.CreateSubdiscepto(mockSubdiscepto(), user.ID)
-	if err != nil {
-		t.Fatalf("CreateSubdiscepto(%v, %v) = %v, want nil", mockSubdiscepto(), user.ID, err)
-	}
+	require.Nil(db.CreateUser(user, mockPasswd))
+	require.Nil(db.CreateSubdiscepto(mockSubdiscepto(), user.ID))
 
 	essay := mockEssay(user.ID)
-	err = db.CreateEssay(essay)
-	if err != nil {
-		t.Fatalf("CreateEssay(%v) = %v, want nil", essay, err)
-	}
+	err := db.CreateEssay(essay)
+	require.Nil(err)
 
 	essays, err := db.ListEssays(mockSubName)
-	if err != nil {
-		t.Fatalf("ListEssays(%v) = %v, %v want essays, nil", mockSubName, essays, err)
-	}
+	require.NotNil(essays)
+	require.Nil(err)
 
 	// Test list recent essays from joined subs
 	// Create and fill second sub
-	db.CreateSubdiscepto(mockSubdiscepto2(), user.ID)
+	require.Nil(db.CreateSubdiscepto(mockSubdiscepto2(), user.ID))
 	essay2 := mockEssay(user.ID)
 	essay2.PostedIn = mockSubName2
-	db.CreateEssay(essay2)
+	require.Nil(db.CreateEssay(essay2))
 
 	// list
 	subs := []string{mockSubName, mockSubName2}
 	essays, err = db.ListRecentEssaysIn(subs)
-	if err != nil || len(essays) < 2 {
-		t.Fatalf("ListRecentEssaysIn(%v) = %v,%v want essays (len > 2), nil", subs, essays, err)
-	}
+	require.Nil(err)
+	require.Len(essays, 2)
 
 	// Test list essays in favor
 	essay3 := mockEssay(user.ID)
 	essay3.InReplyTo = sql.NullInt32{Int32: int32(essay2.ID), Valid: true}
 	essay3.ReplyType = models.ReplyTypeSupports
-	db.CreateEssay(essay3)
+	require.Nil(db.CreateEssay(essay3))
 	// list
 	essays, err = db.ListEssayReplies(essay2.ID, essay3.ReplyType)
-	if err != nil || len(essays) != 1 {
-		t.Fatalf("ListEssayReplies(%v,%v) = %v,%v want essays, nil", essay2.ID, essay3.ReplyType, essays, err)
-	}
+	require.Nil(err)
+	require.Len(essays, 1)
 
 	// Clean
 	toDelete := []*models.Essay{
@@ -203,29 +181,28 @@ func TestEssay(t *testing.T) {
 		essay,
 	}
 	for _, es := range toDelete {
-		err = db.DeleteEssay(es.ID)
-		if err != nil {
-			t.Fatalf("DeleteEssay(%v) = %v, want nil", es.ID, err)
-		}
-		err = db.DeleteSubdiscepto(es.PostedIn)
+		require.Nil(db.DeleteEssay(es.ID))
+		require.Nil(db.DeleteSubdiscepto(es.PostedIn))
 	}
-	db.DeleteUser(user.ID)
+	require.Nil(db.DeleteUser(user.ID))
 }
 
 func TestVotes(t *testing.T) {
+	require := require.New(t)
+
 	// Setup needed data
 	user := mockUser()
-	db.CreateUser(user, mockPasswd)
+	require.Nil(db.CreateUser(user, mockPasswd))
+
 	essay := mockEssay(user.ID)
-	db.CreateSubdiscepto(mockSubdiscepto(), user.ID)
-	err := db.CreateEssay(essay)
+	require.Nil(db.CreateSubdiscepto(mockSubdiscepto(), user.ID))
+	require.Nil(db.CreateEssay(essay))
 
 	// Actual test
 	upvotes, downvotes, err := db.CountVotes(essay.ID)
-	if err != nil || upvotes != 0 || downvotes != 0 {
-		t.Fatalf("CountVotes(%v) = %v,%v,%v, want 0, 0, nil",
-			essay.ID, upvotes, downvotes, err)
-	}
+	require.Nil(err)
+	require.Equal(upvotes, 0)
+	require.Equal(downvotes, 0)
 
 	// Add upvote
 	vote := &models.Vote{
@@ -233,91 +210,83 @@ func TestVotes(t *testing.T) {
 		EssayID:  essay.ID,
 		VoteType: models.VoteTypeUpvote,
 	}
-	err = db.CreateVote(vote)
-	if err != nil {
-		t.Fatalf("CreateVote(%v) = %v, want nil", vote, err)
-	}
+	require.Nil(db.CreateVote(vote))
 
 	// Check added upvote
 	upvotes, downvotes, err = db.CountVotes(essay.ID)
-	if err != nil || upvotes == 0 || downvotes != 0 {
-		t.Fatalf("CountVotes(%v) = %v,%v,%v, want upvotes, 0, nil",
-			essay.ID, upvotes, downvotes, err)
-	}
+	require.Nil(err)
+	require.Equal(upvotes, 1)
+	require.Equal(downvotes, 0)
 
 	// Delete (needed to change vote type for same user)
-	err = db.DeleteVote(vote.EssayID, vote.UserID)
-	if err != nil {
-		t.Fatalf("DeleteVote(%v, %v) = %v, want nil",
-			vote.EssayID, vote.UserID, err)
+	require.Nil(db.DeleteVote(vote.EssayID, vote.UserID))
+
+	// Add downvote
+	vote = &models.Vote{
+		UserID:   user.ID,
+		EssayID:  essay.ID,
+		VoteType: models.VoteTypeDownvote,
 	}
+	require.Nil(db.CreateVote(vote))
+	upvotes, downvotes, err = db.CountVotes(essay.ID)
+	require.Nil(err)
+	require.Equal(upvotes, 0)
+	require.Equal(downvotes, 1)
 
 	// Clean
-	err = db.DeleteVote(vote.EssayID, vote.UserID)
-	if err != nil {
-		t.Fatalf("DeleteVote(%v, %v) = %v, want nil",
-			vote.EssayID, vote.UserID, err)
-	}
-
-	db.DeleteEssay(essay.ID)
-	db.DeleteSubdiscepto(mockSubName)
-	db.DeleteUser(user.ID)
+	require.Nil(db.DeleteVote(vote.EssayID, vote.UserID))
+	require.Nil(db.DeleteEssay(essay.ID))
+	require.Nil(db.DeleteSubdiscepto(mockSubName))
+	require.Nil(db.DeleteUser(user.ID))
 }
 func TestSubdiscepto(t *testing.T) {
+	require := require.New(t)
 	// Setup needed data
 	user := mockUser()
-	err := db.CreateUser(user, mockPasswd)
-	fmt.Printf("%v\n", err)
+	require.Nil(db.CreateUser(user, mockPasswd))
 
 	// Actual test
 	subdis := mockSubdiscepto()
 
-	err = db.CreateSubdiscepto(subdis, user.ID)
-	if err != nil {
-		t.Fatalf("CreateSubdiscepto(%v, %v) = %v, want nil", subdis, user.ID, err)
-	}
+	err := db.CreateSubdiscepto(subdis, user.ID)
+	require.Nil(err)
 
 	subs, err := db.ListSubdisceptos()
-	if err != nil || len(subs) == 0 {
-		t.Fatalf("ListSubdisceptos() = %v, %v, want subs (len >= 1), nil", subdis, err)
-	}
+	require.Nil(err)
+	require.Len(subs, 1)
 
 	// Join a sub
 	user2 := mockUser()
 	user2.Email += "as"
 
-	db.CreateUser(user2, mockPasswd)
+	require.Nil(db.CreateUser(user2, mockPasswd))
 
 	err = db.JoinSubdiscepto(mockSubName, user2.ID)
-	if err != nil {
-		t.Fatalf("JoinSubdiscepto(%v,%v) = %v, want nil", mockSubName, user2.ID, err)
-	}
+	require.Nil(err)
 
 	mySubs, err := db.ListMySubdisceptos(user2.ID)
-	if mySubs[0] != mockSubName || err != nil {
-		t.Fatalf("ListMySubdisceptos(%v) = %v,%v want mySubs, nil", user2.ID, mySubs, err)
-	}
+	require.Nil(err)
+	require.Len(mySubs, 1)
+	require.Equal(mySubs[0], mockSubName)
 
 	err = db.LeaveSubdiscepto(mockSubName, user2.ID)
-	if err != nil {
-		t.Fatalf("LeaveSubdiscepto(%v,%v) = %v, want nil", mockSubName, user2.ID, err)
-	}
+	require.Nil(err)
 
 	err = db.DeleteSubdiscepto(subdis.Name)
-	if err != nil {
-		t.Fatalf("DeleteSubdiscepto(%v) = %v, want nil", subdis.Name, err)
-	}
+	require.Nil(err)
 
 	// Clean
-	db.DeleteUser(user.ID)
-	db.DeleteUser(user2.ID)
+	require.Nil(db.DeleteUser(user.ID))
+	require.Nil(db.DeleteUser(user2.ID))
 }
 func TestSearch(t *testing.T) {
+	require := require.New(t)
+
 	user := mockUser()
-	db.CreateUser(user, mockPasswd)
-	db.CreateSubdiscepto(mockSubdiscepto(), user.ID)
+	require.Nil(db.CreateUser(user, mockPasswd))
+	require.Nil(db.CreateSubdiscepto(mockSubdiscepto(), user.ID))
 	essay := mockEssay(user.ID)
-	db.CreateEssay(essay)
+	require.Nil(db.CreateEssay(essay))
 
 	testValues := []struct {
 		input []string
@@ -332,32 +301,25 @@ func TestSearch(t *testing.T) {
 
 	for _, v := range testValues {
 		essays, err := db.SearchByTags(v.input)
-		if err != nil || len(essays) != v.want {
-			t.Fatalf(
-				"SearchByTags(%v) = %v,%v, want len(essays) = %v, nil",
-				v.input,
-				essays,
-				err,
-				v.want,
-			)
-		}
+		require.Nil(err)
+		require.Len(essays, v.want)
 	}
 
 	// Clean
-	db.DeleteEssay(essay.ID)
-	db.DeleteSubdiscepto(mockSubName)
-	db.DeleteUser(user.ID)
+	require.Nil(db.DeleteEssay(essay.ID))
+	require.Nil(db.DeleteSubdiscepto(mockSubName))
+	require.Nil(db.DeleteUser(user.ID))
 }
 func TestSubPerms(t *testing.T) {
+	require := require.New(t)
 	user := mockUser()
-	db.CreateUser(user, "asdfasdf")
-	db.CreateSubdiscepto(mockSubdiscepto(), user.ID)
+	require.Nil(db.CreateUser(user, "asdfasdf"))
+	require.Nil(db.CreateSubdiscepto(mockSubdiscepto(), user.ID))
 
 	perms, err := db.GetSubPerms(user.ID, mockSubName)
-	if err != nil || perms != models.SubPermsOwner {
-		t.Fatalf("GetSubPerms(%v,%v) = %v,%v, want permissions, nil", user.ID, mockSubName, perms, err)
-	}
+	require.Nil(err)
+	require.Equal(perms, models.SubPermsOwner)
 
-	db.DeleteSubdiscepto(mockSubName)
-	db.DeleteUser(user.ID)
+	require.Nil(db.DeleteSubdiscepto(mockSubName))
+	require.Nil(db.DeleteUser(user.ID))
 }
