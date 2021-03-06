@@ -26,5 +26,5 @@ make release
 DISCEPTO_DEBUG: when `true`, reload html templates every request
 DISCEPTO_DATABASE_URL: you know
 DISCEPTO_PORT: you know. Default is 23495
-DISCEPTO_SESSION_KEY: key used to encrypt cookies
+DISCEPTO_SESSION_KEY: key used to sign cookies
 ```
