@@ -92,6 +92,22 @@ func Drop(dbURL string) error {
 	return nil
 }
 
+func (db *DB) ExecTx(ctx context.Context, txFunc func(context.Context, pgx.Tx) error) error {
+	tx, err := db.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = txFunc(ctx, tx)
+	if err != nil {
+		tx.Rollback(ctx)
+		return err
+	}
+
+	err = tx.Commit(ctx)
+	return err
+}
+
 func (db *DB) ListUsers() ([]models.User, error) {
 	var users []models.User
 	err := pgxscan.Select(context.Background(), db.db, &users, "SELECT id, name, email FROM users")
@@ -227,12 +243,6 @@ func (db *DB) CreateEssay(essay *models.Essay) error {
 		return ErrBadContentLen
 	}
 
-	tx, err := db.db.Begin(context.Background())
-	defer tx.Rollback(context.Background())
-	if err != nil {
-		return err
-	}
-
 	// Insert essay
 	sql, args, _ := psql.
 		Insert("essays").
@@ -249,24 +259,17 @@ func (db *DB) CreateEssay(essay *models.Essay) error {
 		).
 		ToSql()
 
-	row := tx.QueryRow(context.Background(), sql, args...)
-	err = row.Scan(&essay.ID)
-	if err != nil {
-		return fmt.Errorf("Error inserting essay in db: %w", err)
-	}
-
-	err = db.insertTags(tx, essay)
-	if err != nil {
+	return db.ExecTx(context.Background(), func(ctx context.Context, tx pgx.Tx) error {
+		row := tx.QueryRow(ctx, sql, args...)
+		err := row.Scan(&essay.ID)
+		if err != nil {
+			return err
+		}
+		err = db.insertTags(ctx, tx, essay)
 		return err
-	}
-
-	err = tx.Commit(context.Background())
-	if err != nil {
-		return err
-	}
-	return nil
+	})
 }
-func (db *DB) insertTags(tx pgx.Tx, essay *models.Essay) error {
+func (db *DB) insertTags(ctx context.Context, tx pgx.Tx, essay *models.Essay) error {
 	// Insert essay tags
 	if len(essay.Tags) > LimitMaxTags {
 		return ErrTooManyTags
@@ -289,7 +292,7 @@ func (db *DB) insertTags(tx pgx.Tx, essay *models.Essay) error {
 			Values(essay.ID, tag).
 			ToSql()
 
-		_, err := tx.Exec(context.Background(),
+		_, err := tx.Exec(ctx,
 			sql, args...)
 		if err != nil {
 			return fmt.Errorf("Error inserting essay_tag in db: %w", err)
@@ -332,52 +335,74 @@ func (db *DB) CreateSubdiscepto(subd *models.Subdiscepto, firstUserID int) error
 	if !r.Match([]byte(subd.Name)) {
 		return ErrInvalidFormat
 	}
-	tx, err := db.db.Begin(context.Background())
-	if err != nil {
+
+	return db.ExecTx(context.Background(), func(ctx context.Context, tx pgx.Tx) error {
+		// Insert subdiscepto
+		sql, args, _ := psql.
+			Insert("subdisceptos").
+			Columns("name", "description", "min_length", "questions_required", "nsfw").
+			Values(subd.Name, subd.Description, subd.MinLength, subd.QuestionsRequired, subd.Nsfw).
+			ToSql()
+		_, err := tx.Exec(ctx, sql, args...)
+		if err != nil {
+			return err
+		}
+
+		// Create local "common" role (added to every user)
+		// Create permissions used by custom "common" role
+		sql, args, _ = psql.
+			Insert("sub_perms").
+			Columns(
+				"create_essay",
+				"delete_essay",
+				"ban_user",
+				"change_ranking",
+				"delete_subdiscepto",
+				"add_mod",
+			).
+			Values(true, false, false, false, false, false).
+			Suffix("RETURNING id").
+			ToSql()
+
+		var subPermsID int
+		row := tx.QueryRow(ctx, sql, args...)
+		err = row.Scan(&subPermsID)
+		if err != nil {
+			return err
+		}
+
+		// Add "common" role to first user
+		sql, args, _ = psql.
+			Insert("custom_sub_roles").
+			Columns("subdiscepto", "name", "sub_perms_id").
+			Values(subd.Name, "common", subPermsID).
+			ToSql()
+		_, err = tx.Exec(ctx, sql, args...)
+		if err != nil {
+			return err
+		}
+
+		// Insert first user of subdiscepto
+		sql, args, _ = psql.
+			Insert("subdiscepto_users").
+			Columns("subdiscepto", "user_id").
+			Values(subd.Name, firstUserID).
+			ToSql()
+		_, err = tx.Exec(ctx, sql, args...)
+		if err != nil {
+			return err
+		}
+
+		// Assign admin role to first user
+		sql, args, _ = psql.
+			Insert("user_preset_sub_roles").
+			Columns("subdiscepto", "user_id", "role_name").
+			Values(subd.Name, firstUserID, "admin").
+			ToSql()
+
+		_, err = tx.Exec(ctx, sql, args...)
 		return err
-	}
-
-	// Insert subdiscepto
-	sql, args, _ := psql.
-		Insert("subdisceptos").
-		Columns("name", "description", "min_length", "questions_required", "nsfw").
-		Values(subd.Name, subd.Description, subd.MinLength, subd.QuestionsRequired, subd.Nsfw).
-		ToSql()
-
-	_, err = tx.Exec(context.Background(), sql, args...)
-	if err != nil {
-		return err
-	}
-
-	// Insert first user of subdiscepto
-	sql, args, _ = psql.
-		Insert("subdiscepto_users").
-		Columns("subdiscepto", "user_id").
-		Values(subd.Name, firstUserID).
-		ToSql()
-
-	_, err = tx.Exec(context.Background(), sql, args...)
-	if err != nil {
-		return err
-	}
-
-	// Insert first user of subdiscepto
-	sql, args, _ = psql.
-		Insert("user_preset_sub_roles").
-		Columns("subdiscepto", "user_id", "role_name").
-		Values(subd.Name, firstUserID, "admin").
-		ToSql()
-
-	_, err = tx.Exec(context.Background(), sql, args...)
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit(context.Background())
-	if err != nil {
-		return err
-	}
-	return nil
+	})
 }
 func (db *DB) GetSubdiscepto(name string) (*models.Subdiscepto, error) {
 	var sub models.Subdiscepto
@@ -396,17 +421,28 @@ func (db *DB) ListSubdisceptos() ([]*models.Subdiscepto, error) {
 	return subs, nil
 }
 func (db *DB) JoinSubdiscepto(sub string, userID int) error {
-	sql, args, _ := psql.
-		Insert("subdiscepto_users").
-		Columns("subdiscepto", "user_id").
-		Values(sub, userID).
-		ToSql()
+	return db.ExecTx(context.Background(), func(ctx context.Context, tx pgx.Tx) error {
+		sql, args, _ := psql.
+			Insert("subdiscepto_users").
+			Columns("subdiscepto", "user_id").
+			Values(sub, userID).
+			ToSql()
 
-	_, err := db.db.Exec(context.Background(), sql, args...)
-	if err != nil {
+		_, err := tx.Exec(ctx, sql, args...)
+		if err != nil {
+			return err
+		}
+
+		// Add "common" role
+		sql, args, _ = psql.
+			Insert("user_custom_sub_roles").
+			Columns("subdiscepto", "user_id", "role_name").
+			Values(sub, userID, "common").
+			ToSql()
+
+		_, err = tx.Exec(ctx, sql, args...)
 		return err
-	}
-	return nil
+	})
 }
 func (db *DB) LeaveSubdiscepto(sub string, userID int) error {
 	sql, args, _ := psql.
@@ -560,40 +596,4 @@ func (db *DB) SearchByTags(tags []string) (essays []*models.Essay, err error) {
 		return nil, err
 	}
 	return essays, nil
-}
-func (db *DB) GetSubPerms(userID int, subName string) (perms models.SubPerms, err error) {
-	queryPresetSubRoles := sq.Select("sub_perms_id").
-		From("user_preset_sub_roles").
-		Join("preset_sub_roles ON user_preset_sub_roles.role_name = preset_sub_roles.name").
-		Where(sq.Eq{"user_preset_sub_roles.subdiscepto": subName, "user_id": userID})
-
-	queryCustomSubPerms := sq.Select("sub_perms_id").
-		From("user_custom_sub_roles").
-		Join("custom_sub_roles ON user_custom_sub_roles.role_name = custom_sub_roles.name AND user_custom_sub_roles.subdiscepto = custom_sub_roles.subdiscepto").
-		Where(sq.Eq{"custom_sub_roles.subdiscepto": subName, "user_id": userID})
-
-	queryAllSubPerms := queryPresetSubRoles.Suffix("UNION").SuffixExpr(queryCustomSubPerms)
-
-	bool_or := func(col string) string {
-		return fmt.Sprintf("bool_or(%s) AS %s", col, col)
-	}
-
-	sql, args, _ := psql.
-		Select(
-			bool_or("create_essay"),
-			bool_or("delete_essay"),
-			bool_or("ban_user"),
-			bool_or("change_ranking"),
-			bool_or("delete_subdiscepto"),
-			bool_or("add_mod"),
-		).
-		FromSelect(queryAllSubPerms, "user_perms_ids").
-		Join("sub_perms ON sub_perms.id = user_perms_ids.sub_perms_id").
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
-
-	fmt.Println(sql, args)
-
-	err = pgxscan.Get(context.Background(), db.db, &perms, sql, args...)
-	return perms, err
 }

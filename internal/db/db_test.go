@@ -312,14 +312,29 @@ func TestSearch(t *testing.T) {
 }
 func TestSubPerms(t *testing.T) {
 	require := require.New(t)
-	user := mockUser()
-	require.Nil(db.CreateUser(user, "asdfasdf"))
-	require.Nil(db.CreateSubdiscepto(mockSubdiscepto(), user.ID))
+	// Create subdiscepto
+	user1 := mockUser()
+	require.Nil(db.CreateUser(user1, "asdfasdf"))
+	require.Nil(db.CreateSubdiscepto(mockSubdiscepto(), user1.ID))
 
-	perms, err := db.GetSubPerms(user.ID, mockSubName)
+	// Add a second random user to the subdiscepto
+	user2 := mockUser()
+	user2.Email = "dsf@gmail.com"
+	require.Nil(db.CreateUser(user2, "kjhskdhf"))
+	require.Nil(db.JoinSubdiscepto(mockSubName, user2.ID))
+
+	// Check subdiscepto owner permissions
+	perms, err := db.GetSubPerms(user1.ID, mockSubName)
 	require.Nil(err)
 	require.Equal(perms, models.SubPermsOwner)
 
+	// Check common user permissions
+	perms, err = db.GetSubPerms(user2.ID, mockSubName)
+	require.Nil(err)
+	require.Equal(perms, models.SubPerms {CreateEssay: true})
+
+	// Clean
 	require.Nil(db.DeleteSubdiscepto(mockSubName))
-	require.Nil(db.DeleteUser(user.ID))
+	require.Nil(db.DeleteUser(user1.ID))
+	require.Nil(db.DeleteUser(user2.ID))
 }
