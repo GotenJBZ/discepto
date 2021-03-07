@@ -26,7 +26,7 @@ type Routes struct {
 
 func NewRouter(config *models.EnvConfig, db *db.DB, log zerolog.Logger, tmpls *render.Templates) chi.Router {
 	cookiestore := sessions.NewCookieStore(config.SessionKey)
-	cookiestore.Options = &sessions.Options {
+	cookiestore.Options = &sessions.Options{
 		HttpOnly: true,
 	}
 	routes := &Routes{envConfig: config, db: db, tmpls: tmpls, cookiestore: cookiestore}

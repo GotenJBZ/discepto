@@ -331,7 +331,7 @@ func TestSubPerms(t *testing.T) {
 	// Check common user permissions
 	perms, err = db.GetSubPerms(user2.ID, mockSubName)
 	require.Nil(err)
-	require.Equal(perms, models.SubPerms {CreateEssay: true})
+	require.Equal(perms, models.SubPerms{CreateEssay: true})
 
 	// Clean
 	require.Nil(db.DeleteSubdiscepto(mockSubName))

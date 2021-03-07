@@ -5,7 +5,7 @@ package db
 // Discepto uses a complex Role Based Access Control (RBAC).
 // Each user can have one or multiple roles.
 // Each role gives a set of permissions.
-// When retrieving roles, permissions get summed (boolean OR): the permissions set to true always win. 
+// When retrieving roles, permissions get summed (boolean OR): the permissions set to true always win.
 // Be sure to see the first database migration in the folder /migrations to see how this is implemented
 // in the database
 
