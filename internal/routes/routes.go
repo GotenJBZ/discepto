@@ -180,6 +180,20 @@ func (err *ErrBadRequest) Respond(w http.ResponseWriter, r *http.Request) Loggab
 	return loggableErr
 }
 
+type ErrInsuffPerms struct {
+	Action string
+}
+
+func (err *ErrInsuffPerms) Respond(w http.ResponseWriter, r *http.Request) LoggableErr {
+	loggableErr := LoggableErr{
+		Cause:   errors.New(fmt.Sprintf("Insufficient permissions for action %v)", err.Action)),
+		Message: "Insufficient permissions to execute this action",
+		Status:  http.StatusBadRequest,
+	}
+	http.Error(w, loggableErr.Message, loggableErr.Status)
+	return loggableErr
+}
+
 // Wrapper to handle errors returned by routes
 func (routes *Routes) AppHandler(handler func(w http.ResponseWriter, r *http.Request) AppError) http.HandlerFunc {
 	res := func(w http.ResponseWriter, r *http.Request) {

@@ -37,6 +37,16 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 		return &ErrMustLogin{}
 	}
 
+	postedIn := r.FormValue("postedIn")
+	perms, err := routes.db.GetSubPerms(user.ID, postedIn)
+	if err != nil {
+		return &ErrInternal{}
+	}
+
+	if !perms.CreateEssay {
+		return &ErrInsuffPerms{Action: "CreateEssay"}
+	}
+
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
 
@@ -61,7 +71,7 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 		Content:        r.FormValue("content"),
 		Tags:           tags,
 		AttributedToID: user.ID,
-		PostedIn:       r.FormValue("postedIn"),
+		PostedIn:       postedIn,
 		InReplyTo:      inReplyTo,
 		ReplyType:      replyType,
 	}
