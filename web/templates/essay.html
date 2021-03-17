@@ -4,7 +4,7 @@
 <a href="/newessay?inReplyTo={{ .ID }}">Reply to this essay</a>
 <p>Content: {{.Content}}</p>
 <p>Upvotes: {{ .Upvotes }}; Downvotes: {{ .Downvotes }}</p>
-<form action="/essays/{{ .ID }}/vote" method="post">
+<form action="/s/{{.PostedIn}}/{{ .ID }}/vote" method="post">
 	<input type="radio" name="vote" id="upvote" value="upvote">
 	<label for="upvote">Upvote</label>
 	<br>

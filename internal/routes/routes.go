@@ -19,12 +19,12 @@ import (
 
 type Routes struct {
 	envConfig   *models.EnvConfig
-	db          *db.DB
+	db          *db.SharedDB
 	tmpls       *render.Templates
 	cookiestore *sessions.CookieStore
 }
 
-func NewRouter(config *models.EnvConfig, db *db.DB, log zerolog.Logger, tmpls *render.Templates) chi.Router {
+func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tmpls *render.Templates) chi.Router {
 	cookiestore := sessions.NewCookieStore(config.SessionKey)
 	cookiestore.Options = &sessions.Options{
 		HttpOnly: true,
@@ -77,8 +77,8 @@ func NewRouter(config *models.EnvConfig, db *db.DB, log zerolog.Logger, tmpls *r
 	r.Get("/login", routes.GetLogin)
 	r.Post("/login", routes.AppHandler(routes.PostLogin))
 
-	r.Route("/essays", routes.EssaysRouter)
 	r.Get("/newessay", routes.AppHandler(routes.GetNewEssay))
+	r.Post("/newessay", routes.AppHandler(routes.PostEssay))
 
 	r.Route("/s", routes.SubdisceptoRouter)
 	r.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
@@ -96,7 +96,7 @@ func (routes *Routes) UserCtx(next http.Handler) http.Handler {
 			return
 		}
 
-		user, err := routes.db.GetUserByToken(fmt.Sprintf("%v", token))
+		user, err := routes.db.GetUserH(fmt.Sprintf("%v", token))
 		if err != nil {
 			session.Values["token"] = ""
 			session.Save(r, w)
@@ -105,7 +105,7 @@ func (routes *Routes) UserCtx(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "user", user)
+		ctx := context.WithValue(r.Context(), "user", &user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -146,7 +146,7 @@ type ErrNotFound struct {
 
 func (err *ErrNotFound) Respond(w http.ResponseWriter, r *http.Request) LoggableErr {
 	loggableErr := LoggableErr{
-		Cause:   errors.New("Not found"),
+		Cause:   err.Cause,
 		Status:  http.StatusNotFound,
 		Message: fmt.Sprintf("Retrieving %s", err.Thing),
 	}
@@ -219,11 +219,20 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 		MySubdisceptos []string
 		RecentEssays   []*models.Essay
 	}
-	user, ok := r.Context().Value("user").(*models.User)
+	user, ok := r.Context().Value("user").(*db.UserH)
 
-	data := homeData{User: user, LoggedIn: ok}
+	userData := &models.User{}
+	if ok {
+		var err error
+		userData, err = user.Read()
+		if err != nil {
+			return &ErrInternal{Cause: err}
+		}
+	}
+	fmt.Println(user)
+	data := homeData{User: userData, LoggedIn: ok}
 	if data.LoggedIn {
-		mySubs, err := routes.db.ListMySubdisceptos(user.ID)
+		mySubs, err := routes.db.ListMySubdisceptos(user.ID())
 		if err != nil {
 			return &ErrInternal{Message: "Can't list joined communities", Cause: err}
 		}
@@ -240,7 +249,10 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	return nil
 }
 func (routes *Routes) GetUsers(w http.ResponseWriter, r *http.Request) AppError {
-	users, err := routes.db.ListUsers()
+	user, _ := r.Context().Value("user").(*db.UserH)
+	disceptoH := routes.db.GetDisceptoH(user)
+
+	users, err := disceptoH.ListUsers()
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
@@ -294,7 +306,7 @@ func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) AppError
 }
 func (routes *Routes) PostSignup(w http.ResponseWriter, r *http.Request) AppError {
 	email := r.FormValue("email")
-	err := routes.db.CreateUser(&models.User{
+	_, err := routes.db.CreateUser(&models.User{
 		Name:  r.FormValue("name"),
 		Email: email,
 	}, r.FormValue("password"))

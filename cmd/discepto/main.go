@@ -56,7 +56,7 @@ type DisceptoServer struct {
 	models.EnvConfig
 	logger    zerolog.Logger
 	router    chi.Router
-	database  db.DB
+	database  db.SharedDB
 	templates render.Templates
 }
 

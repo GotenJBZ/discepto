@@ -2,8 +2,9 @@ package models
 
 type GlobalPerms struct {
 	ID                int
-	CanLogin          bool
+	Login             bool
 	CreateSubdiscepto bool
 	BanUserGlobally   bool
+	DeleteUser        bool
 	AddAdmin          bool
 }

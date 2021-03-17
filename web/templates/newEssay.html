@@ -1,7 +1,7 @@
 {{ define "newEssay" }}
 {{ template "head" . }}
 <p>Create a new essay</p>
-<form action="/essays" method="post">
+<form action="/newessay" method="post">
     <label for="thesis">Thesis</label><br>
     <input type="area" name="thesis" id="thesis" value="{{.Thesis}}"><br>
 

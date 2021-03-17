@@ -16,10 +16,10 @@ CREATE TABLE subdisceptos (
 CREATE TABLE global_perms (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	login boolean NOT NULL,
-	essays_per_hour int NOT NULL,
 	create_subdiscepto boolean NOT NULL,
 	hide_subdiscepto boolean NOT NULL,
 	ban_user_globally boolean NOT NULL,
+	delete_user boolean NOT NULL,
 	add_admin boolean NOT NULL
 );
 
@@ -59,9 +59,9 @@ CREATE TABLE preset_sub_roles (
 
 -- Create initial roles. Manually set an easy to remember id.
 INSERT INTO global_perms
-(id,    login,  essays_per_hour,  create_subdiscepto,  hide_subdiscepto,  ban_user_globally,  add_admin)
-OVERRIDING SYSTEM VALUE VALUES
-(-123,  true,   10000000,         true,                true,              true,               true);
+(id,    login,  create_subdiscepto,  hide_subdiscepto,  ban_user_globally,  delete_user, add_admin)
+OVERRIDING SYSTEM VALUE VALUES                                                                
+(-123,  true,   true,                true,              true,               true,        true);
 
 INSERT INTO sub_perms
 (id,    create_essay,  delete_essay,  ban_user,  change_ranking,  delete_subdiscepto,  add_mod)

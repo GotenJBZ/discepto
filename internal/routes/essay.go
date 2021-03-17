@@ -13,7 +13,7 @@ import (
 )
 
 func (routes *Routes) EssaysRouter(r chi.Router) {
-	r.Post("/", routes.AppHandler(routes.PostEssay))
+	r.Get("/{id}", routes.AppHandler(routes.GetEssay))
 	r.Post("/{essayID}/vote", routes.AppHandler(routes.PostVote))
 	r.Put("/", routes.UpdateEssay)
 	r.Delete("/{id}", routes.DeleteEssay)
@@ -31,21 +31,45 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppErr
 	routes.tmpls.RenderHTML(w, "newEssay", essay)
 	return nil
 }
+func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		return &ErrNotFound{Cause: err, Thing: "essay"}
+	}
+
+	subdiscepto := chi.URLParam(r, "subdiscepto")
+	user, _ := r.Context().Value("user").(*db.UserH)
+	subH, err := routes.db.GetSubdisceptoH(subdiscepto, user)
+	if err != nil {
+		return &ErrNotFound{Cause: err, Thing: "essay"}
+	}
+
+	essayH, err := subH.GetEssayH(id)
+	if err != nil {
+		return &ErrNotFound{Cause: err, Thing: "essay"}
+	}
+
+	essay, err := essayH.GetEssay()
+	if err != nil {
+		return &ErrNotFound{Cause: err, Thing: "essay"}
+	}
+
+	essay.Upvotes, essay.Downvotes, err = essayH.CountVotes()
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
+	routes.tmpls.RenderHTML(w, "essay", essay)
+	return nil
+}
 func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError {
-	user, ok := r.Context().Value("user").(*models.User)
+	user, ok := r.Context().Value("user").(*db.UserH)
 	if !ok {
 		return &ErrMustLogin{}
 	}
 
 	postedIn := r.FormValue("postedIn")
-	perms, err := routes.db.GetSubPerms(user.ID, postedIn)
-	if err != nil {
-		return &ErrInternal{}
-	}
-
-	if !perms.CreateEssay {
-		return &ErrInsuffPerms{Action: "CreateEssay"}
-	}
+	subH, err := routes.db.GetSubdisceptoH(postedIn, user)
 
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
@@ -70,14 +94,17 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 		Thesis:         r.FormValue("thesis"),
 		Content:        r.FormValue("content"),
 		Tags:           tags,
-		AttributedToID: user.ID,
+		AttributedToID: user.ID(),
 		PostedIn:       postedIn,
 		InReplyTo:      inReplyTo,
 		ReplyType:      replyType,
 	}
-	err = routes.db.CreateEssay(&essay)
+	_, err = subH.CreateEssay(&essay)
 	if err == db.ErrBadContentLen {
-		return &ErrBadRequest{Cause: err, Motivation: "You must respect required content length"}
+		return &ErrBadRequest{
+			Cause:      err,
+			Motivation: "You must respect required content length",
+		}
 	}
 	if err != nil {
 		return &ErrInternal{Cause: err}
@@ -92,7 +119,7 @@ func (routes *Routes) UpdateEssay(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Nope")
 }
 func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError {
-	user, ok := r.Context().Value("user").(*models.User)
+	user, ok := r.Context().Value("user").(*db.UserH)
 	if !ok {
 		return &ErrMustLogin{}
 	}
@@ -108,9 +135,12 @@ func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError 
 		vote = models.VoteTypeDownvote
 	}
 
-	routes.db.DeleteVote(essayID, user.ID)
-	err = routes.db.CreateVote(&models.Vote{
-		UserID:   user.ID,
+	subH, err := routes.db.GetSubdisceptoH(chi.URLParam(r, "subdiscepto"), user)
+	essayH, err := subH.GetEssayH(essayID)
+
+	essayH.DeleteVote()
+	err = essayH.CreateVote(&models.Vote{
+		UserID:   user.ID(),
 		EssayID:  essayID,
 		VoteType: vote,
 	})
@@ -118,11 +148,7 @@ func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrInternal{Cause: err}
 	}
 
-	essay, err := routes.db.GetEssay(essayID)
-	if err != nil {
-		return &ErrInternal{Cause: err}
-	}
-
-	http.Redirect(w, r, fmt.Sprintf("/s/%s/%d", essay.PostedIn, essayID), http.StatusSeeOther)
+	subdiscepto := chi.URLParam(r, "subdiscepto")
+	http.Redirect(w, r, fmt.Sprintf("/s/%s/%d", subdiscepto, essayID), http.StatusSeeOther)
 	return nil
 }
