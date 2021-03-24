@@ -13,57 +13,59 @@ import (
 )
 
 type SubdisceptoH struct {
-	subdiscepto string
-	userH       *UserH
-	subPerms    models.SubPerms
 	sharedDB    *pgxpool.Pool
+	subdiscepto string
+	subPerms    models.SubPerms
 }
 
-func (sdb *SharedDB) GetSubdisceptoH(subdiscepto string, userHandle *UserH) (SubdisceptoH, error) {
-	var userHCopy UserH
-	if userHandle != nil {
-		userHCopy = *userHandle
+func (sdb *SharedDB) GetSubdisceptoH(subdiscepto string, uH *UserH) (*SubdisceptoH, error) {
+	var subPerms *models.SubPerms
+	var err error
+	if uH != nil {
+		// First, try getting user's permissions
+		subPerms, _ = getSubPerms(sdb.db, subdiscepto, *uH)
 	}
-	h := SubdisceptoH{subdiscepto: subdiscepto, sharedDB: sdb.db, userH: &userHCopy}
-	if !h.canRead() {
-		return h, ErrPermDenied
+	if subPerms == nil {
+		// Check if the subdiscepto is publicly readable
+		if read := isPublic(sdb.db, subdiscepto, uH.id); read {
+			subPerms = &models.SubPerms{}
+		} else {
+			return nil, ErrPermDenied
+		}
 	}
-	subPerms, err := h.getSubPerms()
-	h.subPerms = subPerms
+
+	fmt.Println(subPerms)
+	h := &SubdisceptoH{sdb.db, subdiscepto, *subPerms}
 	return h, err
 }
 func (h SubdisceptoH) Read() (*models.Subdiscepto, error) {
+	if !h.subPerms.Read {
+		return nil, ErrPermDenied
+	}
 	return h.read()
 }
 func (h SubdisceptoH) Delete() error {
-	if !h.isOwner() {
+	if !(h.subPerms == models.SubPermsOwner) {
 		return ErrPermDenied
 	}
 	return h.deleteSubdiscepto()
 }
 func (h SubdisceptoH) CreateEssay(e *models.Essay) (*EssayH, error) {
-	if !h.subPerms.CreateEssay {
+	if !h.subPerms.CreateEssay || e.InReplyTo.Valid {
 		return nil, ErrPermDenied
-	}
-	// If the user is trying to reply to some essay, we must have
-	// an handle to the parent essay (to prevent a user replying to
-	// random essays he doesn't have access to)
-	parentID := int(e.InReplyTo.Int32)
-	if e.InReplyTo.Valid {
-		essayH, err := h.GetEssayH(parentID)
-		if err != nil || essayH.id != parentID {
-			return nil, ErrPermDenied
-		}
 	}
 	return h.createEssay(e)
 }
-func (h SubdisceptoH) GetEssayH(id int) (EssayH, error) {
-	e := EssayH{
-		id:       id,
-		sharedDB: h.sharedDB,
-		userH:    h.userH,
+func (h SubdisceptoH) CreateEssayReply(e *models.Essay, pH EssayH) (*EssayH, error) {
+	if !h.subPerms.CreateEssay || e.InReplyTo.Int32 != int32(pH.id) {
+		return nil, ErrPermDenied
 	}
-
+	return h.createEssay(e)
+}
+func (h SubdisceptoH) GetEssayH(id int, uH UserH) (*EssayH, error) {
+	return h.getEssayH(id, uH)
+}
+func (h SubdisceptoH) getEssayH(id int, uH UserH) (*EssayH, error) {
 	// Check if essay is inside this subdiscepto
 	sql, args, _ := psql.
 		Select("1").
@@ -76,26 +78,24 @@ func (h SubdisceptoH) GetEssayH(id int) (EssayH, error) {
 	err := row.Scan(&b)
 
 	if err != nil {
-		return e, err
+		return nil, err
 	}
 
 	// Check if user owns the essay
-	var isOwner bool
-	if h.userH != nil {
-		isOwner = e.isOwner()
-	}
+	isOwner := isEssayOwner(h.sharedDB, id, uH.id)
 
 	// Finally assign capabilities
-	e.essayPerms = models.EssayPerms{
+	essayPerms := models.EssayPerms{
 		DeleteEssay:   h.subPerms.DeleteEssay || isOwner,
 		ChangeRanking: h.subPerms.ChangeRanking,
 	}
+	e := &EssayH{h.sharedDB, id, essayPerms}
 	return e, nil
 }
 func (h SubdisceptoH) ListEssays() ([]*models.Essay, error) {
 	return h.listEssays()
 }
-func (h SubdisceptoH) ListReplies(e *EssayH, replyType string) ([]*models.Essay, error) {
+func (h SubdisceptoH) ListReplies(e EssayH, replyType string) ([]*models.Essay, error) {
 	return h.listReplies(e, replyType)
 }
 
@@ -138,15 +138,11 @@ func (h SubdisceptoH) createEssay(essay *models.Essay) (*EssayH, error) {
 		err = insertTags(ctx, tx, essay)
 		return err
 	})
-	return &EssayH{
-		id:    essay.ID,
-		userH: h.userH,
-		essayPerms: models.EssayPerms{
-			DeleteEssay:   true,
-			ChangeRanking: false,
-		},
-		sharedDB: h.sharedDB,
-	}, err
+	essayPerms := models.EssayPerms{
+		DeleteEssay:   true,
+		ChangeRanking: false,
+	}
+	return &EssayH{h.sharedDB, essay.ID, essayPerms}, err
 }
 func insertTags(ctx context.Context, tx pgx.Tx, essay *models.Essay) error {
 	// Insert essay tags
@@ -204,7 +200,7 @@ func (h SubdisceptoH) listEssays() ([]*models.Essay, error) {
 	err := pgxscan.Select(context.Background(), h.sharedDB, &essays, sql, args...)
 	return essays, err
 }
-func (h SubdisceptoH) listReplies(e *EssayH, replyType string) (essays []*models.Essay, err error) {
+func (h SubdisceptoH) listReplies(e EssayH, replyType string) (essays []*models.Essay, err error) {
 	sql, args, _ := psql.
 		Select("*").
 		From("essays").
@@ -246,18 +242,18 @@ func (h SubdisceptoH) deleteSubdiscepto() error {
 // We simply fetch all the roles assigned to a user, get the corresponding permission row
 // and UNION the results. Then we use the aggregate function "bool_or" to sum
 // every premission. The result is 1 row with the correct permissions.
-func (h SubdisceptoH) getSubPerms() (perms models.SubPerms, err error) {
+func getSubPerms(db *pgxpool.Pool, subdiscepto string, uH UserH) (perms *models.SubPerms, err error) {
 	// TODO: Check global roles
 
 	queryPresetSubRoles := sq.Select("sub_perms_id").
 		From("user_preset_sub_roles").
 		Join("preset_sub_roles ON user_preset_sub_roles.role_name = preset_sub_roles.name").
-		Where(sq.Eq{"user_preset_sub_roles.subdiscepto": h.subdiscepto, "user_id": h.userH.userID})
+		Where(sq.Eq{"user_preset_sub_roles.subdiscepto": subdiscepto, "user_id": uH.ID()})
 
 	queryCustomSubPerms := sq.Select("sub_perms_id").
 		From("user_custom_sub_roles").
 		Join("custom_sub_roles ON user_custom_sub_roles.role_name = custom_sub_roles.name AND user_custom_sub_roles.subdiscepto = custom_sub_roles.subdiscepto").
-		Where(sq.Eq{"custom_sub_roles.subdiscepto": h.subdiscepto, "user_id": h.userH.userID})
+		Where(sq.Eq{"custom_sub_roles.subdiscepto": subdiscepto, "user_id": uH.ID()})
 
 	queryAllSubPerms := queryPresetSubRoles.Suffix("UNION").SuffixExpr(queryCustomSubPerms)
 
@@ -275,54 +271,45 @@ func (h SubdisceptoH) getSubPerms() (perms models.SubPerms, err error) {
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 
-	row := h.sharedDB.QueryRow(context.Background(), sql, args...)
+	row := db.QueryRow(context.Background(), sql, args...)
+	perms = &models.SubPerms{}
 	err = row.Scan(
 		&perms.CreateEssay,
 		&perms.DeleteEssay,
 		&perms.BanUser,
-	        &perms.ChangeRanking,
-	        &perms.DeleteSubdiscepto,
-	        &perms.AddMod,
+		&perms.ChangeRanking,
+		&perms.DeleteSubdiscepto,
+		&perms.AddMod,
 	)
-	if err == pgx.ErrNoRows {
-		return perms, nil
+	perms.Read = true // FIXME: INSECURE!!!!!
+	perms.EssayPerms.Read = true
+	if err != nil {
+		return nil, err
 	}
-	return perms, err
+	return perms, nil
 }
-func (h SubdisceptoH) canRead() bool {
-	queryPrivate := sq.
-		Select("private").
+func isPublic(db *pgxpool.Pool, subdiscepto string, userID int) bool {
+	sql, args, _ := sq.
+		Select("1").
 		From("subdisceptos").
-		Where(sq.Eq{"name": h.subdiscepto, "private": true})
-
-	sql, args, _ := sq.Select("private", "is_member").
-		FromSelect(queryPrivate, "query_private").
-		Join("subdiscepto_users").
-		Where(sq.Eq{"subdiscepto": h.subdiscepto, "user_id": h.userH.userID}).
+		Where(sq.Eq{"name": subdiscepto, "private": false}).
 		ToSql()
 
-	row := h.sharedDB.QueryRow(context.Background(), sql, args...)
-	private := false
-	isMember := false
-	err := row.Scan(&private, &isMember)
+	row := db.QueryRow(context.Background(), sql, args...)
+	var dumb int
+	err := row.Scan(&dumb)
 	if err == pgx.ErrNoRows {
-		// If there are no rows, that means the subdiscepto is public.
-		// If the query failed because the subdiscepto doesn't exist anymore
-		// data can't be read anyway
-		return true
+		return false
 	}
 
-	return !private || isMember
+	return true
 }
-func (h SubdisceptoH) isOwner() bool {
-	return h.subPerms == models.SubPermsOwner
-}
-func (h *SubdisceptoH) Join() error {
+func (h *SubdisceptoH) addMember(uH UserH) error {
 	return execTx(context.Background(), *h.sharedDB, func(ctx context.Context, tx pgx.Tx) error {
 		sql, args, _ := psql.
 			Insert("subdiscepto_users").
 			Columns("subdiscepto", "user_id").
-			Values(h.subdiscepto, h.userH.userID).
+			Values(h.subdiscepto, uH.id).
 			ToSql()
 
 		_, err := tx.Exec(ctx, sql, args...)
@@ -334,17 +321,17 @@ func (h *SubdisceptoH) Join() error {
 		sql, args, _ = psql.
 			Insert("user_custom_sub_roles").
 			Columns("subdiscepto", "user_id", "role_name").
-			Values(h.subdiscepto, h.userH.userID, "common").
+			Values(h.subdiscepto, uH.id, "common").
 			ToSql()
 
 		_, err = tx.Exec(ctx, sql, args...)
 		return err
 	})
 }
-func (h *SubdisceptoH) Leave() error {
+func (h *SubdisceptoH) removeMember(uH UserH) error {
 	sql, args, _ := psql.
 		Delete("subdiscepto_users").
-		Where(sq.Eq{"subdiscepto": h.subdiscepto, "user_id": h.userH.userID}).
+		Where(sq.Eq{"subdiscepto": h.subdiscepto, "user_id": uH.id}).
 		ToSql()
 
 	_, err := h.sharedDB.Exec(context.Background(), sql, args...)

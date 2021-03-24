@@ -28,7 +28,7 @@ func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) A
 		return &ErrNotFound{Cause: err}
 	}
 
-	err = subH.Leave()
+	err = user.LeaveSub(*subH)
 	if err != nil {
 		return &ErrInternal{Message: "Error leaving", Cause: err}
 	}
@@ -47,7 +47,7 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 		return &ErrNotFound{Cause: err}
 	}
 
-	err = subH.Join()
+	err = user.JoinSub(*subH)
 	if err != nil {
 		return &ErrInternal{Message: "Error joining", Cause: err}
 	}
@@ -82,7 +82,7 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 
 	isMember := false
 	if ok {
-		subs, err := routes.db.ListMySubdisceptos(user.ID())
+		subs, err := routes.db.ListMySubdisceptos(*user)
 		if err != nil {
 			return &ErrInternal{Cause: err, Message: "Error getting sub membership"}
 		}
@@ -119,7 +119,7 @@ func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 	}
 
 	disceptoH := routes.db.GetDisceptoH(user)
-	_, err := disceptoH.CreateSubdiscepto(sub)
+	_, err := disceptoH.CreateSubdiscepto(*user, sub)
 	if err != nil {
 		return &ErrInternal{Message: "Error creating subdiscepto", Cause: err}
 	}

@@ -232,7 +232,7 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	fmt.Println(user)
 	data := homeData{User: userData, LoggedIn: ok}
 	if data.LoggedIn {
-		mySubs, err := routes.db.ListMySubdisceptos(user.ID())
+		mySubs, err := routes.db.ListMySubdisceptos(*user)
 		if err != nil {
 			return &ErrInternal{Message: "Can't list joined communities", Cause: err}
 		}

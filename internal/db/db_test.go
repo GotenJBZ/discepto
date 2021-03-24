@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 	"net/url"
 	"os"
 	"testing"
@@ -86,7 +85,7 @@ func TestUser(t *testing.T) {
 	passwd := mockPasswd
 	userH, err := db.CreateUser(mockUser(), passwd)
 	require.Nil(err)
-	disceptoH := db.GetDisceptoH(&userH)
+	disceptoH := db.GetDisceptoH(userH)
 	users, err := disceptoH.ListUsers()
 	require.Nil(err)
 	require.Len(users, 1)
@@ -129,7 +128,7 @@ func TestAuth(t *testing.T) {
 	// Retrieve user by token
 	userH, err := db.GetUserH(token)
 	require.Nil(err)
-	require.Equal(user.ID, userH.userID)
+	require.Equal(user.ID, userH.ID())
 
 	// Sign out
 	require.Nil(db.Signout(token))
@@ -143,8 +142,8 @@ func TestEssay(t *testing.T) {
 	userH, err := db.CreateUser(user, mockPasswd)
 	require.Nil(err)
 
-	disceptoH := db.GetDisceptoH(&userH)
-	subH, err := disceptoH.CreateSubdiscepto(mockSubdiscepto())
+	disceptoH := db.GetDisceptoH(userH)
+	subH, err := disceptoH.CreateSubdiscepto(*userH, mockSubdiscepto())
 	require.Nil(err)
 
 	essay := mockEssay(user.ID)
@@ -157,7 +156,7 @@ func TestEssay(t *testing.T) {
 
 	// Test list recent essays from joined subs
 	// Create and fill second sub
-	sub2H, err := disceptoH.CreateSubdiscepto(mockSubdiscepto2())
+	sub2H, err := disceptoH.CreateSubdiscepto(*userH, mockSubdiscepto2())
 	require.Nil(err)
 	essay2 := mockEssay(user.ID)
 	essay2.PostedIn = mockSubName2
@@ -196,52 +195,42 @@ func TestVotes(t *testing.T) {
 	userH, err := db.CreateUser(user, mockPasswd)
 	require.Nil(err)
 
-	disceptoH := db.GetDisceptoH(&userH)
+	disceptoH := db.GetDisceptoH(userH)
 
 	essay := mockEssay(user.ID)
-	subH, err := disceptoH.CreateSubdiscepto(mockSubdiscepto())
+	subH, err := disceptoH.CreateSubdiscepto(*userH, mockSubdiscepto())
 	require.Nil(err)
-	essayH, err := subH.CreateEssay(essay)
+	esH, err := subH.CreateEssay(essay)
 	require.Nil(err)
 
 	// Actual test
-	upvotes, downvotes, err := essayH.CountVotes()
+	upvotes, downvotes, err := esH.CountVotes()
 	require.Nil(err)
 	require.Equal(upvotes, 0)
 	require.Equal(downvotes, 0)
 
 	// Add upvote
-	vote := &models.Vote{
-		UserID:   essayH.userH.userID,
-		EssayID:  essayH.id,
-		VoteType: models.VoteTypeUpvote,
-	}
-	require.Nil(essayH.CreateVote(vote))
+	require.Nil(esH.CreateVote(*userH, models.VoteTypeUpvote))
 
 	// Check added upvote
-	upvotes, downvotes, err = essayH.CountVotes()
+	upvotes, downvotes, err = esH.CountVotes()
 	require.Nil(err)
 	require.Equal(upvotes, 1)
 	require.Equal(downvotes, 0)
 
 	// Delete (needed to change vote type for same user)
-	require.Nil(essayH.DeleteVote())
+	require.Nil(esH.DeleteVote(*userH))
 
 	// Add downvote
-	vote = &models.Vote{
-		UserID:   user.ID,
-		EssayID:  essay.ID,
-		VoteType: models.VoteTypeDownvote,
-	}
-	require.Nil(essayH.CreateVote(vote))
-	upvotes, downvotes, err = essayH.CountVotes()
+	require.Nil(esH.CreateVote(*userH, models.VoteTypeDownvote))
+	upvotes, downvotes, err = esH.CountVotes()
 	require.Nil(err)
 	require.Equal(upvotes, 0)
 	require.Equal(downvotes, 1)
 
 	// Clean
-	require.Nil(essayH.DeleteVote())
-	require.Nil(essayH.DeleteEssay())
+	require.Nil(esH.DeleteVote(*userH))
+	require.Nil(esH.DeleteEssay())
 	require.Nil(subH.Delete())
 	require.Nil(userH.Delete())
 }
@@ -255,9 +244,9 @@ func TestSubdiscepto(t *testing.T) {
 		require.Nil(err)
 
 		subdis := mockSubdiscepto()
-		disceptoH := db.GetDisceptoH(&userH)
+		disceptoH := db.GetDisceptoH(userH)
 
-		_, err = disceptoH.CreateSubdiscepto(subdis)
+		_, err = disceptoH.CreateSubdiscepto(*userH, subdis)
 		require.Nil(err)
 
 		subs, err := db.ListSubdisceptos()
@@ -273,16 +262,16 @@ func TestSubdiscepto(t *testing.T) {
 		userH, err := db.CreateUser(user, mockPasswd)
 		require.Nil(err)
 
-		subH, err := db.GetSubdisceptoH(mockSubdiscepto().Name, &userH)
-		err = subH.Join()
+		subH, err := db.GetSubdisceptoH(mockSubdiscepto().Name, userH)
+		userH.JoinSub(*subH)
 		require.Nil(err)
 
-		mySubs, err := db.ListMySubdisceptos(userH.userID)
+		mySubs, err := db.ListMySubdisceptos(*userH)
 		require.Nil(err)
 		require.Len(mySubs, 1)
 		require.Equal(mySubs[0], mockSubName)
 
-		err = subH.Leave()
+		err = userH.LeaveSub(*subH)
 		require.Nil(err)
 
 		// Delete (should fail, because user2 doesn't have that permission)
@@ -310,11 +299,11 @@ func TestSearch(t *testing.T) {
 	user := mockUser()
 	userH, err := db.CreateUser(user, mockPasswd)
 	require.Nil(err)
-	disceptoH := db.GetDisceptoH(&userH)
-	subH, err := disceptoH.CreateSubdiscepto(mockSubdiscepto())
+	disceptoH := db.GetDisceptoH(userH)
+	subH, err := disceptoH.CreateSubdiscepto(*userH, mockSubdiscepto())
 	require.Nil(err)
 	essay := mockEssay(user.ID)
-	essayH, err := subH.CreateEssay(essay)
+	esH, err := subH.CreateEssay(essay)
 	require.Nil(err)
 
 	// testValues := []struct {
@@ -335,7 +324,7 @@ func TestSearch(t *testing.T) {
 	// }
 
 	// Clean
-	require.Nil(essayH.DeleteEssay())
+	require.Nil(esH.DeleteEssay())
 	require.Nil(subH.Delete())
 	require.Nil(userH.Delete())
 }

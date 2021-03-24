@@ -92,10 +92,10 @@ func Connect(config *models.EnvConfig) (SharedDB, error) {
 		bcryptCost,
 	}, err
 }
-func (sdb *SharedDB) CreateUser(user *models.User, passwd string) (userH UserH, err error) {
+func (sdb *SharedDB) CreateUser(user *models.User, passwd string) (uH *UserH, err error) {
 	// Check email format
 	if !utils.ValidateEmail(user.Email) {
-		return userH, ErrInvalidFormat
+		return nil, ErrInvalidFormat
 	}
 
 	// Check if email is already used
@@ -107,10 +107,10 @@ func (sdb *SharedDB) CreateUser(user *models.User, passwd string) (userH UserH, 
 		user.Email)
 
 	if err != nil {
-		return userH, err
+		return nil, err
 	}
 	if exists {
-		return userH, ErrEmailAlreadyUsed
+		return nil, ErrEmailAlreadyUsed
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(passwd), sdb.bcryptCost)
@@ -152,11 +152,13 @@ func (sdb *SharedDB) CreateUser(user *models.User, passwd string) (userH UserH, 
 	})
 
 	// Return handle to this user
-	userH.userID = user.ID
-	userH.perms.Delete = true
-	userH.sharedDB = sdb.db
+	uH = &UserH{
+		id:       user.ID,
+		perms:    userPerms{Delete: true, Read: true},
+		sharedDB: sdb.db,
+	}
 
-	return userH, nil
+	return uH, nil
 }
 func (sdb *SharedDB) Login(email string, passwd string) (token string, err error) {
 	sql, args, _ := psql.
@@ -255,11 +257,11 @@ func bool_or(col string) string {
 	return fmt.Sprintf("bool_or(%s) AS %s", col, col)
 }
 
-func (sdb *SharedDB) ListMySubdisceptos(userID int) (subs []string, err error) {
+func (sdb *SharedDB) ListMySubdisceptos(userH UserH) (subs []string, err error) {
 	sql, args, _ := psql.
 		Select("subdiscepto").
 		From("subdiscepto_users").
-		Where(sq.Eq{"user_id": userID}).
+		Where(sq.Eq{"user_id": userH.id}).
 		ToSql()
 
 	err = pgxscan.Select(context.Background(), sdb.db, &subs, sql, args...)

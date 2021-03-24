@@ -11,24 +11,20 @@ import (
 )
 
 type EssayH struct {
-	essayPerms models.EssayPerms
-	id         int
-	userH      *UserH
 	sharedDB   *pgxpool.Pool
+	id         int
+	essayPerms models.EssayPerms
 }
 
-func (h EssayH) isOwner() bool {
-	if h.userH == nil {
-		return false
-	}
+func isEssayOwner(db *pgxpool.Pool, essayID int, userID int) bool {
 	sql, args, _ := psql.
 		Select("1").
 		From("essays").
-		Where(sq.Eq{"id": h.id, "attributed_to_id": h.userH.userID}).
+		Where(sq.Eq{"id": essayID, "attributed_to_id": userID}).
 		ToSql()
 
 	isOwner := 0
-	row := h.sharedDB.QueryRow(context.Background(), sql, args...)
+	row := db.QueryRow(context.Background(), sql, args...)
 	err := row.Scan(&isOwner)
 	if err != nil {
 		return false
@@ -37,6 +33,9 @@ func (h EssayH) isOwner() bool {
 	return isOwner == 1
 }
 func (h EssayH) GetEssay() (*models.Essay, error) {
+	if !h.essayPerms.Read {
+		return nil, ErrPermDenied
+	}
 	sql, args, _ := psql.
 		Select("*").
 		From("essays").
@@ -89,28 +88,20 @@ func (h EssayH) CountVotes() (upvotes, downvotes int, err error) {
 
 	return upvotes, downvotes, nil
 }
-func (h EssayH) DeleteVote() error {
-	if h.userH == nil {
-		return ErrPermDenied
-	}
+func (h EssayH) DeleteVote(uH UserH) error {
 	sql, args, _ := psql.
 		Delete("votes").
-		Where(sq.Eq{"user_id": h.userH.userID, "essay_id": h.id}).
+		Where(sq.Eq{"user_id": uH.id, "essay_id": h.id}).
 		ToSql()
+
 	_, err := h.sharedDB.Exec(context.Background(), sql, args...)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
-func (h EssayH) CreateVote(vote *models.Vote) error {
-	if h.userH == nil {
-		return ErrPermDenied
-	}
+func (h EssayH) CreateVote(uH UserH, vote models.VoteType) error {
 	sql, args, _ := psql.
 		Insert("votes").
 		Columns("user_id", "essay_id", "vote_type").
-		Values(vote.UserID, vote.EssayID, vote.VoteType).
+		Values(uH.id, h.id, vote).
 		ToSql()
 
 	_, err := h.sharedDB.Exec(context.Background(), sql, args...)

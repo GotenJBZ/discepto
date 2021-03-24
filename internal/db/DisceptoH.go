@@ -14,21 +14,16 @@ import (
 type DisceptoH struct {
 	sharedDB    *pgxpool.Pool
 	globalPerms models.GlobalPerms
-	userH       *UserH
 }
 
-func (sdb *SharedDB) GetDisceptoH(userHandle *UserH) DisceptoH {
-	userHCopy := UserH{}
-	if userHandle != nil {
-		userHCopy = *userHandle
-	}
-	perms := sdb.getGlobalPerms(&userHCopy)
-	return DisceptoH{globalPerms: perms, userH: &userHCopy, sharedDB: sdb.db}
+func (sdb *SharedDB) GetDisceptoH(uH *UserH) DisceptoH {
+	perms := sdb.getGlobalPerms(uH)
+	return DisceptoH{globalPerms: perms, sharedDB: sdb.db}
 }
 
-func (sdb *SharedDB) getGlobalPerms(userH *UserH) models.GlobalPerms {
+func (sdb *SharedDB) getGlobalPerms(uH *UserH) models.GlobalPerms {
 	perms := models.GlobalPerms{}
-	if userH != nil {
+	if uH != nil {
 		sql, args, _ := psql.Select(
 			bool_or("login"),
 			bool_or("create_subdiscepto"),
@@ -39,7 +34,7 @@ func (sdb *SharedDB) getGlobalPerms(userH *UserH) models.GlobalPerms {
 			From("global_perms").
 			Join("global_roles ON global_roles.global_perms_id = global_perms.id").
 			Join("user_global_roles ON user_global_roles.role_name = global_roles.name").
-			Where(sq.Eq{"user_id": userH.userID}).
+			Where(sq.Eq{"user_id": uH.id}).
 			ToSql()
 
 		pgxscan.Get(context.Background(), sdb.db, &perms, sql, args...)
@@ -53,21 +48,19 @@ func (h *DisceptoH) ListUsers() ([]models.User, error) {
 	return users, err
 }
 
-func (h *DisceptoH) CreateSubdiscepto(subd *models.Subdiscepto) (SubdisceptoH, error) {
-	subH := SubdisceptoH{}
+func (h *DisceptoH) CreateSubdiscepto(uH UserH, subd *models.Subdiscepto) (*SubdisceptoH, error) {
 	if !h.globalPerms.CreateSubdiscepto {
-		return subH, ErrPermDenied
+		return nil, ErrPermDenied
 	}
-	return h.createSubdiscepto(subd)
+	return h.createSubdiscepto(uH, subd)
 }
-func (h *DisceptoH) createSubdiscepto(subd *models.Subdiscepto) (SubdisceptoH, error) {
-	subH := SubdisceptoH{userH: h.userH}
+func (h *DisceptoH) createSubdiscepto(uH UserH, subd *models.Subdiscepto) (*SubdisceptoH, error) {
 	r := regexp.MustCompile("^\\w+$")
 	if !r.Match([]byte(subd.Name)) {
-		return subH, ErrInvalidFormat
+		return nil, ErrInvalidFormat
 	}
 
-	firstUserID := h.userH.userID
+	firstUserID := uH.id
 	err := execTx(context.Background(), *h.sharedDB, func(ctx context.Context, tx pgx.Tx) error {
 		// Insert subdiscepto
 		sql, args, _ := psql.
@@ -136,14 +129,9 @@ func (h *DisceptoH) createSubdiscepto(subd *models.Subdiscepto) (SubdisceptoH, e
 		return err
 	})
 	if err != nil {
-		return subH, err
+		return nil, err
 	}
-	subH = SubdisceptoH{
-		subdiscepto: subd.Name,
-		subPerms:    models.SubPermsOwner,
-		sharedDB:    h.sharedDB,
-		userH:       h.userH,
-	}
+	subH := &SubdisceptoH{h.sharedDB, subd.Name, models.SubPermsOwner}
 	return subH, nil
 }
 func (h *DisceptoH) DeleteReport(report *models.Report) error {
