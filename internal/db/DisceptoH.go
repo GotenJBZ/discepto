@@ -20,6 +20,7 @@ func (sdb *SharedDB) GetDisceptoH(uH *UserH) DisceptoH {
 }
 
 func (h *DisceptoH) ListUsers() ([]models.User, error) {
+	// TODO: Is the list of users public? I guess not?
 	var users []models.User
 	err := pgxscan.Select(context.Background(), h.sharedDB, &users, "SELECT id, name, email FROM users")
 	return users, err
@@ -29,21 +30,20 @@ func (h *DisceptoH) CreateSubdiscepto(uH UserH, subd *models.Subdiscepto) (*Subd
 	if !h.globalPerms.CreateSubdiscepto {
 		return nil, ErrPermDenied
 	}
-	return h.createSubdiscepto(uH, subd)
-}
-func (h *DisceptoH) createSubdiscepto(uH UserH, subd *models.Subdiscepto) (*SubdisceptoH, error) {
 	r := regexp.MustCompile("^\\w+$")
 	if !r.Match([]byte(subd.Name)) {
 		return nil, ErrInvalidFormat
 	}
-
+	return h.createSubdiscepto(uH, subd)
+}
+func (h *DisceptoH) createSubdiscepto(uH UserH, subd *models.Subdiscepto) (*SubdisceptoH, error) {
 	firstUserID := uH.id
 	err := execTx(context.Background(), h.sharedDB, func(ctx context.Context, tx DBTX) error {
 		// Insert subdiscepto
 		sql, args, _ := psql.
 			Insert("subdisceptos").
-			Columns("name", "description", "min_length", "questions_required", "nsfw").
-			Values(subd.Name, subd.Description, subd.MinLength, subd.QuestionsRequired, subd.Nsfw).
+			Columns("name", "description", "min_length", "questions_required", "nsfw", "public").
+			Values(subd.Name, subd.Description, subd.MinLength, subd.QuestionsRequired, subd.Nsfw, subd.Public).
 			ToSql()
 		_, err := tx.Exec(ctx, sql, args...)
 		if err != nil {
@@ -110,6 +110,7 @@ func (h *DisceptoH) createSubdiscepto(uH UserH, subd *models.Subdiscepto) (*Subd
 	return subH, nil
 }
 func (h *DisceptoH) DeleteReport(report *models.Report) error {
+	// TODO: What kind of permission should one have to view reports?
 	sql, args, _ := psql.
 		Delete("reports").
 		Where(sq.Eq{"id": report.ID}).

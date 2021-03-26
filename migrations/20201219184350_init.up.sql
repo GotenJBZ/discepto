@@ -10,6 +10,7 @@ CREATE TABLE subdisceptos (
 	description varchar(500) NOT NULL,
 	min_length int NOT NULL,
 	questions_required boolean NOT NULL,
+	public boolean NOT NULL,
 	nsfw boolean NOT NULL
 );
 

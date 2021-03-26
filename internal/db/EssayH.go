@@ -60,6 +60,9 @@ func (h EssayH) GetEssay() (*models.Essay, error) {
 	return &essay, nil
 }
 func (h EssayH) CreateReport(rep models.Report, userH UserH) error {
+	if !h.essayPerms.Read {
+		return ErrPermDenied
+	}
 	if rep.EssayID != &h.id || rep.FromUserID != userH.id {
 		return ErrPermDenied
 	}
@@ -78,6 +81,9 @@ func (h EssayH) CreateReport(rep models.Report, userH UserH) error {
 	return nil
 }
 func (h EssayH) CountVotes() (upvotes, downvotes int, err error) {
+	if !h.essayPerms.Read {
+		return 0, 0, ErrPermDenied
+	}
 	sql, args, _ := psql.
 		Select("vote_type", "COUNT(*)").
 		From("votes").
@@ -106,6 +112,9 @@ func (h EssayH) CountVotes() (upvotes, downvotes int, err error) {
 	return upvotes, downvotes, nil
 }
 func (h EssayH) DeleteVote(uH UserH) error {
+	if !h.essayPerms.Read {
+		return ErrPermDenied
+	}
 	sql, args, _ := psql.
 		Delete("votes").
 		Where(sq.Eq{"user_id": uH.id, "essay_id": h.id}).
@@ -115,6 +124,9 @@ func (h EssayH) DeleteVote(uH UserH) error {
 	return err
 }
 func (h EssayH) CreateVote(uH UserH, vote models.VoteType) error {
+	if !h.essayPerms.Read {
+		return ErrPermDenied
+	}
 	sql, args, _ := psql.
 		Insert("votes").
 		Columns("user_id", "essay_id", "vote_type").

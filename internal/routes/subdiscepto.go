@@ -116,6 +116,7 @@ func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 	sub := &models.Subdiscepto{
 		Name:        r.FormValue("name"),
 		Description: r.FormValue("description"),
+		Public:      r.FormValue("privacy") == "public", // TODO: Use checkbox instead of radio in html
 	}
 
 	disceptoH := routes.db.GetDisceptoH(user)

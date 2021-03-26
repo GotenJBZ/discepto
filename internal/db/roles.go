@@ -4,6 +4,7 @@ import (
 	"context"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v4"
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
@@ -73,11 +74,16 @@ func getSubPerms(db DBTX, subdiscepto string, uH UserH) (perms *models.SubPerms,
 		&perms.DeleteSubdiscepto,
 		&perms.AddMod,
 	)
-	perms.Read = true // FIXME: INSECURE!!!!!
-	perms.EssayPerms.Read = true
-	if err != nil {
+	if err == pgx.ErrNoRows {
+		return perms, nil // Return empty perms
+	} else if err != nil {
 		return nil, err
 	}
+	// If no error was returned, it means the user has some role assigned.
+	// If a user has at least one role, it automatically gets read permissions
+	// In fact, admins can ban a user simply by removing all roles from him
+	perms.Read = true
+	perms.EssayPerms.Read = true
 	return perms, nil
 }
 func assignNamedGlobalRole(tx DBTX, userID int, role string, preset bool) error {

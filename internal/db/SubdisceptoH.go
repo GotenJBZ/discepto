@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/georgysavva/scany/pgxscan"
-	"github.com/jackc/pgx/v4"
 
 	sq "github.com/Masterminds/squirrel"
 	"gitlab.com/ranfdev/discepto/internal/models"
@@ -26,14 +25,13 @@ func (sdb *SharedDB) GetSubdisceptoH(subdiscepto string, uH *UserH) (*Subdiscept
 	}
 	if subPerms == nil {
 		// Check if the subdiscepto is publicly readable
-		if read := isPublic(sdb.db, subdiscepto); read {
+		if read := isSubPublic(sdb.db, subdiscepto); read {
 			subPerms = &models.SubPerms{Read: true}
 		} else {
 			return nil, ErrPermDenied
 		}
 	}
 
-	fmt.Println(subPerms)
 	h := &SubdisceptoH{sdb.db, subdiscepto, *subPerms}
 	return h, err
 }
@@ -82,6 +80,9 @@ func createReply(ctx context.Context, db DBTX, e *models.Essay) error {
 	return err
 }
 func (h SubdisceptoH) GetEssayH(id int, uH UserH) (*EssayH, error) {
+	if !h.subPerms.Read {
+		return nil, ErrPermDenied
+	}
 	return h.getEssayH(id, uH)
 }
 func (h SubdisceptoH) getEssayH(id int, uH UserH) (*EssayH, error) {
@@ -112,9 +113,15 @@ func (h SubdisceptoH) getEssayH(id int, uH UserH) (*EssayH, error) {
 	return e, nil
 }
 func (h SubdisceptoH) ListEssays() ([]*models.Essay, error) {
+	if !h.subPerms.Read {
+		return nil, ErrPermDenied
+	}
 	return h.listEssays()
 }
 func (h SubdisceptoH) ListReplies(e EssayH, replyType string) ([]*models.Essay, error) {
+	if !h.subPerms.Read {
+		return nil, ErrPermDenied
+	}
 	return h.listReplies(e, replyType)
 }
 
@@ -154,6 +161,7 @@ func (h SubdisceptoH) createEssay(tx DBTX, essay *models.Essay) (*EssayH, error)
 		return nil, err
 	}
 	essayPerms := models.EssayPerms{
+		Read:          true,
 		DeleteEssay:   true,
 		ChangeRanking: false,
 	}
@@ -245,17 +253,17 @@ func (h SubdisceptoH) deleteSubdiscepto() error {
 	return nil
 }
 
-func isPublic(db DBTX, subdiscepto string) bool {
-	sql, args, _ := sq.
+func isSubPublic(db DBTX, subdiscepto string) bool {
+	sql, args, _ := psql.
 		Select("1").
 		From("subdisceptos").
-		Where(sq.Eq{"name": subdiscepto, "private": false}).
+		Where(sq.Eq{"name": subdiscepto, "public": true}).
 		ToSql()
 
 	row := db.QueryRow(context.Background(), sql, args...)
 	var dumb int
 	err := row.Scan(&dumb)
-	if err == pgx.ErrNoRows {
+	if err != nil {
 		return false
 	}
 

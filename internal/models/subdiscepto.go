@@ -6,4 +6,5 @@ type Subdiscepto struct {
 	MinLength         int
 	QuestionsRequired bool
 	Nsfw              bool
+	Public            bool
 }
