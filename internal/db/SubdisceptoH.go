@@ -26,8 +26,8 @@ func (sdb *SharedDB) GetSubdisceptoH(subdiscepto string, uH *UserH) (*Subdiscept
 	}
 	if subPerms == nil {
 		// Check if the subdiscepto is publicly readable
-		if read := isPublic(sdb.db, subdiscepto, uH.id); read {
-			subPerms = &models.SubPerms{}
+		if read := isPublic(sdb.db, subdiscepto); read {
+			subPerms = &models.SubPerms{Read: true}
 		} else {
 			return nil, ErrPermDenied
 		}
@@ -245,7 +245,7 @@ func (h SubdisceptoH) deleteSubdiscepto() error {
 	return nil
 }
 
-func isPublic(db DBTX, subdiscepto string, userID int) bool {
+func isPublic(db DBTX, subdiscepto string) bool {
 	sql, args, _ := sq.
 		Select("1").
 		From("subdisceptos").
