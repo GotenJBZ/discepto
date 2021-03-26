@@ -100,48 +100,39 @@ func Connect(config *models.EnvConfig) (SharedDB, error) {
 		bcryptCost,
 	}, err
 }
+func insertUser(db DBTX, user *models.User, hash []byte) error {
+	// Insert the new user
+	sql, args, _ := psql.
+		Insert("users").
+		Columns("name", "email", "passwd_hash").
+		Values(user.Name, user.Email, hash).
+		Suffix("RETURNING id").
+		ToSql()
+
+	row := db.QueryRow(context.Background(), sql, args...)
+	err := row.Scan(&user.ID)
+	return err
+}
 func (sdb *SharedDB) CreateUser(user *models.User, passwd string) (uH *UserH, err error) {
 	// Check email format
 	if !utils.ValidateEmail(user.Email) {
 		return nil, ErrInvalidFormat
 	}
-
-	// Check if email is already used
-	var exists bool
-	err = pgxscan.Get(context.Background(),
-		sdb.db,
-		&exists,
-		"SELECT exists(SELECT 1 FROM users WHERE email = $1)",
-		user.Email)
-
-	if err != nil {
-		return nil, err
-	}
-	if exists {
-		return nil, ErrEmailAlreadyUsed
-	}
-
 	hash, err := bcrypt.GenerateFromPassword([]byte(passwd), sdb.bcryptCost)
 
 	err = execTx(context.Background(), sdb.db, func(ctx context.Context, tx DBTX) error {
-		// Insert the new user
-		sql, args, _ := psql.
-			Insert("users").
-			Columns("name", "email", "passwd_hash").
-			Values(user.Name, user.Email, hash).
-			Suffix("RETURNING id").
-			ToSql()
-
-		row := tx.QueryRow(context.Background(), sql, args...)
-		err = row.Scan(&user.ID)
-		if err != nil {
+		err = insertUser(sdb.db, user, hash)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.ConstraintName == "users_email_key" {
+			return ErrEmailAlreadyUsed
+		} else if err != nil {
 			return err
 		}
 
 		// Assign admin role if first user
-		sql, args, _ = psql.Select("COUNT(*)").From("users").ToSql()
+		sql, args, _ := psql.Select("COUNT(*)").From("users").ToSql()
 		c := 0
-		row = tx.QueryRow(context.Background(), sql, args...)
+		row := tx.QueryRow(context.Background(), sql, args...)
 		err = row.Scan(&c)
 		if err != nil {
 			return err

@@ -33,6 +33,7 @@ func (sdb SharedDB) GetUserH(token string) (UserH, error) {
 	uH := UserH{
 		sharedDB: sdb.db,
 		perms: userPerms{
+			Read:   true,
 			Delete: true,
 		},
 	}
