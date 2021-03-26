@@ -270,7 +270,7 @@ func TestSubdiscepto(t *testing.T) {
 		err = userH.JoinSub(*subH)
 		require.Nil(err)
 
-		mySubs, err := db.ListMySubdisceptos(*userH)
+		mySubs, err := userH.ListMySubdisceptos()
 		require.Nil(err)
 		require.Len(mySubs, 1)
 		require.Equal(mySubs[0], mockSubName)

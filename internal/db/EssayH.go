@@ -59,6 +59,24 @@ func (h EssayH) GetEssay() (*models.Essay, error) {
 
 	return &essay, nil
 }
+func (h EssayH) CreateReport(rep models.Report, userH UserH) error {
+	if rep.EssayID != &h.id || rep.FromUserID != userH.id {
+		return ErrPermDenied
+	}
+	sql, args, _ := psql.
+		Insert("reports").
+		Columns("flag", "essay_id", "from_user_id", "description").
+		Values(rep.Flag, h.id, userH.id, rep.Description).
+		Suffix("RETURNING id").
+		ToSql()
+
+	row := h.sharedDB.QueryRow(context.Background(), sql, args...)
+	err := row.Scan(&rep.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func (h EssayH) CountVotes() (upvotes, downvotes int, err error) {
 	sql, args, _ := psql.
 		Select("vote_type", "COUNT(*)").

@@ -82,7 +82,7 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 
 	isMember := false
 	if ok {
-		subs, err := routes.db.ListMySubdisceptos(*user)
+		subs, err := user.ListMySubdisceptos()
 		if err != nil {
 			return &ErrInternal{Cause: err, Message: "Error getting sub membership"}
 		}

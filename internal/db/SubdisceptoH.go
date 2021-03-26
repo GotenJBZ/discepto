@@ -245,51 +245,6 @@ func (h SubdisceptoH) deleteSubdiscepto() error {
 	return nil
 }
 
-// Returns the permissions corresponding to a user inside a subdiscepto.
-// The user may have multiple roles and may also have a global role,
-// granting him permissions inside every subdiscepto.
-// We simply fetch all the roles assigned to a user, get the corresponding permission row
-// and UNION the results. Then we use the aggregate function "bool_or" to sum
-// every premission. The result is 1 row with the correct permissions.
-func getSubPerms(db DBTX, subdiscepto string, uH UserH) (perms *models.SubPerms, err error) {
-	// TODO: Check global roles
-
-	querySubRolesPermsID := sq.Select("sub_perms_id").
-		From("user_sub_roles").
-		Where(sq.Eq{"subdiscepto": subdiscepto, "user_id": uH.id})
-
-	sql, args, _ := psql.
-		Select(
-			bool_or("create_essay"),
-			bool_or("delete_essay"),
-			bool_or("ban_user"),
-			bool_or("change_ranking"),
-			bool_or("delete_subdiscepto"),
-			bool_or("add_mod"),
-		).
-		FromSelect(querySubRolesPermsID, "user_perms_ids").
-		Join("sub_perms ON sub_perms.id = user_perms_ids.sub_perms_id").
-		PlaceholderFormat(sq.Dollar).
-		Having("COUNT(*) > 0").
-		ToSql()
-
-	row := db.QueryRow(context.Background(), sql, args...)
-	perms = &models.SubPerms{}
-	err = row.Scan(
-		&perms.CreateEssay,
-		&perms.DeleteEssay,
-		&perms.BanUser,
-		&perms.ChangeRanking,
-		&perms.DeleteSubdiscepto,
-		&perms.AddMod,
-	)
-	perms.Read = true // FIXME: INSECURE!!!!!
-	perms.EssayPerms.Read = true
-	if err != nil {
-		return nil, err
-	}
-	return perms, nil
-}
 func isPublic(db DBTX, subdiscepto string, userID int) bool {
 	sql, args, _ := sq.
 		Select("1").

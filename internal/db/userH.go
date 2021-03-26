@@ -86,3 +86,16 @@ func (h *UserH) deleteUser() error {
 	_, err := h.sharedDB.Exec(context.Background(), sql, args...)
 	return err
 }
+func (h UserH) ListMySubdisceptos() (subs []string, err error) {
+	sql, args, _ := psql.
+		Select("subdiscepto").
+		From("subdiscepto_users").
+		Where(sq.Eq{"user_id": h.id}).
+		ToSql()
+
+	err = pgxscan.Select(context.Background(), h.sharedDB, &subs, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return subs, nil
+}

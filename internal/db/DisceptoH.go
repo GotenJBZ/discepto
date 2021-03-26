@@ -15,36 +15,8 @@ type DisceptoH struct {
 }
 
 func (sdb *SharedDB) GetDisceptoH(uH *UserH) DisceptoH {
-	perms := sdb.getGlobalPerms(uH)
+	perms := getGlobalPerms(sdb.db, uH)
 	return DisceptoH{globalPerms: perms, sharedDB: sdb.db}
-}
-
-func (sdb *SharedDB) getGlobalPerms(uH *UserH) models.GlobalPerms {
-	perms := models.GlobalPerms{}
-	if uH != nil {
-		sql, args, _ := psql.Select(
-			bool_or("login"),
-			bool_or("create_subdiscepto"),
-			bool_or("ban_user_globally"),
-			bool_or("delete_user"),
-			bool_or("add_admin"),
-		).
-			From("user_global_roles").
-			Join("global_perms ON user_global_roles.global_perms_id = global_perms.id").
-			Where(sq.Eq{"user_id": uH.id}).
-			Having("COUNT(*) > 0").
-			ToSql()
-
-		row := sdb.db.QueryRow(context.Background(), sql, args...)
-		row.Scan(
-			&perms.Login,
-			&perms.CreateSubdiscepto,
-			&perms.BanUserGlobally,
-			&perms.DeleteUser,
-			&perms.AddAdmin,
-		)
-	}
-	return perms
 }
 
 func (h *DisceptoH) ListUsers() ([]models.User, error) {
