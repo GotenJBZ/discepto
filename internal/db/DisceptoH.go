@@ -31,13 +31,20 @@ func (sdb *SharedDB) getGlobalPerms(uH *UserH) models.GlobalPerms {
 			bool_or("delete_user"),
 			bool_or("add_admin"),
 		).
-			From("global_perms").
-			Join("global_roles ON global_roles.global_perms_id = global_perms.id").
-			Join("user_global_roles ON user_global_roles.role_name = global_roles.name").
+			From("user_global_roles").
+			Join("global_perms ON user_global_roles.global_perms_id = global_perms.id").
 			Where(sq.Eq{"user_id": uH.id}).
+			Having("COUNT(*) > 0").
 			ToSql()
 
-		pgxscan.Get(context.Background(), sdb.db, &perms, sql, args...)
+		row := sdb.db.QueryRow(context.Background(), sql, args...)
+		row.Scan(
+			&perms.Login,
+			&perms.CreateSubdiscepto,
+			&perms.BanUserGlobally,
+			&perms.DeleteUser,
+			&perms.AddAdmin,
+		)
 	}
 	return perms
 }
@@ -96,11 +103,11 @@ func (h *DisceptoH) createSubdiscepto(uH UserH, subd *models.Subdiscepto) (*Subd
 			return err
 		}
 
-		// Add "common" role to first user
+		// Insert "common" role
 		sql, args, _ = psql.
-			Insert("custom_sub_roles").
-			Columns("subdiscepto", "name", "sub_perms_id").
-			Values(subd.Name, "common", subPermsID).
+			Insert("sub_roles").
+			Columns("subdiscepto", "name", "sub_perms_id", "preset").
+			Values(subd.Name, "common", subPermsID, false).
 			ToSql()
 		_, err = tx.Exec(ctx, sql, args...)
 		if err != nil {
@@ -118,14 +125,12 @@ func (h *DisceptoH) createSubdiscepto(uH UserH, subd *models.Subdiscepto) (*Subd
 			return err
 		}
 
-		// Assign admin role to first user
-		sql, args, _ = psql.
-			Insert("user_preset_sub_roles").
-			Columns("subdiscepto", "user_id", "role_name").
-			Values(subd.Name, firstUserID, "admin").
-			ToSql()
+		err = assignNamedSubRole(tx, firstUserID, subd.Name, "common", false)
+		if err != nil {
+			return err
+		}
 
-		_, err = tx.Exec(ctx, sql, args...)
+		err = assignNamedSubRole(tx, firstUserID, subd.Name, "admin", true)
 		return err
 	})
 	if err != nil {

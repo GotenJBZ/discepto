@@ -13,6 +13,12 @@ CREATE TABLE subdisceptos (
 	nsfw boolean NOT NULL
 );
 
+CREATE TABLE subdiscepto_users (
+	subdiscepto varchar(50) REFERENCES subdisceptos(name) ON DELETE CASCADE,
+	user_id int REFERENCES users(id) ON DELETE CASCADE,
+	PRIMARY KEY(subdiscepto, user_id)
+);
+
 CREATE TABLE global_perms (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	login boolean NOT NULL,
@@ -21,12 +27,6 @@ CREATE TABLE global_perms (
 	ban_user_globally boolean NOT NULL,
 	delete_user boolean NOT NULL,
 	add_admin boolean NOT NULL
-);
-
-CREATE TABLE subdiscepto_users (
-	subdiscepto varchar(50) REFERENCES subdisceptos(name) ON DELETE CASCADE,
-	user_id int REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-	PRIMARY KEY (subdiscepto, user_id)
 );
 
 CREATE TABLE sub_perms (
@@ -40,21 +40,20 @@ CREATE TABLE sub_perms (
 );
 
 CREATE TABLE global_roles (
-	name varchar(50) PRIMARY KEY,
 	global_perms_id int REFERENCES global_perms(id) NOT NULL,
-	sub_perms_id int REFERENCES sub_perms(id)
-);
-
-CREATE TABLE custom_sub_roles (
-	subdiscepto varchar(50) REFERENCES subdisceptos(name) ON DELETE CASCADE NOT NULL,
-	name varchar(50) NOT NULL,
 	sub_perms_id int REFERENCES sub_perms(id) NOT NULL,
-	PRIMARY KEY (subdiscepto, name)
+	name varchar(50) NOT NULL,
+	preset boolean NOT NULL,
+	PRIMARY KEY (global_perms_id, sub_perms_id)
 );
 
-CREATE TABLE preset_sub_roles (
-	name varchar(50) PRIMARY KEY,
-	sub_perms_id int REFERENCES sub_perms(id) NOT NULL
+CREATE TABLE sub_roles (
+	sub_perms_id int REFERENCES sub_perms(id),
+	name varchar(50) NOT NULL,
+	subdiscepto varchar(50) REFERENCES subdisceptos(name) ON DELETE CASCADE,
+	preset boolean NOT NULL,
+	PRIMARY KEY (sub_perms_id),
+	UNIQUE(subdiscepto, preset, name)
 );
 
 -- Create initial roles. Manually set an easy to remember id.
@@ -71,16 +70,16 @@ OVERRIDING SYSTEM VALUE VALUES
 (-99,   true,          false,         false,     true,            false,               false);
 
 INSERT INTO global_roles
-(name,       global_perms_id,  sub_perms_id)
+(global_perms_id, sub_perms_id, name, preset)
 VALUES
-('admin',    -123,             -123);
+(-123, -123, 'admin', true);
 
-INSERT INTO preset_sub_roles
-(name,        sub_perms_id)
+INSERT INTO sub_roles
+(sub_perms_id, subdiscepto, name, preset)
 VALUES
-('admin',     -123),
-('moderator', -100),
-('judge',     -99);
+(-123, NULL, 'admin', true),
+(-100, NULL, 'moderator', true),
+(-99,  NULL, 'judge', true);
 
 CREATE TABLE tokens (
 	token varchar(255),
@@ -89,25 +88,21 @@ CREATE TABLE tokens (
 	last_used_ip inet,
 	PRIMARY KEY(user_id, token)
 );
-CREATE TABLE user_custom_sub_roles (
-	subdiscepto varchar(50),
-	user_id int,
-	role_name varchar(50),
-	PRIMARY KEY(user_id, role_name, subdiscepto),
-	FOREIGN KEY(subdiscepto, role_name) REFERENCES custom_sub_roles(subdiscepto, name) ON DELETE CASCADE,
-	FOREIGN KEY(subdiscepto, user_id) REFERENCES subdiscepto_users(subdiscepto, user_id) ON DELETE CASCADE
-);
-CREATE TABLE user_preset_sub_roles (
-	subdiscepto varchar(50),
-	user_id int,
-	role_name varchar(50) REFERENCES preset_sub_roles(name),
-	PRIMARY KEY(user_id, subdiscepto, role_name),
-	FOREIGN KEY(subdiscepto, user_id) REFERENCES subdiscepto_users(subdiscepto, user_id) ON DELETE CASCADE
-);
+
 CREATE TABLE user_global_roles (
-	user_id int REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-	role_name varchar(50) REFERENCES global_roles(name) ON DELETE CASCADE NOT NULL,
-	PRIMARY KEY(user_id, role_name)
+	user_id int REFERENCES users(id) ON DELETE CASCADE,
+	global_perms_id int NOT NULL,
+	sub_perms_id int NOT NULL,
+	PRIMARY KEY(user_id, global_perms_id, sub_perms_id),
+	FOREIGN KEY(global_perms_id, sub_perms_id) REFERENCES global_roles(global_perms_id, sub_perms_id) ON DELETE CASCADE
+);
+
+CREATE TABLE user_sub_roles (
+	user_id int NOT NULL,
+	subdiscepto varchar(50) NOT NULL,
+	sub_perms_id int REFERENCES sub_roles(sub_perms_id) ON DELETE CASCADE NOT NULL,
+	FOREIGN KEY (user_id, subdiscepto) REFERENCES subdiscepto_users(user_id, subdiscepto) ON DELETE CASCADE, 
+	PRIMARY KEY(user_id, sub_perms_id, subdiscepto)
 );
 
 CREATE TABLE essays (
@@ -116,30 +111,40 @@ CREATE TABLE essays (
 	content text NOT NULL,
 	attributed_to_id int REFERENCES users(id) NOT NULL,
 	posted_in varchar(50) REFERENCES subdisceptos(name) ON DELETE CASCADE NOT NULL,
-	in_reply_to int REFERENCES essays(id),
-	reply_type varchar(24) NOT NULL,
 	published timestamp NOT NULL
 );
+
+CREATE TABLE essay_replies (
+	from_id int REFERENCES essays(id) ON DELETE CASCADE,
+	to_id int REFERENCES essays(id) ON DELETE CASCADE,
+	reply_type varchar(24) NOT NULL,
+	PRIMARY KEY (from_id, to_id)
+);
+
 CREATE TABLE essay_tags (
 	essay_id int REFERENCES essays(id) ON DELETE CASCADE,
 	tag varchar(15),
 	PRIMARY KEY(essay_id, tag)
 );
+
 CREATE TABLE essay_sources (
 	essay_id int REFERENCES essays(id) ON DELETE CASCADE,
 	source varchar(255),
 	PRIMARY KEY(essay_id, source)
 );
+
 CREATE TYPE flag_type as ENUM ('offensive', 'fake', 'spam', 'inaccurate');
+
 CREATE TABLE reports (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	flag flag_type NOT NULL,
 	description varchar(500),
 	essay_id int REFERENCES essays(id),
-	from_user_id int REFERENCES users(id) NOT NULL,
-	to_user_id int REFERENCES users(id) NOT NULL
+	from_user_id int REFERENCES users(id) NOT NULL
 );
+
 CREATE TYPE vote_type as ENUM ('upvote', 'downvote');
+
 CREATE TABLE votes (
 	user_id int REFERENCES users(id) ON DELETE CASCADE,
 	essay_id int REFERENCES essays(id) ON DELETE CASCADE,

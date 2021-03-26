@@ -54,13 +54,33 @@ func (h SubdisceptoH) CreateEssay(e *models.Essay) (*EssayH, error) {
 	if !h.subPerms.CreateEssay || e.InReplyTo.Valid {
 		return nil, ErrPermDenied
 	}
-	return h.createEssay(e)
+	var essay *EssayH
+	return essay, execTx(context.Background(), *h.sharedDB, func(ctx context.Context, tx pgx.Tx) error {
+		var err error
+		essay, err = h.createEssay(tx, e)
+		return err
+	})
 }
 func (h SubdisceptoH) CreateEssayReply(e *models.Essay, pH EssayH) (*EssayH, error) {
 	if !h.subPerms.CreateEssay || e.InReplyTo.Int32 != int32(pH.id) {
 		return nil, ErrPermDenied
 	}
-	return h.createEssay(e)
+	var essay *EssayH
+	return essay, execTx(context.Background(), *h.sharedDB, func(ctx context.Context, tx pgx.Tx) error {
+		var err error
+		essay, err = h.createEssay(tx, e)
+		if err != nil {
+			return err
+		}
+		err = createReply(ctx, tx, e)
+		return err
+	})
+}
+func createReply(ctx context.Context, tx pgx.Tx, e *models.Essay) error {
+	_, err := tx.Exec(ctx,
+		"INSERT INTO essay_replies (from_id, to_id, reply_type) VALUES ($1, $2, $3)",
+		e.ID, e.InReplyTo, e.ReplyType)
+	return err
 }
 func (h SubdisceptoH) GetEssayH(id int, uH UserH) (*EssayH, error) {
 	return h.getEssayH(id, uH)
@@ -99,7 +119,7 @@ func (h SubdisceptoH) ListReplies(e EssayH, replyType string) ([]*models.Essay, 
 	return h.listReplies(e, replyType)
 }
 
-func (h SubdisceptoH) createEssay(essay *models.Essay) (*EssayH, error) {
+func (h SubdisceptoH) createEssay(tx pgx.Tx, essay *models.Essay) (*EssayH, error) {
 	clen := len(essay.Content)
 	if clen > LimitMaxContentLen || clen < LimitMinContentLen {
 		return nil, ErrBadContentLen
@@ -114,8 +134,6 @@ func (h SubdisceptoH) createEssay(essay *models.Essay) (*EssayH, error) {
 			"attributed_to_id",
 			"published",
 			"posted_in",
-			"in_reply_to",
-			"reply_type",
 		).
 		Suffix("RETURNING id").
 		Values(
@@ -124,20 +142,18 @@ func (h SubdisceptoH) createEssay(essay *models.Essay) (*EssayH, error) {
 			essay.AttributedToID,
 			essay.Published,
 			h.subdiscepto,
-			essay.InReplyTo,
-			essay.ReplyType,
 		).
 		ToSql()
 
-	err := execTx(context.Background(), *h.sharedDB, func(ctx context.Context, tx pgx.Tx) error {
-		row := tx.QueryRow(ctx, sql, args...)
-		err := row.Scan(&essay.ID)
-		if err != nil {
-			return err
-		}
-		err = insertTags(ctx, tx, essay)
-		return err
-	})
+	row := tx.QueryRow(context.Background(), sql, args...)
+	err := row.Scan(&essay.ID)
+	if err != nil {
+		return nil, err
+	}
+	err = insertTags(context.Background(), tx, essay)
+	if err != nil {
+		return nil, err
+	}
 	essayPerms := models.EssayPerms{
 		DeleteEssay:   true,
 		ChangeRanking: false,
@@ -231,31 +247,17 @@ func (h SubdisceptoH) deleteSubdiscepto() error {
 }
 
 // Returns the permissions corresponding to a user inside a subdiscepto.
-// The user may have multiple roles:
-// - preset (already defined when Discepto is installed)
-// - custom (defined by community admins at runtime)
-// The user may have a global role, granting him permissions inside every subdiscepto.
-// That means we have 3 tables to check:
-// - user_preset_sub_roles
-// - user_custom_sub_roles
-// - user_global_roles
+// The user may have multiple roles and may also have a global role,
+// granting him permissions inside every subdiscepto.
 // We simply fetch all the roles assigned to a user, get the corresponding permission row
 // and UNION the results. Then we use the aggregate function "bool_or" to sum
 // every premission. The result is 1 row with the correct permissions.
 func getSubPerms(db *pgxpool.Pool, subdiscepto string, uH UserH) (perms *models.SubPerms, err error) {
 	// TODO: Check global roles
 
-	queryPresetSubRoles := sq.Select("sub_perms_id").
-		From("user_preset_sub_roles").
-		Join("preset_sub_roles ON user_preset_sub_roles.role_name = preset_sub_roles.name").
-		Where(sq.Eq{"user_preset_sub_roles.subdiscepto": subdiscepto, "user_id": uH.ID()})
-
-	queryCustomSubPerms := sq.Select("sub_perms_id").
-		From("user_custom_sub_roles").
-		Join("custom_sub_roles ON user_custom_sub_roles.role_name = custom_sub_roles.name AND user_custom_sub_roles.subdiscepto = custom_sub_roles.subdiscepto").
-		Where(sq.Eq{"custom_sub_roles.subdiscepto": subdiscepto, "user_id": uH.ID()})
-
-	queryAllSubPerms := queryPresetSubRoles.Suffix("UNION").SuffixExpr(queryCustomSubPerms)
+	querySubRolesPermsID := sq.Select("sub_perms_id").
+		From("user_sub_roles").
+		Where(sq.Eq{"subdiscepto": subdiscepto, "user_id": uH.id})
 
 	sql, args, _ := psql.
 		Select(
@@ -266,9 +268,10 @@ func getSubPerms(db *pgxpool.Pool, subdiscepto string, uH UserH) (perms *models.
 			bool_or("delete_subdiscepto"),
 			bool_or("add_mod"),
 		).
-		FromSelect(queryAllSubPerms, "user_perms_ids").
+		FromSelect(querySubRolesPermsID, "user_perms_ids").
 		Join("sub_perms ON sub_perms.id = user_perms_ids.sub_perms_id").
 		PlaceholderFormat(sq.Dollar).
+		Having("COUNT(*) > 0").
 		ToSql()
 
 	row := db.QueryRow(context.Background(), sql, args...)
@@ -318,14 +321,7 @@ func (h *SubdisceptoH) addMember(uH UserH) error {
 		}
 
 		// Add "common" role
-		sql, args, _ = psql.
-			Insert("user_custom_sub_roles").
-			Columns("subdiscepto", "user_id", "role_name").
-			Values(h.subdiscepto, uH.id, "common").
-			ToSql()
-
-		_, err = tx.Exec(ctx, sql, args...)
-		return err
+		return assignNamedSubRole(tx, uH.id, h.subdiscepto, "common", false)
 	})
 }
 func (h *SubdisceptoH) removeMember(uH UserH) error {

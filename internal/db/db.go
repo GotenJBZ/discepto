@@ -124,7 +124,7 @@ func (sdb *SharedDB) CreateUser(user *models.User, passwd string) (uH *UserH, er
 			Suffix("RETURNING id").
 			ToSql()
 
-		row := sdb.db.QueryRow(context.Background(), sql, args...)
+		row := tx.QueryRow(context.Background(), sql, args...)
 		err = row.Scan(&user.ID)
 		if err != nil {
 			return err
@@ -133,23 +133,21 @@ func (sdb *SharedDB) CreateUser(user *models.User, passwd string) (uH *UserH, er
 		// Assign admin role if first user
 		sql, args, _ = psql.Select("COUNT(*)").From("users").ToSql()
 		c := 0
-		row = sdb.db.QueryRow(context.Background(), sql, args...)
+		row = tx.QueryRow(context.Background(), sql, args...)
 		err = row.Scan(&c)
 		if err != nil {
 			return err
 		}
 
 		if c == 1 {
-			sql, args, _ = psql.
-				Insert("user_global_roles").
-				Columns("user_id", "role_name").
-				Values(user.ID, "admin").
-				ToSql()
-			_, err = sdb.db.Exec(context.Background(), sql, args...)
+			err := assignNamedGlobalRole(tx, user.ID, "admin", true)
 			return err
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	// Return handle to this user
 	uH = &UserH{
@@ -256,6 +254,33 @@ func execTx(ctx context.Context, db pgxpool.Pool, txFunc func(context.Context, p
 func bool_or(col string) string {
 	return fmt.Sprintf("bool_or(%s) AS %s", col, col)
 }
+func assignNamedGlobalRole(q pgx.Tx, userID int, role string, preset bool) error {
+	sql, args, _ := sq.
+		Insert("user_global_roles").
+		Columns("user_id", "global_perms_id", "sub_perms_id").
+		Select(sq.Select(fmt.Sprint(userID), "global_perms_id", "sub_perms_id").
+			From("global_roles").
+			Where(sq.Eq{
+				"name":   role,
+				"preset": preset,
+			})).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+
+	fmt.Println(sql)
+	_, err := q.Exec(context.Background(), sql, args...)
+	return err
+}
+func assignNamedSubRole(q pgx.Tx, userID int, sub string, role string, preset bool) error {
+	sql := `
+INSERT INTO user_sub_roles (subdiscepto, user_id, sub_perms_id)
+SELECT $1, $2, sub_perms_id
+FROM sub_roles
+WHERE (subdiscepto = $3 OR subdiscepto IS NULL) AND name = $4 AND preset = $5
+`
+	_, err := q.Exec(context.Background(), sql, sub, userID, sub, role, preset)
+	return err
+}
 
 func (sdb *SharedDB) ListMySubdisceptos(userH UserH) (subs []string, err error) {
 	sql, args, _ := psql.
@@ -273,8 +298,8 @@ func (sdb *SharedDB) ListMySubdisceptos(userH UserH) (subs []string, err error) 
 func (sdb *SharedDB) CreateReport(report *models.Report) error {
 	sql, args, _ := psql.
 		Insert("reports").
-		Columns("flag", "essay_id", "from_user_id", "to_user_id").
-		Values(report.Flag, report.EssayID, report.FromUserID, report.ToUserID).
+		Columns("flag", "essay_id", "from_user_id").
+		Values(report.Flag, report.EssayID, report.FromUserID).
 		Suffix("RETURNING id").
 		ToSql()
 	row := sdb.db.QueryRow(context.Background(), sql, args...)

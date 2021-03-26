@@ -15,5 +15,4 @@ type Report struct {
 	Description string
 	EssayID     *int `db:"essay_id"` // pointer because it can be null
 	FromUserID  int  `db:"from_user_id"`
-	ToUserID    int  `db:"to_user_id"`
 }

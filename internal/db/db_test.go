@@ -173,7 +173,10 @@ func TestEssay(t *testing.T) {
 	essay3 := mockEssay(user.ID)
 	essay3.InReplyTo = sql.NullInt32{Int32: int32(essay2.ID), Valid: true}
 	essay3.ReplyType = models.ReplyTypeSupports
-	require.Nil(subH.CreateEssay(essay3))
+	parentEssayH, err := sub2H.GetEssayH(essay2.ID, *userH)
+	require.Nil(err)
+	_, err = sub2H.CreateEssayReply(essay3, *parentEssayH)
+	require.Nil(err)
 	//// list
 	//essays, err = db.ListEssayReplies(essay2.ID, essay3.ReplyType)
 	//require.Nil(err)
@@ -263,7 +266,8 @@ func TestSubdiscepto(t *testing.T) {
 		require.Nil(err)
 
 		subH, err := db.GetSubdisceptoH(mockSubdiscepto().Name, userH)
-		userH.JoinSub(*subH)
+		require.Nil(err)
+		err = userH.JoinSub(*subH)
 		require.Nil(err)
 
 		mySubs, err := db.ListMySubdisceptos(*userH)
