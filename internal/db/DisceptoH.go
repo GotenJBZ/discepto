@@ -6,13 +6,11 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
 type DisceptoH struct {
-	sharedDB    *pgxpool.Pool
+	sharedDB    DBTX
 	globalPerms models.GlobalPerms
 }
 
@@ -68,7 +66,7 @@ func (h *DisceptoH) createSubdiscepto(uH UserH, subd *models.Subdiscepto) (*Subd
 	}
 
 	firstUserID := uH.id
-	err := execTx(context.Background(), *h.sharedDB, func(ctx context.Context, tx pgx.Tx) error {
+	err := execTx(context.Background(), h.sharedDB, func(ctx context.Context, tx DBTX) error {
 		// Insert subdiscepto
 		sql, args, _ := psql.
 			Insert("subdisceptos").

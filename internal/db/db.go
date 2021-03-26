@@ -11,6 +11,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"gitlab.com/ranfdev/discepto/internal/models"
@@ -33,8 +34,15 @@ var ErrEmailAlreadyUsed error = errors.New("The email is already used")
 var ErrInvalidFormat error = errors.New("Invalid format")
 var ErrPermDenied = errors.New("Not enough permissions to execute this action")
 
+type DBTX interface {
+	Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
+	Begin(ctx context.Context) (pgx.Tx, error)
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+}
+
 type SharedDB struct {
-	db         *pgxpool.Pool
+	db         DBTX
 	config     *models.EnvConfig
 	bcryptCost int
 }
@@ -115,7 +123,7 @@ func (sdb *SharedDB) CreateUser(user *models.User, passwd string) (uH *UserH, er
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(passwd), sdb.bcryptCost)
 
-	err = execTx(context.Background(), *sdb.db, func(ctx context.Context, tx pgx.Tx) error {
+	err = execTx(context.Background(), sdb.db, func(ctx context.Context, tx DBTX) error {
 		// Insert the new user
 		sql, args, _ := psql.
 			Insert("users").
@@ -235,7 +243,7 @@ func (sdb *SharedDB) ListRecentEssaysIn(subs []string) (essays []*models.Essay, 
 	return essays, nil
 }
 
-func execTx(ctx context.Context, db pgxpool.Pool, txFunc func(context.Context, pgx.Tx) error) error {
+func execTx(ctx context.Context, db DBTX, txFunc func(context.Context, DBTX) error) error {
 	tx, err := db.Begin(ctx)
 	if err != nil {
 		return err
@@ -254,7 +262,7 @@ func execTx(ctx context.Context, db pgxpool.Pool, txFunc func(context.Context, p
 func bool_or(col string) string {
 	return fmt.Sprintf("bool_or(%s) AS %s", col, col)
 }
-func assignNamedGlobalRole(q pgx.Tx, userID int, role string, preset bool) error {
+func assignNamedGlobalRole(tx DBTX, userID int, role string, preset bool) error {
 	sql, args, _ := sq.
 		Insert("user_global_roles").
 		Columns("user_id", "global_perms_id", "sub_perms_id").
@@ -268,17 +276,17 @@ func assignNamedGlobalRole(q pgx.Tx, userID int, role string, preset bool) error
 		ToSql()
 
 	fmt.Println(sql)
-	_, err := q.Exec(context.Background(), sql, args...)
+	_, err := tx.Exec(context.Background(), sql, args...)
 	return err
 }
-func assignNamedSubRole(q pgx.Tx, userID int, sub string, role string, preset bool) error {
+func assignNamedSubRole(db DBTX, userID int, sub string, role string, preset bool) error {
 	sql := `
 INSERT INTO user_sub_roles (subdiscepto, user_id, sub_perms_id)
 SELECT $1, $2, sub_perms_id
 FROM sub_roles
 WHERE (subdiscepto = $3 OR subdiscepto IS NULL) AND name = $4 AND preset = $5
 `
-	_, err := q.Exec(context.Background(), sql, sub, userID, sub, role, preset)
+	_, err := db.Exec(context.Background(), sql, sub, userID, sub, role, preset)
 	return err
 }
 

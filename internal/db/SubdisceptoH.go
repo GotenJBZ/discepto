@@ -6,14 +6,13 @@ import (
 
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
 
 	sq "github.com/Masterminds/squirrel"
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
 type SubdisceptoH struct {
-	sharedDB    *pgxpool.Pool
+	sharedDB    DBTX
 	subdiscepto string
 	subPerms    models.SubPerms
 }
@@ -55,7 +54,7 @@ func (h SubdisceptoH) CreateEssay(e *models.Essay) (*EssayH, error) {
 		return nil, ErrPermDenied
 	}
 	var essay *EssayH
-	return essay, execTx(context.Background(), *h.sharedDB, func(ctx context.Context, tx pgx.Tx) error {
+	return essay, execTx(context.Background(), h.sharedDB, func(ctx context.Context, tx DBTX) error {
 		var err error
 		essay, err = h.createEssay(tx, e)
 		return err
@@ -66,7 +65,7 @@ func (h SubdisceptoH) CreateEssayReply(e *models.Essay, pH EssayH) (*EssayH, err
 		return nil, ErrPermDenied
 	}
 	var essay *EssayH
-	return essay, execTx(context.Background(), *h.sharedDB, func(ctx context.Context, tx pgx.Tx) error {
+	return essay, execTx(context.Background(), h.sharedDB, func(ctx context.Context, tx DBTX) error {
 		var err error
 		essay, err = h.createEssay(tx, e)
 		if err != nil {
@@ -76,8 +75,8 @@ func (h SubdisceptoH) CreateEssayReply(e *models.Essay, pH EssayH) (*EssayH, err
 		return err
 	})
 }
-func createReply(ctx context.Context, tx pgx.Tx, e *models.Essay) error {
-	_, err := tx.Exec(ctx,
+func createReply(ctx context.Context, db DBTX, e *models.Essay) error {
+	_, err := db.Exec(ctx,
 		"INSERT INTO essay_replies (from_id, to_id, reply_type) VALUES ($1, $2, $3)",
 		e.ID, e.InReplyTo, e.ReplyType)
 	return err
@@ -119,7 +118,7 @@ func (h SubdisceptoH) ListReplies(e EssayH, replyType string) ([]*models.Essay, 
 	return h.listReplies(e, replyType)
 }
 
-func (h SubdisceptoH) createEssay(tx pgx.Tx, essay *models.Essay) (*EssayH, error) {
+func (h SubdisceptoH) createEssay(tx DBTX, essay *models.Essay) (*EssayH, error) {
 	clen := len(essay.Content)
 	if clen > LimitMaxContentLen || clen < LimitMinContentLen {
 		return nil, ErrBadContentLen
@@ -160,7 +159,7 @@ func (h SubdisceptoH) createEssay(tx pgx.Tx, essay *models.Essay) (*EssayH, erro
 	}
 	return &EssayH{h.sharedDB, essay.ID, essayPerms}, err
 }
-func insertTags(ctx context.Context, tx pgx.Tx, essay *models.Essay) error {
+func insertTags(ctx context.Context, db DBTX, essay *models.Essay) error {
 	// Insert essay tags
 	if len(essay.Tags) > LimitMaxTags {
 		return ErrTooManyTags
@@ -183,7 +182,7 @@ func insertTags(ctx context.Context, tx pgx.Tx, essay *models.Essay) error {
 			Values(essay.ID, tag).
 			ToSql()
 
-		_, err := tx.Exec(ctx,
+		_, err := db.Exec(ctx,
 			sql, args...)
 		if err != nil {
 			return fmt.Errorf("Error inserting essay_tag in db: %w", err)
@@ -252,7 +251,7 @@ func (h SubdisceptoH) deleteSubdiscepto() error {
 // We simply fetch all the roles assigned to a user, get the corresponding permission row
 // and UNION the results. Then we use the aggregate function "bool_or" to sum
 // every premission. The result is 1 row with the correct permissions.
-func getSubPerms(db *pgxpool.Pool, subdiscepto string, uH UserH) (perms *models.SubPerms, err error) {
+func getSubPerms(db DBTX, subdiscepto string, uH UserH) (perms *models.SubPerms, err error) {
 	// TODO: Check global roles
 
 	querySubRolesPermsID := sq.Select("sub_perms_id").
@@ -291,7 +290,7 @@ func getSubPerms(db *pgxpool.Pool, subdiscepto string, uH UserH) (perms *models.
 	}
 	return perms, nil
 }
-func isPublic(db *pgxpool.Pool, subdiscepto string, userID int) bool {
+func isPublic(db DBTX, subdiscepto string, userID int) bool {
 	sql, args, _ := sq.
 		Select("1").
 		From("subdisceptos").
@@ -308,7 +307,7 @@ func isPublic(db *pgxpool.Pool, subdiscepto string, userID int) bool {
 	return true
 }
 func (h *SubdisceptoH) addMember(uH UserH) error {
-	return execTx(context.Background(), *h.sharedDB, func(ctx context.Context, tx pgx.Tx) error {
+	return execTx(context.Background(), h.sharedDB, func(ctx context.Context, tx DBTX) error {
 		sql, args, _ := psql.
 			Insert("subdiscepto_users").
 			Columns("subdiscepto", "user_id").

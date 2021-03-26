@@ -4,19 +4,18 @@ import (
 	"context"
 
 	"github.com/georgysavva/scany/pgxscan"
-	"github.com/jackc/pgx/v4/pgxpool"
 
 	sq "github.com/Masterminds/squirrel"
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
 type EssayH struct {
-	sharedDB   *pgxpool.Pool
+	sharedDB   DBTX
 	id         int
 	essayPerms models.EssayPerms
 }
 
-func isEssayOwner(db *pgxpool.Pool, essayID int, userID int) bool {
+func isEssayOwner(db DBTX, essayID int, userID int) bool {
 	sql, args, _ := psql.
 		Select("1").
 		From("essays").

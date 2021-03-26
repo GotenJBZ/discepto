@@ -10,9 +10,9 @@ require (
 	github.com/google/go-cmp v0.5.3 // indirect
 	github.com/gorilla/sessions v1.2.1
 	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/jackc/pgconn v1.8.0
 	github.com/jackc/pgx/v4 v4.10.1
 	github.com/lib/pq v1.9.0 // indirect
-	github.com/markbates/pkger v0.17.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/rs/zerolog v1.15.0
 	github.com/stretchr/objx v0.3.0 // indirect

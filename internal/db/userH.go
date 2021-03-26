@@ -5,7 +5,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
@@ -16,7 +15,7 @@ type userPerms struct {
 type UserH struct {
 	id       int
 	perms    userPerms
-	sharedDB *pgxpool.Pool
+	sharedDB DBTX
 }
 
 func ToUserH(t interface{}) (*UserH, bool) {
