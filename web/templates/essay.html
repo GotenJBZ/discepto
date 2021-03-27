@@ -1,12 +1,18 @@
 {{ define "essay" }} {{ template "head" . }}
+<style>
+    body {
+        background-color: #EFEFEF;
+    }
+</style>
 </head>
 
-<body bgcolor="#EFEFEF" style="min-height: 100%;">
+<body class="body">
     {{ template "navbar" .}}
     <br>
     <div class="container">
         <div class="columns">
             <div class="column is-9">
+
                 <div class="box">
                     <div class="media">
                         <div class="media-left">
@@ -15,14 +21,14 @@
                             </figure>
                         </div>
                         <div class="media-content">
-                            <p class="title is-4">{{.Thesis}}</p>
-                            <p class="subtitle is-6"><a href="#">@utente</a>&nbsp; <time datetime="2018-1-1">{{ .Published }}</time></p>
+                            <p class="title is-4">{{ .Essay.Thesis}}</p>
+                            <p class="subtitle is-6"><a href="#">@utente</a>&nbsp; <time datetime="2018-1-1">{{ .Essay.Published }}</time></p>
                         </div>
                         <div class="media-right">
-                            {{if eq .ReplyType "supports" }}
-                            <button class="button is-success is-light">supports</button> {{ else if eq .ReplyType "refutes"}}
-                            <button class="button is-danger is-light">refutes</button> {{ else }}
-                            <button class="button is-warning is-light">General</button> {{ end }}
+                            {{if eq .Essay.ReplyType "supports" }}
+                            <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .Essay.ReplyType "refutes"}}
+                            <span class="tag is-danger is-light is-medium">refutes</button> {{ else }}
+                            <span class="tag is-warning is-light is-medium">General</button> {{ end }}
                         </div>
                     </div>
                     <br>
@@ -35,7 +41,7 @@
                     <div class="card-content">
 
                         <div class="content" style="padding: 15px;">
-                            {{ .Content }}
+                            {{ .Essay.Content }}
                             <br>
 
                         </div>
@@ -48,46 +54,69 @@
                                     <span class=" icon is-small has-text-danger ">
 										<i class="fa fa-heart " aria-hidden="true "></i>
 									</span>
-                                </a>
-                                <p>{{ .Upvotes }} &nbsp;</p>
-                                <a onclick="send_vote('upvote')" class="level-item " aria-label="reply">
-                                    <span class="icon is-small has-text-primary ">
+                            </a>
+                            <p>{{ .Essay.Upvotes }} &nbsp;</p>
+                            <a onclick="send_vote('upvote')" class="level-item " aria-label="reply">
+                                <span class="icon is-small has-text-primary ">
 										<i class="fa fa-arrow-up " aria-hidden="true "></i>
 									</span>
-                                </a>
-                                <p>{{ .Downvotes }} &nbsp;</p>
-                                <a onclick="send_vote('downvote')" class="level-item " aria-label="retweet">
-                                    <span class="icon is-small has-text-primary ">
+                            </a>
+                            <p>{{ .Essay.Downvotes }} &nbsp;</p>
+                            <a onclick="send_vote('downvote')" class="level-item " aria-label="retweet">
+                                <span class="icon is-small has-text-primary ">
 										<i class="fa fa-arrow-down " aria-hidden="true "></i>
 									</span>
-                                </a>
-                                <a href='/essays/{{.ID}}/report' class="level-item " aria-label="like ">
-                                    <span class="icon is-small has-text-danger ">
+                            </a>
+                            <a href='/essays/{{.Essay.ID}}/report' class="level-item " aria-label="like ">
+                                <span class="icon is-small has-text-danger ">
 										<i class="fa fa-ban " aria-hidden="true "></i>
 									</span>
-                                </a>
-                            </div>
+                            </a>
+                        </div>
 
-                            <script>
-                                function send_vote(type) {
-                                    fetch('/essays/{{.ID}}/vote', {
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/x-www-form-urlencoded',
-                                        },
-                                        body: 'vote=' + type
+                        <script>
+                            function send_vote(type) {
+                                fetch('/essays/{{.Essay.ID}}/vote', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/x-www-form-urlencoded',
+                                    },
+                                    body: 'vote=' + type
 
-                                    });
-                                }
-                            </script>
-
-                            <a class="button is-rouded is-primary " type="button " name="button " href="/newessay?inReplyTo={{ .ID }}">Reply</a>
+                                });
+                            }
+                        </script>
                         </nav>
                     </div>
                 </div>
 
                 <br>
                 <h1 class="title is-2 ">Replies</h1>
+
+
+                <a href="/newessay?inReplyTo={{ .Essay.ID }}&subdiscepto={{ .Essay.PostedIn }}">
+                    <div class="box">
+                        <article class="media">
+                            <figure class="media-left">
+                                <p class="image is-64x64">
+                                    <img class="is-rounded" src="https://bulma.io/images/placeholders/128x128.png">
+                                </p>
+                            </figure>
+                            <div class="media-content">
+                                <div class="content">
+                                    <p class="title is-7"></p>
+                                    <input class="input is-primary" type="text" placeholder="Write an essay" readonly>
+                                </div>
+
+                            </div>
+                        </article>
+                    </div>
+                </a>
+
+                <br>
+
+
+
 
                 <div class="box " style="cursor: pointer; " onclick="window.location='/essay/1' ; ">
                     <article class="media ">
@@ -134,7 +163,7 @@
                             </nav>
                         </div>
                         <div class="media-right ">
-                            <button class="button is-warning is-light ">General</button>
+                            <span class="tag is-primary is-light is-medium">Supports</span>
                         </div>
                     </article>
                 </div>
@@ -148,7 +177,7 @@
                 <div class="card ">
                     <nav class="panel is-primary ">
                         <p class="panel-heading ">Fonti</p>
-                        {{ range .Sources }}
+                        {{ range .Essay.Sources }}
                         <a class="panel-block ">{{ . }}</a> {{ end }}
                     </nav>
                 </div>
@@ -164,9 +193,15 @@
                                 </figure>
                             </div>
                             &nbsp;&nbsp;
+<<<<<<< HEAD
                             <div class="media-content">
                                 <p class="title is-4">s/subdiscepto</p>
                                 <p class="subtitle is-6">666 mebri</p>
+=======
+                            <div class="media-content ">
+                                <p class="title is-4 ">s/{{ .Essay.PostedIn }}</p>
+                                <p class="subtitle is-6 ">666 mebri</p>
+>>>>>>> 24b28bf (add write_an_essay btn, fix new essay page, fix typo)
                             </div>
                         </div>
 
@@ -181,16 +216,9 @@
 
                 <div class="card ">
                     <nav class="panel is-primary ">
-                        <p class="panel-heading ">Your Communities</p>
-                        <a href="s/dio " class="panel-block ">
-                            bulma
-                        </a>
-                        <a href="s/dio " class="panel-block ">
-                            asdf
-                        </a>
-                        <a href="s/dio " class="panel-block ">
-                            asdfg
-                        </a>
+                        <p class="panel-heading">Your Communities</p>
+                        {{ range $s := .SubdisceptoList }}
+                        <a href="/s/{{.}}" class="panel-block">s/{{.}}</a>{{end}}
                     </nav>
                 </div>
             </div>

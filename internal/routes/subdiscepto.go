@@ -109,10 +109,12 @@ func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 	return nil
 }
 func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError {
+	user, ok := r.Context().Value("user").(*models.User)
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
+
 	essay, err := routes.db.GetEssay(id)
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
@@ -123,6 +125,21 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrInternal{Cause: err}
 	}
 
-	routes.tmpls.RenderHTML(w, "essay", essay)
+	var subs []string
+	if ok {
+		subs, err = routes.db.ListMySubdisceptos(user.ID)
+	}
+
+	data := struct {
+		Essay 				*models.Essay
+		SubdisceptoList 	[]string
+	}{
+		Essay:				essay,
+		SubdisceptoList: 	subs,
+	}
+
+
+	routes.tmpls.RenderHTML(w, "essay", data)
 	return nil
 }
+

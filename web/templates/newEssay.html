@@ -10,11 +10,11 @@
 
 
                 <div class="field">
-                    <h1 class="title is-1">Make. Discepto. Now</h1>
+                    <h1 class="title is-1">Write a new essay</h1>
                 </div>
                 <br>
                 <div class="field">
-                    <label for="" class="label">Title</label>
+                    <label class="label">Title</label>
                     <div class="control has-icons-left">
                         <input type="text" placeholder="Title of your discepto" class="input is-primary" name="thesis" required>
                         <span class="icon is-small is-left">
@@ -23,54 +23,45 @@
                     </div>
                 </div>
 
+                <div class="field">
+                    {{ if or (.InReplyTo.Valid) (not (eq .PostedIn "")) }}
+                    <input value="{{ .PostedIn }}" name="postedIn" type="hidden"> {{ else }}
+                    <label class="label">Community</label>
+                    <div class="select is-primary">
+                        <select name="postedIn">
+                                    {{ range .MySubdisceptos }}
+                                    <option value="{{ . }}">{{ . }}</option>
+                                {{ end }}
+                            </select></div> {{ end }}
+                </div>
+
+                {{ if .InReplyTo.Valid }}
+
+                <div class="field">
+                    <input type="hidden" class="input is-primary" name="inReplyTo" value="{{.InReplyTo.Int32}}">
+                    <label class="label">Reply type</label>
 
 
+                    <div class="control">
+                        <label class="radio">
+                            <input type="radio" name="replyType" value="supports" checked> supports
+                        </label>
+                        <label class="radio">
+                            <input type="radio" name="replyType" value="refutes"> refutes
+                        </label>
+                        <label class="radio">
+                            <input type="radio" name="replyType" value="general"> general
+                        </label>
+                    </div>
+                </div>
+
+                {{ end }}
 
 
                 <div class="field">
-                    {{ if .InReplyTo.Valid }}
-                    <div class="select is-primary" style="display: none">
-                        {{ else }}
-                        <label class="label">Community</label>
-                        <div class="select is-primary">
-                            {{ end }}
-
-
-                            <select name="postedIn">
-                            {{ range .MySubdisceptos }}
-                          <option value="{{ . }}">{{ . }}</option>
-                          {{ end }}
-                        </select>
-                        </div>
-                    </div>
-
-                    {{ if .InReplyTo.Valid }}
-
-                    <div class="field">
-                        <input type="hidden" class="input is-primary" name="inReplyTo" value="{{.InReplyTo.Int32}}">
-                        <label for="" class="label">Reply type</label>
-
-
-                        <div class="control">
-                            <label class="radio">
-                            <input type="radio" name="replyType" value="supports" checked> supports
-                        </label>
-                            <label class="radio">
-                            <input type="radio" name="replyType" value="refutes"> refutes
-                        </label>
-                            <label class="radio">
-                            <input type="radio" name="replyType" value="general"> general
-                        </label>
-                        </div>
-                    </div>
-
-                    {{ end }}
-
-
-                    <div class="field">
-                        <label for="" class="label">Content</label>
-                        <div class="file is-warning">
-                            <label class="file-label">
+                    <label class="label">Content</label>
+                    <div class="file is-warning">
+                        <label class="file-label">
                         <input class="file-input" type="file" name="file">
                         <span class="file-cta">
                             <span class="file-icon">
@@ -81,163 +72,163 @@
                             </span>
                         </span>
                     </label>
+                    </div>
+                </div>
+
+
+                <div class="field">
+                    <label class="label">Text</label>
+                    <textarea id="DisceptoContent"></textarea>
+                    <input name="content" type="hidden">
+                </div>
+
+                <div class="field">
+                    <label class="label">Tags</label>
+                    <div class="control">
+                        <input type="text" placeholder="Insert tags" class="input is-primary" required name="tags">
+                    </div>
+                    <p class="help">Insert tags separated by commas e.g. tags1,tags2,tags3</p>
+                </div>
+
+
+                <div class="field">
+                    <label class="label">First Question</label>
+                    <div class="control">
+                        <input type="text" placeholder="Insert the first question" class="input is-primary" required>
+                    </div>
+                    <p class="help">The first answer is the right one</p>
+                </div>
+
+                <div class="field is-horizontal">
+                    <div class="field-body">
+                        <div class="field">
+                            <p class="control is-expanded">
+                                <input class="input is-warning" type="text" placeholder="First answer">
+                            </p>
+                        </div>
+                        <div class="field">
+                            <p class="control is-expanded">
+                                <input class="input is-warning" type="text" placeholder="Second answer">
+                            </p>
                         </div>
                     </div>
+                </div>
 
-
-                    <div class="field">
-                        <label for="" class="label">Text</label>
-                        <textarea id="DisceptoContent"></textarea>
-                        <input name="content" type="hidden">
-                    </div>
-
-                    <div class="field">
-                        <label for="" class="label">Tags</label>
-                        <div class="control">
-                            <input type="text" placeholder="Insert tags" class="input is-primary" required name="tags">
+                <div class="field is-horizontal">
+                    <div class="field-body">
+                        <div class="field">
+                            <p class="control is-expanded">
+                                <input class="input is-warning" type="text" placeholder="Third answer">
+                            </p>
                         </div>
-                        <p class="help">Insert tags separated by commas e.g. tags1,tags2,tags3</p>
-                    </div>
-
-
-                    <div class="field">
-                        <label for="" class="label">First Question</label>
-                        <div class="control">
-                            <input type="text" placeholder="Insert the first question" class="input is-primary" required>
-                        </div>
-                        <p class="help">The first answer is the right one</p>
-                    </div>
-
-                    <div class="field is-horizontal">
-                        <div class="field-body">
-                            <div class="field">
-                                <p class="control is-expanded">
-                                    <input class="input is-warning" type="text" placeholder="First answer">
-                                </p>
-                            </div>
-                            <div class="field">
-                                <p class="control is-expanded">
-                                    <input class="input is-warning" type="text" placeholder="Second answer">
-                                </p>
-                            </div>
+                        <div class="field">
+                            <p class="control is-expanded">
+                                <input class="input is-warning" type="text" placeholder="Fourth answer">
+                            </p>
                         </div>
                     </div>
+                </div>
+                <div class="field">
+                    <label class="label">Second Question</label>
+                    <div class="control">
+                        <input type="text" placeholder="Insert the Second question" class="input is-primary" required>
+                    </div>
+                    <p class="help">The first answer is the right one</p>
+                </div>
 
-                    <div class="field is-horizontal">
-                        <div class="field-body">
-                            <div class="field">
-                                <p class="control is-expanded">
-                                    <input class="input is-warning" type="text" placeholder="Third answer">
-                                </p>
-                            </div>
-                            <div class="field">
-                                <p class="control is-expanded">
-                                    <input class="input is-warning" type="text" placeholder="Fourth answer">
-                                </p>
-                            </div>
+                <div class="field is-horizontal">
+                    <div class="field-body">
+                        <div class="field">
+                            <p class="control is-expanded">
+                                <input class="input is-warning" type="text" placeholder="First answer">
+                            </p>
+                        </div>
+                        <div class="field">
+                            <p class="control is-expanded">
+                                <input class="input is-warning" type="text" placeholder="Second answer">
+                            </p>
                         </div>
                     </div>
-                    <div class="field">
-                        <label for="" class="label">Second Question</label>
-                        <div class="control">
-                            <input type="text" placeholder="Insert the Second question" class="input is-primary" required>
-                        </div>
-                        <p class="help">The first answer is the right one</p>
-                    </div>
+                </div>
 
-                    <div class="field is-horizontal">
-                        <div class="field-body">
-                            <div class="field">
-                                <p class="control is-expanded">
-                                    <input class="input is-warning" type="text" placeholder="First answer">
-                                </p>
-                            </div>
-                            <div class="field">
-                                <p class="control is-expanded">
-                                    <input class="input is-warning" type="text" placeholder="Second answer">
-                                </p>
-                            </div>
+                <div class="field is-horizontal">
+                    <div class="field-body">
+                        <div class="field">
+                            <p class="control is-expanded">
+                                <input class="input is-warning" type="text" placeholder="Third answer">
+                            </p>
+                        </div>
+                        <div class="field">
+                            <p class="control is-expanded">
+                                <input class="input is-warning" type="text" placeholder="Fourth answer">
+                            </p>
                         </div>
                     </div>
+                </div>
+                <div class="field">
+                    <label class="label">Third Question</label>
+                    <div class="control">
+                        <input type="text" placeholder="Insert the Third question" class="input is-primary" required>
+                    </div>
+                    <p class="help">The first answer is the right one</p>
+                </div>
 
-                    <div class="field is-horizontal">
-                        <div class="field-body">
-                            <div class="field">
-                                <p class="control is-expanded">
-                                    <input class="input is-warning" type="text" placeholder="Third answer">
-                                </p>
-                            </div>
-                            <div class="field">
-                                <p class="control is-expanded">
-                                    <input class="input is-warning" type="text" placeholder="Fourth answer">
-                                </p>
-                            </div>
+                <div class="field is-horizontal">
+                    <div class="field-body">
+                        <div class="field">
+                            <p class="control is-expanded">
+                                <input class="input is-warning" type="text" placeholder="First answer">
+                            </p>
+                        </div>
+                        <div class="field">
+                            <p class="control is-expanded">
+                                <input class="input is-warning" type="text" placeholder="Second answer">
+                            </p>
                         </div>
                     </div>
-                    <div class="field">
-                        <label for="" class="label">Third Question</label>
-                        <div class="control">
-                            <input type="text" placeholder="Insert the Third question" class="input is-primary" required>
-                        </div>
-                        <p class="help">The first answer is the right one</p>
-                    </div>
+                </div>
 
-                    <div class="field is-horizontal">
-                        <div class="field-body">
-                            <div class="field">
-                                <p class="control is-expanded">
-                                    <input class="input is-warning" type="text" placeholder="First answer">
-                                </p>
-                            </div>
-                            <div class="field">
-                                <p class="control is-expanded">
-                                    <input class="input is-warning" type="text" placeholder="Second answer">
-                                </p>
-                            </div>
+                <div class="field is-horizontal">
+                    <div class="field-body">
+                        <div class="field">
+                            <p class="control is-expanded">
+                                <input class="input is-warning" type="text" placeholder="Third answer">
+                            </p>
+                        </div>
+                        <div class="field">
+                            <p class="control is-expanded">
+                                <input class="input is-warning" type="text" placeholder="Fourth answer">
+                            </p>
                         </div>
                     </div>
-
-                    <div class="field is-horizontal">
-                        <div class="field-body">
-                            <div class="field">
-                                <p class="control is-expanded">
-                                    <input class="input is-warning" type="text" placeholder="Third answer">
-                                </p>
-                            </div>
-                            <div class="field">
-                                <p class="control is-expanded">
-                                    <input class="input is-warning" type="text" placeholder="Fourth answer">
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                </div>
 
 
-                    <br>
-                    <div>
-                        <button class="button is-primary is-outlined" type="submit">Upload</button>
-                    </div>
+                <br>
+                <div>
+                    <button class="button is-primary is-outlined" type="submit">Upload</button>
+                </div>
             </section>
         </form>
-        </div>
+    </div>
 
 
 
 
 
-        <script>
-            var simplemde = new EasyMDE({
-                element: document.getElementById("DisceptoContent"),
-                spellChecker: false
-            });
-            var form = document.getElementById("formid");
-            var about = document.querySelector('input[name=content]');
+    <script>
+        var simplemde = new EasyMDE({
+            element: document.getElementById("DisceptoContent"),
+            spellChecker: false
+        });
+        var form = document.getElementById("formid");
+        var about = document.querySelector('input[name=content]');
 
-            form.onsubmit = function() {
-                about.value = simplemde.value();
-                form.submit();
-            };
-        </script>
+        form.onsubmit = function() {
+            about.value = simplemde.value();
+            form.submit();
+        };
+    </script>
 
 
 
