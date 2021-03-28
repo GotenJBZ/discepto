@@ -39,15 +39,20 @@ func getGlobalPerms(db DBTX, uH *UserH) models.GlobalPerms {
 // Returns the permissions corresponding to a user inside a subdiscepto.
 // The user may have multiple roles and may also have a global role,
 // granting him permissions inside every subdiscepto.
-// We simply fetch all the roles assigned to a user, get the corresponding permission row
-// and UNION the results. Then we use the aggregate function "bool_or" to sum
-// every premission. The result is 1 row with the correct permissions.
+// We simply fetch all the roles assigned to a user, get the corresponding permissions
+// id and UNION the results.
+// With the aggregate function "bool_or" we sum every premission.
+// The result is 1 row with the correct permissions.
 func getSubPerms(db DBTX, subdiscepto string, uH UserH) (perms *models.SubPerms, err error) {
-	// TODO: Check global roles
+	queryGlobalRolesPermsID := sq.Select("sub_perms_id").
+		From("user_global_roles").
+		Where(sq.Eq{"user_id": uH.id})
 
 	querySubRolesPermsID := sq.Select("sub_perms_id").
 		From("user_sub_roles").
 		Where(sq.Eq{"subdiscepto": subdiscepto, "user_id": uH.id})
+
+	everyPermsID := queryGlobalRolesPermsID.Suffix("UNION").SuffixExpr(querySubRolesPermsID)
 
 	sql, args, _ := psql.
 		Select(
@@ -58,7 +63,7 @@ func getSubPerms(db DBTX, subdiscepto string, uH UserH) (perms *models.SubPerms,
 			bool_or("delete_subdiscepto"),
 			bool_or("add_mod"),
 		).
-		FromSelect(querySubRolesPermsID, "user_perms_ids").
+		FromSelect(everyPermsID, "user_perms_ids").
 		Join("sub_perms ON sub_perms.id = user_perms_ids.sub_perms_id").
 		PlaceholderFormat(sq.Dollar).
 		Having("COUNT(*) > 0").
