@@ -102,7 +102,7 @@ func TestUser(t *testing.T) {
 
 	for _, td := range testData {
 		_, err := db.CreateUser(td.user, passwd)
-		require.Equal(err, td.err)
+		require.Equal(td.err, err)
 	}
 
 	err = userH.Delete()
@@ -128,7 +128,7 @@ func TestAuth(t *testing.T) {
 	// Retrieve user by token
 	userH, err := db.GetUserH(token)
 	require.Nil(err)
-	require.Equal(user.ID, userH.ID())
+	require.Equal(user.ID, userH.id)
 
 	// Sign out
 	require.Nil(db.Signout(token))
@@ -209,8 +209,8 @@ func TestVotes(t *testing.T) {
 	// Actual test
 	upvotes, downvotes, err := esH.CountVotes()
 	require.Nil(err)
-	require.Equal(upvotes, 0)
-	require.Equal(downvotes, 0)
+	require.Equal(0, upvotes)
+	require.Equal(0, downvotes)
 
 	// Add upvote
 	require.Nil(esH.CreateVote(*userH, models.VoteTypeUpvote))
@@ -218,8 +218,8 @@ func TestVotes(t *testing.T) {
 	// Check added upvote
 	upvotes, downvotes, err = esH.CountVotes()
 	require.Nil(err)
-	require.Equal(upvotes, 1)
-	require.Equal(downvotes, 0)
+	require.Equal(1, upvotes)
+	require.Equal(0, downvotes)
 
 	// Delete (needed to change vote type for same user)
 	require.Nil(esH.DeleteVote(*userH))
@@ -228,8 +228,8 @@ func TestVotes(t *testing.T) {
 	require.Nil(esH.CreateVote(*userH, models.VoteTypeDownvote))
 	upvotes, downvotes, err = esH.CountVotes()
 	require.Nil(err)
-	require.Equal(upvotes, 0)
-	require.Equal(downvotes, 1)
+	require.Equal(0, upvotes)
+	require.Equal(1, downvotes)
 
 	// Clean
 	require.Nil(esH.DeleteVote(*userH))
@@ -273,7 +273,7 @@ func TestSubdiscepto(t *testing.T) {
 		mySubs, err := userH.ListMySubdisceptos()
 		require.Nil(err)
 		require.Len(mySubs, 1)
-		require.Equal(mySubs[0], mockSubName)
+		require.Equal(mockSubName, mySubs[0])
 
 		err = userH.LeaveSub(*subH)
 		require.Nil(err)
@@ -350,29 +350,29 @@ func TestRoles(t *testing.T) {
 	require.Nil(err)
 
 	globalPerms := getGlobalPerms(db.db, userH)
-	require.Equal(globalPerms, models.GlobalPerms{
+	require.Equal(models.GlobalPerms{
 		Login:             true,
 		CreateSubdiscepto: true,
 		DeleteUser:        true,
 		BanUserGlobally:   true,
 		AddAdmin:          true,
-	})
+	}, globalPerms)
 	globalPerms2 := getGlobalPerms(db.db, user2H)
-	require.Equal(globalPerms2, models.GlobalPerms{
+	require.Equal(models.GlobalPerms{
 		Login:             true,
 		CreateSubdiscepto: false,
 		DeleteUser:        false,
 		BanUserGlobally:   false,
 		AddAdmin:          false,
-	})
+	}, globalPerms2)
 
 	subPerms, err := getSubPerms(db.db, subH.subdiscepto, *userH)
-	require.Equal(subPerms, &models.SubPermsOwner)
+	require.Equal(&models.SubPermsOwner, subPerms)
 	require.Nil(err)
 
 	subPerms2, err := getSubPerms(db.db, subH.subdiscepto, *user2H)
 	require.Nil(err)
-	require.Equal(subPerms2, &models.SubPerms{
+	require.Equal(&models.SubPerms{
 		Read:              true,
 		CreateEssay:       true,
 		DeleteSubdiscepto: false,
@@ -382,5 +382,5 @@ func TestRoles(t *testing.T) {
 			Read:        true,
 			DeleteEssay: false,
 		},
-	})
+	}, subPerms2)
 }
