@@ -332,3 +332,55 @@ func TestSearch(t *testing.T) {
 	require.Nil(subH.Delete())
 	require.Nil(userH.Delete())
 }
+func TestRoles(t *testing.T) {
+	require := require.New(t)
+	user := mockUser()
+	userH, err := db.CreateUser(user, mockPasswd)
+	require.Nil(err)
+	disceptoH := db.GetDisceptoH(userH)
+	subH, err := disceptoH.CreateSubdiscepto(*userH, mockSubdiscepto())
+	require.Nil(err)
+
+	user2 := user
+	user2.Email = "asdfasdf@fasdf.com"
+	user2H, err := db.CreateUser(user2, mockPasswd)
+	require.Nil(err)
+
+	err = user2H.JoinSub(*subH)
+	require.Nil(err)
+
+	globalPerms := getGlobalPerms(db.db, userH)
+	require.Equal(globalPerms, models.GlobalPerms{
+		Login:             true,
+		CreateSubdiscepto: true,
+		DeleteUser:        true,
+		BanUserGlobally:   true,
+		AddAdmin:          true,
+	})
+	globalPerms2 := getGlobalPerms(db.db, user2H)
+	require.Equal(globalPerms2, models.GlobalPerms{
+		Login:             true,
+		CreateSubdiscepto: false,
+		DeleteUser:        false,
+		BanUserGlobally:   false,
+		AddAdmin:          false,
+	})
+
+	subPerms, err := getSubPerms(db.db, subH.subdiscepto, *userH)
+	require.Equal(subPerms, &models.SubPermsOwner)
+	require.Nil(err)
+
+	subPerms2, err := getSubPerms(db.db, subH.subdiscepto, *user2H)
+	require.Nil(err)
+	require.Equal(subPerms2, &models.SubPerms{
+		Read:              true,
+		CreateEssay:       true,
+		DeleteSubdiscepto: false,
+		BanUser:           false,
+		AddMod:            false,
+		EssayPerms: models.EssayPerms{
+			Read:        true,
+			DeleteEssay: false,
+		},
+	})
+}

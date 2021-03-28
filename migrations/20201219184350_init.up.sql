@@ -61,19 +61,22 @@ CREATE TABLE sub_roles (
 INSERT INTO global_perms
 (id,    login,  create_subdiscepto,  hide_subdiscepto,  ban_user_globally,  delete_user, add_admin)
 OVERRIDING SYSTEM VALUE VALUES                                                                
-(-123,  true,   true,                true,              true,               true,        true);
+(-123,  true,   true,                true,              true,               true,        true),
+(0,  	true,   false,               false,             false,              false,       false);
 
 INSERT INTO sub_perms
 (id,    create_essay,  delete_essay,  ban_user,  change_ranking,  delete_subdiscepto,  add_mod)
 OVERRIDING SYSTEM VALUE VALUES
 (-123,  true,          true,          true,      true,            true,                true),
 (-100,  true,          true,          true,      true,            true,                false),
-(-99,   true,          false,         false,     true,            false,               false);
+(-99,   true,          false,         false,     true,            false,               false),
+(0,   	false,         false,         false,     false,           false,               false);
 
 INSERT INTO global_roles
 (global_perms_id, sub_perms_id, name, preset)
 VALUES
-(-123, -123, 'admin', true);
+(-123, -123, 'admin', true),
+(0, 0, 	    'common', true);
 
 INSERT INTO sub_roles
 (sub_perms_id, subdiscepto, name, preset)

@@ -77,6 +77,10 @@ func (sdb *SharedDB) CreateUser(user *models.User, passwd string) (uH *UserH, er
 			err := assignNamedGlobalRole(tx, user.ID, "admin", true)
 			return err
 		}
+		err := assignNamedGlobalRole(tx, user.ID, "common", true)
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
