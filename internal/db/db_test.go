@@ -355,7 +355,7 @@ func TestRoles(t *testing.T) {
 		CreateSubdiscepto: true,
 		DeleteUser:        true,
 		BanUserGlobally:   true,
-		AddAdmin:          true,
+		AssignGlobalRoles: true,
 	}, globalPerms)
 	globalPerms2 := getGlobalPerms(db.db, user2H)
 	require.Equal(models.GlobalPerms{
@@ -363,7 +363,7 @@ func TestRoles(t *testing.T) {
 		CreateSubdiscepto: false,
 		DeleteUser:        false,
 		BanUserGlobally:   false,
-		AddAdmin:          false,
+		AssignGlobalRoles: false,
 	}, globalPerms2)
 
 	subPerms, err := getSubPerms(db.db, subH.subdiscepto, *userH)
@@ -375,12 +375,9 @@ func TestRoles(t *testing.T) {
 	require.Equal(&models.SubPerms{
 		Read:              true,
 		CreateEssay:       true,
+		DeleteEssay:       false,
 		DeleteSubdiscepto: false,
 		BanUser:           false,
-		AddMod:            false,
-		EssayPerms: models.EssayPerms{
-			Read:        true,
-			DeleteEssay: false,
-		},
+		AssignRoles:       false,
 	}, subPerms2)
 }

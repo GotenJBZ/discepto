@@ -1,21 +1,19 @@
 package models
 
 type SubPerms struct {
-	Read bool
-	EssayPerms
+	Read              bool
 	CreateEssay       bool
+	DeleteEssay       bool
 	BanUser           bool
 	DeleteSubdiscepto bool
-	AddMod            bool
+	AssignRoles       bool
 }
 
 var SubPermsOwner SubPerms = SubPerms{
-	Read: true,
-	EssayPerms: EssayPerms{
-		true, true, true,
-	},
+	Read:              true,
 	CreateEssay:       true,
+	DeleteEssay:       true,
 	BanUser:           true,
 	DeleteSubdiscepto: true,
-	AddMod:            true,
+	AssignRoles:       true,
 }

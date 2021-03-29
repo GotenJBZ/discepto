@@ -16,7 +16,7 @@ func getGlobalPerms(db DBTX, uH *UserH) models.GlobalPerms {
 			bool_or("create_subdiscepto"),
 			bool_or("ban_user_globally"),
 			bool_or("delete_user"),
-			bool_or("add_admin"),
+			bool_or("assign_global_roles"),
 		).
 			From("user_global_roles").
 			Join("global_perms ON user_global_roles.global_perms_id = global_perms.id").
@@ -30,7 +30,7 @@ func getGlobalPerms(db DBTX, uH *UserH) models.GlobalPerms {
 			&perms.CreateSubdiscepto,
 			&perms.BanUserGlobally,
 			&perms.DeleteUser,
-			&perms.AddAdmin,
+			&perms.AssignGlobalRoles,
 		)
 	}
 	return perms
@@ -59,9 +59,8 @@ func getSubPerms(db DBTX, subdiscepto string, uH UserH) (perms *models.SubPerms,
 			bool_or("create_essay"),
 			bool_or("delete_essay"),
 			bool_or("ban_user"),
-			bool_or("change_ranking"),
 			bool_or("delete_subdiscepto"),
-			bool_or("add_mod"),
+			bool_or("assign_roles"),
 		).
 		FromSelect(everyPermsID, "user_perms_ids").
 		Join("sub_perms ON sub_perms.id = user_perms_ids.sub_perms_id").
@@ -75,9 +74,8 @@ func getSubPerms(db DBTX, subdiscepto string, uH UserH) (perms *models.SubPerms,
 		&perms.CreateEssay,
 		&perms.DeleteEssay,
 		&perms.BanUser,
-		&perms.ChangeRanking,
 		&perms.DeleteSubdiscepto,
-		&perms.AddMod,
+		&perms.AssignRoles,
 	)
 	if err == pgx.ErrNoRows {
 		return perms, nil // Return empty perms
@@ -88,7 +86,6 @@ func getSubPerms(db DBTX, subdiscepto string, uH UserH) (perms *models.SubPerms,
 	// If a user has at least one role, it automatically gets read permissions
 	// In fact, admins can ban a user simply by removing all roles from him
 	perms.Read = true
-	perms.EssayPerms.Read = true
 	return perms, nil
 }
 func assignNamedGlobalRole(tx DBTX, userID int, role string, preset bool) error {

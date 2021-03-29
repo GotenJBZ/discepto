@@ -27,7 +27,7 @@ CREATE TABLE global_perms (
 	hide_subdiscepto boolean NOT NULL,
 	ban_user_globally boolean NOT NULL,
 	delete_user boolean NOT NULL,
-	add_admin boolean NOT NULL
+	assign_global_roles boolean NOT NULL
 );
 
 CREATE TABLE sub_perms (
@@ -37,7 +37,7 @@ CREATE TABLE sub_perms (
 	ban_user boolean NOT NULL,
 	change_ranking boolean NOT NULL,
 	delete_subdiscepto boolean NOT NULL,
-	add_mod boolean NOT NULL
+	assign_roles boolean NOT NULL
 );
 
 CREATE TABLE global_roles (
@@ -59,13 +59,13 @@ CREATE TABLE sub_roles (
 
 -- Create initial roles. Manually set an easy to remember id.
 INSERT INTO global_perms
-(id,    login,  create_subdiscepto,  hide_subdiscepto,  ban_user_globally,  delete_user, add_admin)
+(id,    login,  create_subdiscepto,  hide_subdiscepto,  ban_user_globally,  delete_user, assign_global_roles)
 OVERRIDING SYSTEM VALUE VALUES                                                                
 (-123,  true,   true,                true,              true,               true,        true),
 (0,  	true,   false,               false,             false,              false,       false);
 
 INSERT INTO sub_perms
-(id,    create_essay,  delete_essay,  ban_user,  change_ranking,  delete_subdiscepto,  add_mod)
+(id,    create_essay,  delete_essay,  ban_user,  change_ranking,  delete_subdiscepto,  assign_roles)
 OVERRIDING SYSTEM VALUE VALUES
 (-123,  true,          true,          true,      true,            true,                true),
 (-100,  true,          true,          true,      true,            true,                false),

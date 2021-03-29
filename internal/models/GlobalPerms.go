@@ -5,5 +5,5 @@ type GlobalPerms struct {
 	CreateSubdiscepto bool
 	BanUserGlobally   bool
 	DeleteUser        bool
-	AddAdmin          bool
+	AssignGlobalRoles bool
 }

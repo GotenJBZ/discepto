@@ -8,7 +8,7 @@ const RoleDefault = 0
 const RoleAdmin = -123
 
 const (
-	PermissionTypeAddMods     PermissionType = "add_mods"
+	PermissionTypeAssignRoles PermissionType = "assign_roles"
 	PermissionTypeDeletePosts PermissionType = "delete_posts"
 	PermissionTypeBanUsers    PermissionType = "ban_users"
 	PermissionTypeFlagPosts   PermissionType = "flag_posts"

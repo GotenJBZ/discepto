@@ -21,7 +21,10 @@ func (sdb *SharedDB) GetSubdisceptoH(subdiscepto string, uH *UserH) (*Subdiscept
 	var err error
 	if uH != nil {
 		// First, try getting user's permissions
-		subPerms, _ = getSubPerms(sdb.db, subdiscepto, *uH)
+		subPerms, err = getSubPerms(sdb.db, subdiscepto, *uH)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if subPerms == nil {
 		// Check if the subdiscepto is publicly readable
@@ -33,7 +36,7 @@ func (sdb *SharedDB) GetSubdisceptoH(subdiscepto string, uH *UserH) (*Subdiscept
 	}
 
 	h := &SubdisceptoH{sdb.db, subdiscepto, *subPerms}
-	return h, err
+	return h, nil
 }
 func (h SubdisceptoH) Read() (*models.Subdiscepto, error) {
 	if !h.subPerms.Read {
@@ -106,8 +109,9 @@ func (h SubdisceptoH) getEssayH(id int, uH UserH) (*EssayH, error) {
 
 	// Finally assign capabilities
 	essayPerms := models.EssayPerms{
+		Read:          h.subPerms.Read || isOwner,
 		DeleteEssay:   h.subPerms.DeleteEssay || isOwner,
-		ChangeRanking: h.subPerms.ChangeRanking,
+		ChangeRanking: false, // TODO: to implement in future
 	}
 	e := &EssayH{h.sharedDB, id, essayPerms}
 	return e, nil

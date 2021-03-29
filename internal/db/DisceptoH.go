@@ -60,7 +60,7 @@ func (h *DisceptoH) createSubdiscepto(uH UserH, subd *models.Subdiscepto) (*Subd
 				"ban_user",
 				"change_ranking",
 				"delete_subdiscepto",
-				"add_mod",
+				"assign_roles",
 			).
 			Values(true, false, false, false, false, false).
 			Suffix("RETURNING id").
