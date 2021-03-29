@@ -14,28 +14,28 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (sdb *SharedDB) ListRecentEssaysIn(subs []string) (essays []*models.Essay, err error) {
+func (sdb *SharedDB) ListRecentEssaysIn(ctx context.Context, subs []string) (essays []*models.Essay, err error) {
 	sql, args, _ := psql.
 		Select("*").
 		From("essays").
 		Where(sq.Eq{"posted_in": subs}).
 		ToSql()
 
-	err = pgxscan.Select(context.Background(), sdb.db, &essays, sql, args...)
+	err = pgxscan.Select(ctx, sdb.db, &essays, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 	return essays, nil
 }
-func (sdb *SharedDB) ListSubdisceptos() ([]*models.Subdiscepto, error) {
+func (sdb *SharedDB) ListSubdisceptos(ctx context.Context) ([]*models.Subdiscepto, error) {
 	var subs []*models.Subdiscepto
-	err := pgxscan.Select(context.Background(), sdb.db, &subs, "SELECT name, description, min_length, questions_required, nsfw FROM subdisceptos")
+	err := pgxscan.Select(ctx, sdb.db, &subs, "SELECT name, description, min_length, questions_required, nsfw FROM subdisceptos")
 	if err != nil {
 		return nil, err
 	}
 	return subs, nil
 }
-func insertUser(db DBTX, user *models.User, hash []byte) error {
+func insertUser(ctx context.Context, db DBTX, user *models.User, hash []byte) error {
 	// Insert the new user
 	sql, args, _ := psql.
 		Insert("users").
@@ -44,19 +44,19 @@ func insertUser(db DBTX, user *models.User, hash []byte) error {
 		Suffix("RETURNING id").
 		ToSql()
 
-	row := db.QueryRow(context.Background(), sql, args...)
+	row := db.QueryRow(ctx, sql, args...)
 	err := row.Scan(&user.ID)
 	return err
 }
-func (sdb *SharedDB) CreateUser(user *models.User, passwd string) (uH *UserH, err error) {
+func (sdb *SharedDB) CreateUser(ctx context.Context, user *models.User, passwd string) (uH *UserH, err error) {
 	// Check email format
 	if !utils.ValidateEmail(user.Email) {
 		return nil, ErrInvalidFormat
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(passwd), sdb.bcryptCost)
 
-	err = execTx(context.Background(), sdb.db, func(ctx context.Context, tx DBTX) error {
-		err = insertUser(sdb.db, user, hash)
+	err = execTx(ctx, sdb.db, func(ctx context.Context, tx DBTX) error {
+		err = insertUser(ctx, sdb.db, user, hash)
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.ConstraintName == "users_email_key" {
 			return ErrEmailAlreadyUsed
@@ -67,17 +67,17 @@ func (sdb *SharedDB) CreateUser(user *models.User, passwd string) (uH *UserH, er
 		// Assign admin role if first user
 		sql, args, _ := psql.Select("COUNT(*)").From("users").ToSql()
 		c := 0
-		row := tx.QueryRow(context.Background(), sql, args...)
+		row := tx.QueryRow(ctx, sql, args...)
 		err = row.Scan(&c)
 		if err != nil {
 			return err
 		}
 
 		if c == 1 {
-			err := assignNamedGlobalRole(tx, user.ID, "admin", true)
+			err := assignNamedGlobalRole(ctx, tx, user.ID, "admin", true)
 			return err
 		}
-		err := assignNamedGlobalRole(tx, user.ID, "common", true)
+		err := assignNamedGlobalRole(ctx, tx, user.ID, "common", true)
 		if err != nil {
 			return err
 		}
@@ -96,7 +96,7 @@ func (sdb *SharedDB) CreateUser(user *models.User, passwd string) (uH *UserH, er
 
 	return uH, nil
 }
-func (sdb *SharedDB) Login(email string, passwd string) (token string, err error) {
+func (sdb *SharedDB) Login(ctx context.Context, email string, passwd string) (token string, err error) {
 	sql, args, _ := psql.
 		Select("id", "passwd_hash").
 		From("users").
@@ -108,7 +108,7 @@ func (sdb *SharedDB) Login(email string, passwd string) (token string, err error
 		PasswdHash string
 	}
 	err = pgxscan.Get(
-		context.Background(),
+		ctx,
 		sdb.db,
 		&data,
 		sql,
@@ -130,20 +130,20 @@ func (sdb *SharedDB) Login(email string, passwd string) (token string, err error
 		Values(data.ID, token).
 		ToSql()
 
-	_, err = sdb.db.Exec(context.Background(), sql, args...)
+	_, err = sdb.db.Exec(ctx, sql, args...)
 	if err != nil {
 		return "", err
 	}
 	return token, nil
 }
-func (sdb *SharedDB) Signout(token string) error {
-	_, err := sdb.db.Exec(context.Background(), "DELETE FROM tokens WHERE tokens.token = $1", token)
+func (sdb *SharedDB) Signout(ctx context.Context, token string) error {
+	_, err := sdb.db.Exec(ctx, "DELETE FROM tokens WHERE tokens.token = $1", token)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (sdb *SharedDB) searchByTags(tags []string) (essays []*models.Essay, err error) {
+func (sdb *SharedDB) searchByTags(ctx context.Context, tags []string) (essays []*models.Essay, err error) {
 	sql, args, _ := psql.
 		Select("thesis", "content", "reply_type").
 		Distinct().
@@ -152,7 +152,7 @@ func (sdb *SharedDB) searchByTags(tags []string) (essays []*models.Essay, err er
 		Where(sq.Eq{"tag": tags}).
 		ToSql()
 
-	err = pgxscan.Select(context.Background(), sdb.db, &essays, sql, args...)
+	err = pgxscan.Select(ctx, sdb.db, &essays, sql, args...)
 	if err != nil {
 		return nil, err
 	}

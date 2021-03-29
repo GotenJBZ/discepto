@@ -23,7 +23,7 @@ func ToUserH(t interface{}) (*UserH, bool) {
 	return v, ok
 }
 
-func (sdb SharedDB) GetUserH(token string) (UserH, error) {
+func (sdb SharedDB) GetUserH(ctx context.Context, token string) (UserH, error) {
 	sql, args, _ := psql.
 		Select("user_id").
 		From("tokens").
@@ -37,7 +37,7 @@ func (sdb SharedDB) GetUserH(token string) (UserH, error) {
 			Delete: true,
 		},
 	}
-	row := sdb.db.QueryRow(context.Background(), sql, args...)
+	row := sdb.db.QueryRow(ctx, sql, args...)
 	err := row.Scan(&uH.id)
 
 	if err != nil {
@@ -48,7 +48,7 @@ func (sdb SharedDB) GetUserH(token string) (UserH, error) {
 func (h UserH) ID() int {
 	return h.id
 }
-func (h UserH) Read() (*models.User, error) {
+func (h UserH) Read(ctx context.Context) (*models.User, error) {
 	if !h.perms.Read {
 		return nil, ErrPermDenied
 	}
@@ -60,7 +60,7 @@ func (h UserH) Read() (*models.User, error) {
 		ToSql()
 
 	err := pgxscan.Get(
-		context.Background(),
+		ctx,
 		h.sharedDB, user,
 		sql, args...)
 
@@ -69,31 +69,31 @@ func (h UserH) Read() (*models.User, error) {
 	}
 	return user, nil
 }
-func (h UserH) Delete() error {
+func (h UserH) Delete(ctx context.Context) error {
 	if !h.perms.Delete {
 		return ErrPermDenied
 	}
-	return h.deleteUser()
+	return h.deleteUser(ctx)
 }
-func (h UserH) JoinSub(subH SubdisceptoH) error {
-	return subH.addMember(h)
+func (h UserH) JoinSub(ctx context.Context, subH SubdisceptoH) error {
+	return subH.addMember(ctx, h)
 }
-func (h UserH) LeaveSub(subH SubdisceptoH) error {
-	return subH.removeMember(h)
+func (h UserH) LeaveSub(ctx context.Context, subH SubdisceptoH) error {
+	return subH.removeMember(ctx, h)
 }
-func (h *UserH) deleteUser() error {
+func (h *UserH) deleteUser(ctx context.Context) error {
 	sql, args, _ := psql.Delete("users").Where(sq.Eq{"id": h.id}).ToSql()
-	_, err := h.sharedDB.Exec(context.Background(), sql, args...)
+	_, err := h.sharedDB.Exec(ctx, sql, args...)
 	return err
 }
-func (h UserH) ListMySubdisceptos() (subs []string, err error) {
+func (h UserH) ListMySubdisceptos(ctx context.Context) (subs []string, err error) {
 	sql, args, _ := psql.
 		Select("subdiscepto").
 		From("subdiscepto_users").
 		Where(sq.Eq{"user_id": h.id}).
 		ToSql()
 
-	err = pgxscan.Select(context.Background(), h.sharedDB, &subs, sql, args...)
+	err = pgxscan.Select(ctx, h.sharedDB, &subs, sql, args...)
 	if err != nil {
 		return nil, err
 	}

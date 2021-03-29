@@ -23,12 +23,12 @@ func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) A
 		return &ErrMustLogin{}
 	}
 	subdiscepto := chi.URLParam(r, "subdiscepto")
-	subH, err := routes.db.GetSubdisceptoH(subdiscepto, user)
+	subH, err := routes.db.GetSubdisceptoH(r.Context(), subdiscepto, user)
 	if err != nil {
 		return &ErrNotFound{Cause: err}
 	}
 
-	err = user.LeaveSub(*subH)
+	err = user.LeaveSub(r.Context(), *subH)
 	if err != nil {
 		return &ErrInternal{Message: "Error leaving", Cause: err}
 	}
@@ -42,12 +42,12 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 		return &ErrMustLogin{}
 	}
 	subdiscepto := chi.URLParam(r, "subdiscepto")
-	subH, err := routes.db.GetSubdisceptoH(subdiscepto, user)
+	subH, err := routes.db.GetSubdisceptoH(r.Context(), subdiscepto, user)
 	if err != nil {
 		return &ErrNotFound{Cause: err}
 	}
 
-	err = user.JoinSub(*subH)
+	err = user.JoinSub(r.Context(), *subH)
 	if err != nil {
 		return &ErrInternal{Message: "Error joining", Cause: err}
 	}
@@ -55,7 +55,7 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 	return nil
 }
 func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) AppError {
-	subs, err := routes.db.ListSubdisceptos()
+	subs, err := routes.db.ListSubdisceptos(r.Context())
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "subdisceptos"}
 	}
@@ -65,17 +65,17 @@ func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) Ap
 func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	subdiscepto := chi.URLParam(r, "subdiscepto")
 	user, ok := r.Context().Value("user").(*db.UserH)
-	subH, err := routes.db.GetSubdisceptoH(subdiscepto, user)
+	subH, err := routes.db.GetSubdisceptoH(r.Context(), subdiscepto, user)
 	if err != nil {
 		return &ErrNotFound{Cause: err}
 	}
 
-	subData, err := subH.Read()
+	subData, err := subH.Read(r.Context())
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
 
-	essays, err := subH.ListEssays()
+	essays, err := subH.ListEssays(r.Context())
 	if err != nil {
 		return &ErrInternal{Cause: err, Message: "Can't list essays"}
 	}
@@ -84,7 +84,7 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 	var subs []string
 	if ok {
 		var err error
-		subs, err = user.ListMySubdisceptos()
+		subs, err = user.ListMySubdisceptos(r.Context())
 		if err != nil {
 			return &ErrInternal{Cause: err, Message: "Error getting sub membership"}
 		}
@@ -123,8 +123,8 @@ func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 		Public:      r.FormValue("privacy") == "public", // TODO: Use checkbox instead of radio in html
 	}
 
-	disceptoH := routes.db.GetDisceptoH(user)
-	_, err := disceptoH.CreateSubdiscepto(*user, sub)
+	disceptoH := routes.db.GetDisceptoH(r.Context(), user)
+	_, err := disceptoH.CreateSubdiscepto(r.Context(), *user, sub)
 	if err != nil {
 		return &ErrInternal{Message: "Error creating subdiscepto", Cause: err}
 	}

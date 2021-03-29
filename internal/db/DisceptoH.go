@@ -14,19 +14,19 @@ type DisceptoH struct {
 	globalPerms models.GlobalPerms
 }
 
-func (sdb *SharedDB) GetDisceptoH(uH *UserH) DisceptoH {
-	perms := getGlobalPerms(sdb.db, uH)
+func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) DisceptoH {
+	perms := getGlobalPerms(ctx, sdb.db, uH)
 	return DisceptoH{globalPerms: perms, sharedDB: sdb.db}
 }
 
-func (h *DisceptoH) ListUsers() ([]models.User, error) {
+func (h *DisceptoH) ListUsers(ctx context.Context) ([]models.User, error) {
 	// TODO: Is the list of users public? I guess not?
 	var users []models.User
-	err := pgxscan.Select(context.Background(), h.sharedDB, &users, "SELECT id, name, email FROM users")
+	err := pgxscan.Select(ctx, h.sharedDB, &users, "SELECT id, name, email FROM users")
 	return users, err
 }
 
-func (h *DisceptoH) CreateSubdiscepto(uH UserH, subd *models.Subdiscepto) (*SubdisceptoH, error) {
+func (h *DisceptoH) CreateSubdiscepto(ctx context.Context, uH UserH, subd *models.Subdiscepto) (*SubdisceptoH, error) {
 	if !h.globalPerms.CreateSubdiscepto {
 		return nil, ErrPermDenied
 	}
@@ -34,11 +34,11 @@ func (h *DisceptoH) CreateSubdiscepto(uH UserH, subd *models.Subdiscepto) (*Subd
 	if !r.Match([]byte(subd.Name)) {
 		return nil, ErrInvalidFormat
 	}
-	return h.createSubdiscepto(uH, subd)
+	return h.createSubdiscepto(ctx, uH, subd)
 }
-func (h *DisceptoH) createSubdiscepto(uH UserH, subd *models.Subdiscepto) (*SubdisceptoH, error) {
+func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd *models.Subdiscepto) (*SubdisceptoH, error) {
 	firstUserID := uH.id
-	err := execTx(context.Background(), h.sharedDB, func(ctx context.Context, tx DBTX) error {
+	err := execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
 		// Insert subdiscepto
 		sql, args, _ := psql.
 			Insert("subdisceptos").
@@ -95,12 +95,12 @@ func (h *DisceptoH) createSubdiscepto(uH UserH, subd *models.Subdiscepto) (*Subd
 			return err
 		}
 
-		err = assignNamedSubRole(tx, firstUserID, subd.Name, "common", false)
+		err = assignNamedSubRole(ctx, tx, firstUserID, subd.Name, "common", false)
 		if err != nil {
 			return err
 		}
 
-		err = assignNamedSubRole(tx, firstUserID, subd.Name, "admin", true)
+		err = assignNamedSubRole(ctx, tx, firstUserID, subd.Name, "admin", true)
 		return err
 	})
 	if err != nil {
@@ -109,14 +109,14 @@ func (h *DisceptoH) createSubdiscepto(uH UserH, subd *models.Subdiscepto) (*Subd
 	subH := &SubdisceptoH{h.sharedDB, subd.Name, models.SubPermsOwner}
 	return subH, nil
 }
-func (h *DisceptoH) DeleteReport(report *models.Report) error {
+func (h *DisceptoH) DeleteReport(ctx context.Context, report *models.Report) error {
 	// TODO: What kind of permission should one have to view reports?
 	sql, args, _ := psql.
 		Delete("reports").
 		Where(sq.Eq{"id": report.ID}).
 		ToSql()
 
-	_, err := h.sharedDB.Exec(context.Background(), sql, args...)
+	_, err := h.sharedDB.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}

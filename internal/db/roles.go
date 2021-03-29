@@ -8,7 +8,7 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
-func getGlobalPerms(db DBTX, uH *UserH) models.GlobalPerms {
+func getGlobalPerms(ctx context.Context, db DBTX, uH *UserH) models.GlobalPerms {
 	perms := models.GlobalPerms{}
 	if uH != nil {
 		sql, args, _ := psql.Select(
@@ -24,7 +24,7 @@ func getGlobalPerms(db DBTX, uH *UserH) models.GlobalPerms {
 			Having("COUNT(*) > 0").
 			ToSql()
 
-		row := db.QueryRow(context.Background(), sql, args...)
+		row := db.QueryRow(ctx, sql, args...)
 		row.Scan(
 			&perms.Login,
 			&perms.CreateSubdiscepto,
@@ -43,7 +43,7 @@ func getGlobalPerms(db DBTX, uH *UserH) models.GlobalPerms {
 // id and UNION the results.
 // With the aggregate function "bool_or" we sum every premission.
 // The result is 1 row with the correct permissions.
-func getSubPerms(db DBTX, subdiscepto string, uH UserH) (perms *models.SubPerms, err error) {
+func getSubPerms(ctx context.Context, db DBTX, subdiscepto string, uH UserH) (perms *models.SubPerms, err error) {
 	queryGlobalRolesPermsID := sq.Select("sub_perms_id").
 		From("user_global_roles").
 		Where(sq.Eq{"user_id": uH.id})
@@ -68,7 +68,7 @@ func getSubPerms(db DBTX, subdiscepto string, uH UserH) (perms *models.SubPerms,
 		Having("COUNT(*) > 0").
 		ToSql()
 
-	row := db.QueryRow(context.Background(), sql, args...)
+	row := db.QueryRow(ctx, sql, args...)
 	perms = &models.SubPerms{}
 	err = row.Scan(
 		&perms.CreateEssay,
@@ -88,23 +88,23 @@ func getSubPerms(db DBTX, subdiscepto string, uH UserH) (perms *models.SubPerms,
 	perms.Read = true
 	return perms, nil
 }
-func assignNamedGlobalRole(tx DBTX, userID int, role string, preset bool) error {
+func assignNamedGlobalRole(ctx context.Context, tx DBTX, userID int, role string, preset bool) error {
 	sql := `
 INSERT INTO user_global_roles (user_id, global_perms_id, sub_perms_id)
 SELECT $1, global_perms_id, sub_perms_id
 FROM global_roles
 WHERE name = $2 AND preset = $3
 `
-	_, err := tx.Exec(context.Background(), sql, userID, role, preset)
+	_, err := tx.Exec(ctx, sql, userID, role, preset)
 	return err
 }
-func assignNamedSubRole(db DBTX, userID int, sub string, role string, preset bool) error {
+func assignNamedSubRole(ctx context.Context, db DBTX, userID int, sub string, role string, preset bool) error {
 	sql := `
 INSERT INTO user_sub_roles (subdiscepto, user_id, sub_perms_id)
 SELECT $1, $2, sub_perms_id
 FROM sub_roles
 WHERE (subdiscepto = $3 OR subdiscepto IS NULL) AND name = $4 AND preset = $5
 `
-	_, err := db.Exec(context.Background(), sql, sub, userID, sub, role, preset)
+	_, err := db.Exec(ctx, sql, sub, userID, sub, role, preset)
 	return err
 }

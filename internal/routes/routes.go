@@ -96,7 +96,7 @@ func (routes *Routes) UserCtx(next http.Handler) http.Handler {
 			return
 		}
 
-		user, err := routes.db.GetUserH(fmt.Sprintf("%v", token))
+		user, err := routes.db.GetUserH(r.Context(), fmt.Sprintf("%v", token))
 		if err != nil {
 			session.Values["token"] = ""
 			session.Save(r, w)
@@ -224,7 +224,7 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	userData := &models.User{}
 	if ok {
 		var err error
-		userData, err = user.Read()
+		userData, err = user.Read(r.Context())
 		if err != nil {
 			return &ErrInternal{Cause: err}
 		}
@@ -232,13 +232,13 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	fmt.Println(user)
 	data := homeData{User: userData, LoggedIn: ok}
 	if data.LoggedIn {
-		mySubs, err := user.ListMySubdisceptos()
+		mySubs, err := user.ListMySubdisceptos(r.Context())
 		if err != nil {
 			return &ErrInternal{Message: "Can't list joined communities", Cause: err}
 		}
 		data.MySubdisceptos = mySubs
 
-		recentEssays, err := routes.db.ListRecentEssaysIn(mySubs)
+		recentEssays, err := routes.db.ListRecentEssaysIn(r.Context(), mySubs)
 		if err != nil {
 			return &ErrInternal{Message: "Can't list recent essays", Cause: err}
 		}
@@ -250,9 +250,9 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 }
 func (routes *Routes) GetUsers(w http.ResponseWriter, r *http.Request) AppError {
 	user, _ := r.Context().Value("user").(*db.UserH)
-	disceptoH := routes.db.GetDisceptoH(user)
+	disceptoH := routes.db.GetDisceptoH(r.Context(), user)
 
-	users, err := disceptoH.ListUsers()
+	users, err := disceptoH.ListUsers(r.Context())
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
@@ -268,7 +268,7 @@ func (routes *Routes) signOut(w http.ResponseWriter, r *http.Request) error {
 	session.Values["token"] = ""
 	session.Save(r, w)
 
-	err := routes.db.Signout(fmt.Sprintf("%v", token))
+	err := routes.db.Signout(r.Context(), fmt.Sprintf("%v", token))
 	return err
 }
 func (routes *Routes) GetSignout(w http.ResponseWriter, r *http.Request) AppError {
@@ -290,7 +290,7 @@ func (routes *Routes) GetNewSubdiscepto(w http.ResponseWriter, r *http.Request) 
 	routes.tmpls.RenderHTML(w, "newSubdiscepto", nil)
 }
 func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) AppError {
-	token, err := routes.db.Login(r.FormValue("email"), r.FormValue("password"))
+	token, err := routes.db.Login(r.Context(), r.FormValue("email"), r.FormValue("password"))
 	if err != nil {
 		return &ErrBadRequest{
 			Cause:      err,
@@ -306,7 +306,7 @@ func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) AppError
 }
 func (routes *Routes) PostSignup(w http.ResponseWriter, r *http.Request) AppError {
 	email := r.FormValue("email")
-	_, err := routes.db.CreateUser(&models.User{
+	_, err := routes.db.CreateUser(r.Context(), &models.User{
 		Name:  r.FormValue("name"),
 		Email: email,
 	}, r.FormValue("password"))

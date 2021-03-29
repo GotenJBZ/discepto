@@ -15,7 +15,7 @@ type EssayH struct {
 	essayPerms models.EssayPerms
 }
 
-func isEssayOwner(db DBTX, essayID int, userID int) bool {
+func isEssayOwner(ctx context.Context, db DBTX, essayID int, userID int) bool {
 	sql, args, _ := psql.
 		Select("1").
 		From("essays").
@@ -23,7 +23,7 @@ func isEssayOwner(db DBTX, essayID int, userID int) bool {
 		ToSql()
 
 	isOwner := 0
-	row := db.QueryRow(context.Background(), sql, args...)
+	row := db.QueryRow(ctx, sql, args...)
 	err := row.Scan(&isOwner)
 	if err != nil {
 		return false
@@ -31,7 +31,7 @@ func isEssayOwner(db DBTX, essayID int, userID int) bool {
 
 	return isOwner == 1
 }
-func (h EssayH) GetEssay() (*models.Essay, error) {
+func (h EssayH) GetEssay(ctx context.Context) (*models.Essay, error) {
 	if !h.essayPerms.Read {
 		return nil, ErrPermDenied
 	}
@@ -42,7 +42,7 @@ func (h EssayH) GetEssay() (*models.Essay, error) {
 		ToSql()
 
 	var essay models.Essay
-	err := pgxscan.Get(context.Background(), h.sharedDB, &essay, sql, args...)
+	err := pgxscan.Get(ctx, h.sharedDB, &essay, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -52,14 +52,14 @@ func (h EssayH) GetEssay() (*models.Essay, error) {
 		From("essay_tags").
 		Where(sq.Eq{"essay_id": h.id}).
 		ToSql()
-	err = pgxscan.Select(context.Background(), h.sharedDB, &essay.Tags, sql, args...)
+	err = pgxscan.Select(ctx, h.sharedDB, &essay.Tags, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 
 	return &essay, nil
 }
-func (h EssayH) CreateReport(rep models.Report, userH UserH) error {
+func (h EssayH) CreateReport(ctx context.Context, rep models.Report, userH UserH) error {
 	if !h.essayPerms.Read {
 		return ErrPermDenied
 	}
@@ -73,14 +73,14 @@ func (h EssayH) CreateReport(rep models.Report, userH UserH) error {
 		Suffix("RETURNING id").
 		ToSql()
 
-	row := h.sharedDB.QueryRow(context.Background(), sql, args...)
+	row := h.sharedDB.QueryRow(ctx, sql, args...)
 	err := row.Scan(&rep.ID)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (h EssayH) CountVotes() (upvotes, downvotes int, err error) {
+func (h EssayH) CountVotes(ctx context.Context) (upvotes, downvotes int, err error) {
 	if !h.essayPerms.Read {
 		return 0, 0, ErrPermDenied
 	}
@@ -91,7 +91,7 @@ func (h EssayH) CountVotes() (upvotes, downvotes int, err error) {
 		GroupBy("vote_type").
 		ToSql()
 
-	rows, err := h.sharedDB.Query(context.Background(), sql, args...)
+	rows, err := h.sharedDB.Query(ctx, sql, args...)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -111,7 +111,7 @@ func (h EssayH) CountVotes() (upvotes, downvotes int, err error) {
 
 	return upvotes, downvotes, nil
 }
-func (h EssayH) DeleteVote(uH UserH) error {
+func (h EssayH) DeleteVote(ctx context.Context, uH UserH) error {
 	if !h.essayPerms.Read {
 		return ErrPermDenied
 	}
@@ -120,10 +120,10 @@ func (h EssayH) DeleteVote(uH UserH) error {
 		Where(sq.Eq{"user_id": uH.id, "essay_id": h.id}).
 		ToSql()
 
-	_, err := h.sharedDB.Exec(context.Background(), sql, args...)
+	_, err := h.sharedDB.Exec(ctx, sql, args...)
 	return err
 }
-func (h EssayH) CreateVote(uH UserH, vote models.VoteType) error {
+func (h EssayH) CreateVote(ctx context.Context, uH UserH, vote models.VoteType) error {
 	if !h.essayPerms.Read {
 		return ErrPermDenied
 	}
@@ -133,17 +133,17 @@ func (h EssayH) CreateVote(uH UserH, vote models.VoteType) error {
 		Values(uH.id, h.id, vote).
 		ToSql()
 
-	_, err := h.sharedDB.Exec(context.Background(), sql, args...)
+	_, err := h.sharedDB.Exec(ctx, sql, args...)
 	return err
 }
-func (h EssayH) DeleteEssay() error {
+func (h EssayH) DeleteEssay(ctx context.Context) error {
 	if !h.essayPerms.DeleteEssay {
 		return ErrPermDenied
 	}
-	return h.deleteEssay()
+	return h.deleteEssay(ctx)
 }
-func (h EssayH) deleteEssay() error {
+func (h EssayH) deleteEssay(ctx context.Context) error {
 	sql, args, _ := psql.Delete("essays").Where(sq.Eq{"id": h.id}).ToSql()
-	_, err := h.sharedDB.Exec(context.Background(), sql, args...)
+	_, err := h.sharedDB.Exec(ctx, sql, args...)
 	return err
 }
