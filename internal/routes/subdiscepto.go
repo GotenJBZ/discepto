@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/db"
 )
 
 func (routes *Routes) SubdisceptoRouter(r chi.Router) {
@@ -81,8 +81,10 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 	}
 
 	isMember := false
+	var subs []string
 	if ok {
-		subs, err := user.ListMySubdisceptos()
+		var err error
+		subs, err = user.ListMySubdisceptos()
 		if err != nil {
 			return &ErrInternal{Cause: err, Message: "Error getting sub membership"}
 		}
@@ -98,11 +100,13 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 		Description string
 		Essays      []*models.Essay
 		IsMember    bool
+		SubdisceptoList []string
 	}{
 		Name:        subData.Name,
 		Description: subData.Description,
 		Essays:      essays,
 		IsMember:    isMember,
+		SubdisceptoList: subs,
 	}
 	routes.tmpls.RenderHTML(w, "subdiscepto", data)
 	return nil

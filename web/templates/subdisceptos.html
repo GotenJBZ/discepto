@@ -1,13 +1,11 @@
-{{ define "subdisceptos" }}
-{{ template "head" . }}
+{{ define "subdisceptos" }} {{ template "head" . }}
 <h1>Available communities</h1>
 <ul>
-{{ range . }}
-<li>
-	<a href="/s/{{.Name}}">{{.Name}}</a>
-	<p>{{.Description}}</p>
-</li>
-{{ end }}
+    {{ range . }}
+    <li>
+        <a href="/s/{{.Name}}">{{.Name}}</a>
+        <p>{{.Description}}</p>
+    </li>
+    {{ end }}
 </ul>
-{{ template "footer" . }}
-{{ end }}
+{{ template "footer" . }} {{ end }}

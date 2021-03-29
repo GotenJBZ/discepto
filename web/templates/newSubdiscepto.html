@@ -1,28 +1,80 @@
-{{ define "newSubdiscepto" }}
-{{ template "head" . }}
-<h1>Create a community</h1>
-<form action="/s" method="post">
-    <label for="name">Name</label><br>
-    <input type="text" name="name" id="name"><br>
+{{ define "newSubdiscepto" }} {{ template "head" . }} {{ template "simplemde" .}}
+</head>
 
-    <label for="topics">Topics</label><br>
-    <input type="text" name="topics" id="topics"><br>
+<body>
+    {{ template "navbar" . }}
 
-    <label for="description">Description</label><br>
-    <textarea name="description" id="description"></textarea><br>
+    <div class="login column is-half is-offset-one-quarter">
+        <form action="/s" method="post" id="formid">
+            <section class="section">
 
-    <p>Privacy</p>
+                <div class="field">
+                    <h1 class="title is-1">Create a new community</h1>
+                </div>
+                <br>
+                <div class="field">
+                    <label class="label">Name</label>
+                    <div class="control has-icons-left">
+                        <input type="text" placeholder="Name of the community" class="input is-primary" required name="name">
+                        <span class="icon is-small is-left">
+                        <i class="fa fa-home"></i>
+                    </span>
+                    </div>
+                </div>
 
-    <input type="radio" name="privacy" value="public" id="public">
-    <label for="public">Public</label><br>
+                <div class="field">
+                    <label class="label">Description</label>
+                    <textarea id="SubDisceptoDesc"></textarea>
+                    <input name="description" type="hidden">
+                </div>
 
-    <input type="radio" name="privacy" value="restricted" id="restricted">
-    <label for="restricted">Restricted</label><br>
+                <div class="field">
+                    <label class="label">Topics</label>
+                    <div class="control">
+                        <input type="text" placeholder="Insert topics" class="input is-primary" required name="topics">
+                    </div>
+                    <p class="help">Insert topics separated by commas e.g. tags1,tags2,tags3</p>
+                </div>
 
-    <input type="radio" name="privacy" value="private" id="private">
-    <label for="private">Private</label><br>
 
-    <button type="submit">Create</button>
-</form>
-{{ template "footer" . }}
+                <div class="field"></div>
+                <label class="label">Privacy</label>
+                <div class="control">
+                    <label class="radio">
+                  <input type="radio" name="privacy" value="public" checked> Public
+                </label>
+                    <label class="radio">
+                  <input type="radio" name="privacy" value="restricted"> Restricted
+                </label>
+                    <label class="radio">
+                  <input type="radio" name="privacy" value="private"> Private
+                </label>
+                </div>
+                <br>
+                <div>
+                    <button class="button is-primary is-outlined" type="submit">Create</button>
+                </div>
+            </section>
+        </form>
+    </div>
+
+    <script>
+        var simplemde = new EasyMDE({
+            element: document.getElementById("SubDisceptoDesc"),
+            spellChecker: false
+        });
+        var form = document.getElementById("formid");
+        var about = document.querySelector('input[name=description]');
+
+        form.onsubmit = function() {
+            about.value = simplemde.value();
+            form.submit();
+        };
+    </script>
+
+
+
+</body>
+
+</html>
 {{ end }}

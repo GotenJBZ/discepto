@@ -1,26 +1,167 @@
-{{ define "subdiscepto" }}
-{{ template "head" . }}
-<h1>Name: {{.Name}}</h1>
-<p>Description: {{.Description}}</p>
-{{ if .IsMember }}
-<form method="post" action="/s/{{ .Name }}/leave">
-	<button type="submit">Leave</button>
-</form>
-{{ else }}
-<form method="post" action="/s/{{ .Name }}/join">
-	<button type="submit">Join</button>
-</form>
-{{ end }}
-<h2>Essays</h2>
-<a href="/newessay?subdiscepto={{ .Name }}">Create new</a>
-<ul>
-{{ range $e := .Essays }}
-<li>
-	<p>Thesis: {{ $e.Thesis }}</p>
-	<p>Content: {{ $e.Content }}</p>
-	<a href="/s/{{ $.Name }}/{{ $e.ID }}">View</a>
-</li>
-{{ end }}
-</ul>
-{{ template "footer" . }}
-{{ end }}
+{{ define "subdiscepto" }} {{ template "head" . }} {{ template "simplemde" .}}
+<style>
+    body {
+        background-color: #EFEFEF;
+    }
+</style>
+</head>
+
+<body class="body">
+    {{ template "navbar" .}}
+    <br>
+
+    <div class="container is-max-desktop">
+        <div class="columns is-vcentered">
+            <section class="hero">
+                <div class="hero-body">
+                    <article class="media">
+                        <figure class="media-left">
+                            <p class="image is-64x64">
+                                <img class="is-rounded" src="https://bulma.io/images/placeholders/128x128.png">
+                            </p>
+                        </figure>
+                        &nbsp
+                        <div class="media-content">
+                            <p class="title" style="padding-top: 10px;">s/{{ .Name }}</p>
+                        </div>
+                    </article>
+                </div>
+            </section>
+        </div>
+        <div class="columns">
+            <div class="column is-9">
+
+
+
+                <a href="/newessay?subdiscepto={{ .Name}}">
+                    <div class="box">
+                        <article class="media">
+                            <figure class="media-left">
+                                <p class="image is-64x64">
+                                    <img class="is-rounded" src="https://bulma.io/images/placeholders/128x128.png">
+                                </p>
+                            </figure>
+                            <div class="media-content">
+                                <div class="content">
+                                    <p class="title is-7"></p>
+                                    <input class="input is-primary" type="text" placeholder="Write an essay" readonly>
+                                </div>
+
+                            </div>
+                        </article>
+                    </div>
+                </a>
+                <br> {{ range $e := .Essays }}
+                <div class="box">
+                    <article class="media">
+                        <figure class="media-left">
+                            <p class="image is-64x64">
+                                <img class="is-rounded" src="https://bulma.io/images/placeholders/128x128.png">
+                            </p>
+                        </figure>
+                        <div class="media-content">
+                            <div class="content">
+                                <p>
+                                    <strong>{{$e.Thesis}}</strong> <small>@autore</small> <small>{{$e.Published}}</small>
+                                    <br> {{$e.Content}}
+                                </p>
+                                <a href="/s/{{ $e.PostedIn }}/{{ $e.ID }}">Continue...</a>
+                            </div>
+
+                            <nav class="level is-mobile">
+                                <div class="level-left">
+                                    <a class="level-item" aria-label="reply">
+                                        <span class="icon is-small has-text-danger">
+                                            <i class="fa fa-heart" aria-hidden="true"></i>
+                                        </span>
+                                    </a>
+                                    <p>{{ $e.Upvotes }} &nbsp;</p>
+                                    <a class="level-item" aria-label="reply">
+                                        <span class="icon is-small has-text-primary">
+                                            <i class="fa fa-arrow-up" aria-hidden="true"></i>
+                                        </span>
+                                    </a>
+                                    <p>{{ $e.Downvotes }} &nbsp;</p>
+                                    <a class="level-item" aria-label="retweet">
+                                        <span class="icon is-small has-text-primary">
+                                            <i class="fa fa-arrow-down" aria-hidden="true"></i>
+                                        </span>
+                                    </a>
+                                    <a class="level-item" aria-label="like">
+                                        <span class="icon is-small has-text-danger">
+                                            <i class="fa fa-ban" aria-hidden="true"></i>
+                                        </span>
+                                    </a>
+                                </div>
+                            </nav>
+                        </div>
+                        <div class="media-right">
+                            {{if eq .ReplyType "supports" }}
+                            <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .ReplyType "refutes"}}
+                            <span class="tag is-danger is-light is-medium">refutes</button> {{ else }}
+                                <span class="tag is-warning is-light is-medium">General</button> {{ end }}
+                            </div>
+
+                        </article>
+                    </div>{{ end }}
+            </div>
+            <div class="column is-5">
+
+                <div class="card">
+                    <div class="card-content">
+                        <div class="media">
+                            <div class="media-left">
+                                <figure class="image is-48x48">
+                                    <img src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
+                                </figure>
+                            </div>
+                            &nbsp;&nbsp;
+                            <div class="media-content">
+                                <p class="title is-4">s/{{ .Name }}</p>
+                                <p class="subtitle is-6">Inserire membri</p>
+                            </div>
+                        </div>
+
+                        <div class="content">
+                            <p>{{ .Description }}</p>
+                            {{ if .IsMember }}
+                            <button class="button is-fullwidth is-rounded" id="follow" onclick="join()">Leave</button>{{ else }}
+                            <button class="button is-primary is-fullwidth is-rounded" id="follow" onclick="join()">Join</button> {{ end }}
+                        </div>
+                    </div>
+                </div>
+                <br>
+                <div class="card events-card">
+                    <nav class="panel is-primary">
+                        <p class="panel-heading">Your Communities</p>
+                        {{ range $s := .SubdisceptoList}}
+                        <a href="/s/{{.}}" class="panel-block">s/{{.}}</a>{{end}}
+                    </nav>
+                </div>
+            </div>
+
+        </div>
+        <script>
+            function join() {
+                var btn = document.getElementById('follow');
+                if (btn.textContent == 'Leave') {
+                    fetch('/s/{{ .Name }}/leave', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    btn.classList.add('is-primary');
+                    btn.textContent = 'Join'
+                } else {
+                    fetch('/s/{{ .Name }}/join', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    btn.textContent = 'Leave'
+                    btn.classList.remove('is-primary');
+                }
+            }
+        </script>
+</body>
+
+</html>
+{{end}}
