@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/db"
+	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
 func (routes *Routes) SubdisceptoRouter(r chi.Router) {
@@ -96,16 +96,16 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 		}
 	}
 	data := struct {
-		Name        string
-		Description string
-		Essays      []*models.Essay
-		IsMember    bool
+		Name            string
+		Description     string
+		Essays          []*models.Essay
+		IsMember        bool
 		SubdisceptoList []string
 	}{
-		Name:        subData.Name,
-		Description: subData.Description,
-		Essays:      essays,
-		IsMember:    isMember,
+		Name:            subData.Name,
+		Description:     subData.Description,
+		Essays:          essays,
+		IsMember:        isMember,
 		SubdisceptoList: subs,
 	}
 	routes.tmpls.RenderHTML(w, "subdiscepto", data)

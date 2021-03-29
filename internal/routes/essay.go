@@ -27,31 +27,29 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppErr
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
 
-	essay := struct{
+	essay := struct {
 		*models.Essay
-		MySubdisceptos		[]string
+		MySubdisceptos []string
 	}{
-		Essay : &models.Essay{
-			PostedIn:	subdiscepto,
-			InReplyTo:	inReplyTo,
+		Essay: &models.Essay{
+			PostedIn:  subdiscepto,
+			InReplyTo: inReplyTo,
 		},
-		MySubdisceptos:	subs,
+		MySubdisceptos: subs,
 	}
-
-
 
 	routes.tmpls.RenderHTML(w, "newEssay", essay)
 	return nil
 }
 func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError {
-       user, ok := r.Context().Value("user").(*db.UserH)
+	user, ok := r.Context().Value("user").(*db.UserH)
 	subdiscepto := chi.URLParam(r, "subdiscepto")
 	subH, err := routes.db.GetSubdisceptoH(subdiscepto, user)
 
-       id, err := strconv.Atoi(chi.URLParam(r, "id"))
-       if err != nil {
-               return &ErrNotFound{Cause: err, Thing: "essay"}
-       }
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		return &ErrNotFound{Cause: err, Thing: "essay"}
+	}
 	esH, err := subH.GetEssayH(id, *user)
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
@@ -67,22 +65,21 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrInternal{Cause: err}
 	}
 
-       var subs []string
-       if ok {
-               subs, err = user.ListMySubdisceptos()
-       }
+	var subs []string
+	if ok {
+		subs, err = user.ListMySubdisceptos()
+	}
 
-       data := struct {
-               Essay                           *models.Essay
-               SubdisceptoList         []string
-       }{
-               Essay:                          essay,
-               SubdisceptoList:        subs,
-       }
+	data := struct {
+		Essay           *models.Essay
+		SubdisceptoList []string
+	}{
+		Essay:           essay,
+		SubdisceptoList: subs,
+	}
 
-
-       routes.tmpls.RenderHTML(w, "essay", data)
-       return nil
+	routes.tmpls.RenderHTML(w, "essay", data)
+	return nil
 }
 func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError {
 	user, ok := db.ToUserH(r.Context().Value("user"))
