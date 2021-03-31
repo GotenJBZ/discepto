@@ -12,7 +12,7 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
-const mockPasswd = "123456789" // hackerman
+const mockPasswd = "correcthorsebatterystaple" // hackerman
 const mockSubName = "mock"
 const mockSubName2 = "mock2"
 

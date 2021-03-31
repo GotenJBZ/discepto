@@ -310,14 +310,28 @@ func (routes *Routes) PostSignup(w http.ResponseWriter, r *http.Request) AppErro
 		Name:  r.FormValue("name"),
 		Email: email,
 	}, r.FormValue("password"))
-	if err == db.ErrInvalidFormat {
-		return &ErrBadRequest{Cause: err, Motivation: "Bad email syntax"}
-	}
-	if err == db.ErrEmailAlreadyUsed {
-		return &ErrBadRequest{Cause: err, Motivation: "The email is already used"}
-	}
+
+	errorMessage := ""
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		switch err {
+		case db.ErrInvalidFormat:
+			errorMessage = "Invalid email syntax"
+		case db.ErrEmailAlreadyUsed:
+			errorMessage = "Email already used"
+		case db.ErrWeakPasswd:
+			errorMessage =
+				`The password is too weak.
+The password must:
+- Be Longer than 8 characters
+- Contain at least 1 number
+- Contain at least 1 letter
+- Contain at least 1 special character
+- Be Smaller than 64 characters
+`
+		default:
+			errorMessage = "Internal error"
+		}
+		return &ErrBadRequest{Cause: err, Motivation: errorMessage}
 	}
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)

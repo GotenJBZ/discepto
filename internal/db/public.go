@@ -5,6 +5,7 @@ package db
 import (
 	"context"
 	"errors"
+	"unicode"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
@@ -53,6 +54,11 @@ func (sdb *SharedDB) CreateUser(ctx context.Context, user *models.User, passwd s
 	if !utils.ValidateEmail(user.Email) {
 		return nil, ErrInvalidFormat
 	}
+
+	if !validatePasswd(passwd, []string{user.Email, user.Name}) {
+		return nil, ErrWeakPasswd
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(passwd), sdb.bcryptCost)
 
 	err = execTx(ctx, sdb.db, func(ctx context.Context, tx DBTX) error {
@@ -157,4 +163,32 @@ func (sdb *SharedDB) searchByTags(ctx context.Context, tags []string) (essays []
 		return nil, err
 	}
 	return essays, nil
+}
+func validatePasswd(passwd string, userInputs []string) bool {
+	if len(passwd) < 8 || len(passwd) > 64 {
+		return false
+	}
+
+	containsLetter := false
+	containsNumber := false
+	containsSpecial := false
+	for _, r := range passwd {
+		if !unicode.IsPrint(r) {
+			return false
+		}
+
+		if unicode.IsLetter(r) {
+			containsLetter = true
+		} else if unicode.IsNumber(r) {
+			containsNumber = true
+		} else {
+			// If it's not a number and not a letter, it's special
+			containsSpecial = true
+		}
+	}
+	if !containsLetter || !containsNumber || !containsSpecial {
+		return false
+	}
+
+	return true
 }
