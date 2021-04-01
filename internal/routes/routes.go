@@ -250,7 +250,10 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 }
 func (routes *Routes) GetUsers(w http.ResponseWriter, r *http.Request) AppError {
 	user, _ := r.Context().Value("user").(*db.UserH)
-	disceptoH := routes.db.GetDisceptoH(r.Context(), user)
+	disceptoH, err := routes.db.GetDisceptoH(r.Context(), user)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
 
 	users, err := disceptoH.ListUsers(r.Context())
 	if err != nil {

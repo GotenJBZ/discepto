@@ -28,7 +28,7 @@ func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) A
 		return &ErrNotFound{Cause: err}
 	}
 
-	err = user.LeaveSub(r.Context(), *subH)
+	err = subH.RemoveMember(r.Context(), *user)
 	if err != nil {
 		return &ErrInternal{Message: "Error leaving", Cause: err}
 	}
@@ -47,7 +47,7 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 		return &ErrNotFound{Cause: err}
 	}
 
-	err = user.JoinSub(r.Context(), *subH)
+	err = subH.AddMember(r.Context(), *user)
 	if err != nil {
 		return &ErrInternal{Message: "Error joining", Cause: err}
 	}
@@ -123,8 +123,11 @@ func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 		Public:      r.FormValue("privacy") == "public", // TODO: Use checkbox instead of radio in html
 	}
 
-	disceptoH := routes.db.GetDisceptoH(r.Context(), user)
-	_, err := disceptoH.CreateSubdiscepto(r.Context(), *user, sub)
+	disceptoH, err := routes.db.GetDisceptoH(r.Context(), user)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	_, err = disceptoH.CreateSubdiscepto(r.Context(), *user, sub)
 	if err != nil {
 		return &ErrInternal{Message: "Error creating subdiscepto", Cause: err}
 	}

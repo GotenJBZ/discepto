@@ -86,7 +86,8 @@ func TestUser(t *testing.T) {
 	passwd := mockPasswd
 	userH, err := db.CreateUser(context.Background(), mockUser(), passwd)
 	require.Nil(err)
-	disceptoH := db.GetDisceptoH(context.Background(), userH)
+	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
+	require.Nil(err)
 	users, err := disceptoH.ListUsers(context.Background())
 	require.Nil(err)
 	require.Len(users, 1)
@@ -143,7 +144,8 @@ func TestEssay(t *testing.T) {
 	userH, err := db.CreateUser(context.Background(), user, mockPasswd)
 	require.Nil(err)
 
-	disceptoH := db.GetDisceptoH(context.Background(), userH)
+	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
+	require.Nil(err)
 	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, mockSubdiscepto())
 	require.Nil(err)
 
@@ -199,7 +201,8 @@ func TestVotes(t *testing.T) {
 	userH, err := db.CreateUser(context.Background(), user, mockPasswd)
 	require.Nil(err)
 
-	disceptoH := db.GetDisceptoH(context.Background(), userH)
+	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
+	require.Nil(err)
 
 	essay := mockEssay(user.ID)
 	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, mockSubdiscepto())
@@ -248,7 +251,8 @@ func TestSubdiscepto(t *testing.T) {
 		require.Nil(err)
 
 		subdis := mockSubdiscepto()
-		disceptoH := db.GetDisceptoH(context.Background(), userH)
+		disceptoH, err := db.GetDisceptoH(context.Background(), userH)
+		require.Nil(err)
 
 		_, err = disceptoH.CreateSubdiscepto(context.Background(), *userH, subdis)
 		require.Nil(err)
@@ -268,7 +272,7 @@ func TestSubdiscepto(t *testing.T) {
 
 		subH, err := db.GetSubdisceptoH(context.Background(), mockSubdiscepto().Name, userH)
 		require.Nil(err)
-		err = userH.JoinSub(context.Background(), *subH)
+		err = subH.AddMember(context.Background(), *userH)
 		require.Nil(err)
 
 		mySubs, err := userH.ListMySubdisceptos(context.Background())
@@ -276,7 +280,7 @@ func TestSubdiscepto(t *testing.T) {
 		require.Len(mySubs, 1)
 		require.Equal(mockSubName, mySubs[0])
 
-		err = userH.LeaveSub(context.Background(), *subH)
+		err = subH.RemoveMember(context.Background(), *userH)
 		require.Nil(err)
 
 		// Delete (should fail, because user2 doesn't have that permission)
@@ -304,7 +308,8 @@ func TestSearch(t *testing.T) {
 	user := mockUser()
 	userH, err := db.CreateUser(context.Background(), user, mockPasswd)
 	require.Nil(err)
-	disceptoH := db.GetDisceptoH(context.Background(), userH)
+	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
+	require.Nil(err)
 	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, mockSubdiscepto())
 	require.Nil(err)
 	essay := mockEssay(user.ID)
@@ -338,7 +343,8 @@ func TestRoles(t *testing.T) {
 	user := mockUser()
 	userH, err := db.CreateUser(context.Background(), user, mockPasswd)
 	require.Nil(err)
-	disceptoH := db.GetDisceptoH(context.Background(), userH)
+	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
+	require.Nil(err)
 	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, mockSubdiscepto())
 	require.Nil(err)
 
@@ -347,38 +353,48 @@ func TestRoles(t *testing.T) {
 	user2H, err := db.CreateUser(context.Background(), user2, mockPasswd)
 	require.Nil(err)
 
-	err = user2H.JoinSub(context.Background(), *subH)
+	err = subH.AddMember(context.Background(), *user2H)
 	require.Nil(err)
 
-	globalPerms := getGlobalPerms(context.Background(), db.db, userH)
+	globalPerms, err := getGlobalUserPerms(context.Background(), db.db, userH.id)
+	require.Nil(err)
 	require.Equal(models.GlobalPerms{
 		Login:             true,
 		CreateSubdiscepto: true,
 		DeleteUser:        true,
 		BanUserGlobally:   true,
-		AssignGlobalRoles: true,
-	}, globalPerms)
-	globalPerms2 := getGlobalPerms(context.Background(), db.db, user2H)
+		ManageGlobalRole:  true,
+		SubPerms: models.SubPerms{
+			CreateEssay:       true,
+			DeleteEssay:       true,
+			BanUser:           true,
+			DeleteSubdiscepto: true,
+			ManageRole:        true,
+		},
+	}, *globalPerms)
+
+	globalPerms2, err := getGlobalUserPerms(context.Background(), db.db, user2H.id)
+	require.Nil(err)
 	require.Equal(models.GlobalPerms{
 		Login:             true,
 		CreateSubdiscepto: false,
 		DeleteUser:        false,
 		BanUserGlobally:   false,
-		AssignGlobalRoles: false,
-	}, globalPerms2)
+		ManageGlobalRole:  false,
+	}, *globalPerms2)
 
-	subPerms, err := getSubPerms(context.Background(), db.db, subH.subdiscepto, *userH)
+	subPerms, err := getSubUserPerms(context.Background(), db.db, subH.subdiscepto, userH.id)
 	require.Equal(&models.SubPermsOwner, subPerms)
 	require.Nil(err)
 
-	subPerms2, err := getSubPerms(context.Background(), db.db, subH.subdiscepto, *user2H)
+	subPerms2, err := getSubUserPerms(context.Background(), db.db, subH.subdiscepto, user2H.id)
 	require.Nil(err)
-	require.Equal(&models.SubPerms{
+	require.Equal(models.SubPerms{
 		Read:              true,
 		CreateEssay:       true,
 		DeleteEssay:       false,
 		DeleteSubdiscepto: false,
 		BanUser:           false,
-		AssignRoles:       false,
-	}, subPerms2)
+		ManageRole:        false,
+	}, *subPerms2)
 }

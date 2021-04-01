@@ -75,12 +75,6 @@ func (h UserH) Delete(ctx context.Context) error {
 	}
 	return h.deleteUser(ctx)
 }
-func (h UserH) JoinSub(ctx context.Context, subH SubdisceptoH) error {
-	return subH.addMember(ctx, h)
-}
-func (h UserH) LeaveSub(ctx context.Context, subH SubdisceptoH) error {
-	return subH.removeMember(ctx, h)
-}
 func (h *UserH) deleteUser(ctx context.Context) error {
 	sql, args, _ := psql.Delete("users").Where(sq.Eq{"id": h.id}).ToSql()
 	_, err := h.sharedDB.Exec(ctx, sql, args...)
