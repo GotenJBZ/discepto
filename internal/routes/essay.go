@@ -21,7 +21,7 @@ func (routes *Routes) EssaysRouter(r chi.Router) {
 func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppError {
 	subdiscepto := r.URL.Query().Get("subdiscepto")
 
-	user := r.Context().Value("user").(*db.UserH)
+	user := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subs, err := user.ListMySubdisceptos(r.Context())
 
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
@@ -42,7 +42,7 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppErr
 	return nil
 }
 func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError {
-	user, ok := r.Context().Value("user").(*db.UserH)
+	user, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subdiscepto := chi.URLParam(r, "subdiscepto")
 	subH, err := routes.db.GetSubdisceptoH(r.Context(), subdiscepto, user)
 
@@ -82,7 +82,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	return nil
 }
 func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError {
-	user, ok := db.ToUserH(r.Context().Value("user"))
+	user, ok := db.ToUserH(r.Context().Value(UserHCtxKey))
 	if !ok {
 		return &ErrMustLogin{}
 	}
@@ -150,7 +150,7 @@ func (routes *Routes) UpdateEssay(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Nope")
 }
 func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError {
-	user, ok := r.Context().Value("user").(*db.UserH)
+	user, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
 	if !ok {
 		return &ErrMustLogin{}
 	}
