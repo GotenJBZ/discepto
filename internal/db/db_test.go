@@ -386,11 +386,11 @@ func TestRoles(t *testing.T) {
 		ManageGlobalRole:  false,
 	}, *globalPerms2)
 
-	subPerms, err := getSubUserPerms(context.Background(), db.db, subH.subdiscepto, userH.id)
+	subPerms, err := getSubUserPerms(context.Background(), db.db, subH.name, userH.id)
 	require.Equal(&models.SubPermsOwner, subPerms)
 	require.Nil(err)
 
-	subPerms2, err := getSubUserPerms(context.Background(), db.db, subH.subdiscepto, user2H.id)
+	subPerms2, err := getSubUserPerms(context.Background(), db.db, subH.name, user2H.id)
 	require.Nil(err)
 	require.Equal(models.SubPerms{
 		ReadSubdiscepto:   true,

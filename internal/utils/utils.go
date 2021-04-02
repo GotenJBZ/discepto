@@ -41,6 +41,7 @@ func GenToken(l int) string {
 	log.Fatal().AnErr("Generating random token", err)
 	return hex.EncodeToString(randBytes)
 }
+
 var (
 	matchFirstCapRe = regexp.MustCompile("(.)([A-Z][a-z]+)")
 	matchAllCapRe   = regexp.MustCompile("([a-z0-9])([A-Z])")
@@ -51,7 +52,7 @@ func ToSnakeCase(str string) string {
 	snake = matchAllCapRe.ReplaceAllString(snake, "${1}_${2}")
 	return strings.ToLower(snake)
 }
-func ParsePermsForm(r *http.Request, into interface{}, mapFunc func (r *http.Request, field string) bool) {
+func ParsePermsForm(r *http.Request, into interface{}, mapFunc func(r *http.Request, field string) bool) {
 	t := reflect.ValueOf(into).Elem()
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)

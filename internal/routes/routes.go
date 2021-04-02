@@ -16,7 +16,9 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/render"
 )
+
 type disceptoCtxKey int
+
 const (
 	UserHCtxKey disceptoCtxKey = iota
 	DiscpetoHCtxKey
@@ -33,7 +35,7 @@ type Routes struct {
 func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tmpls *render.Templates) chi.Router {
 	cookiestore := sessions.NewCookieStore(config.SessionKey)
 	cookiestore.Options = &sessions.Options{
-		Path: "/",
+		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 	}
@@ -64,6 +66,8 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 
 	// Try retrieving basic user data for every request
 	r.Use(routes.UserCtx)
+	// Try retrieving discepto handler for every request
+	r.Use(routes.DisceptoCtx)
 
 	// Serve static files
 	staticFileServer := http.FileServer(http.Dir("./web/static"))
@@ -74,23 +78,19 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 
 	// Serve dynamic routes
 	r.Get("/", routes.AppHandler(routes.GetHome))
-
 	r.Get("/users", routes.AppHandler(routes.GetUsers))
-
 	r.Get("/signup", routes.GetSignup)
 	r.Post("/signup", routes.AppHandler(routes.PostSignup))
-
-	r.Get("/signout", routes.AppHandler(routes.GetSignout))
-
 	r.Get("/login", routes.GetLogin)
 	r.Post("/login", routes.AppHandler(routes.PostLogin))
-
-	r.Get("/newessay", routes.AppHandler(routes.GetNewEssay))
-	r.Post("/newessay", routes.AppHandler(routes.PostEssay))
-
 	r.Route("/s", routes.SubdisceptoRouter)
-	r.Route("/roles", routes.GlobalRolesRouter)
-	r.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
+
+	loggedIn := r.With(routes.EnforceCtx(UserHCtxKey))
+	loggedIn.Get("/signout", routes.AppHandler(routes.GetSignout))
+	loggedIn.Get("/newessay", routes.AppHandler(routes.GetNewEssay))
+	loggedIn.Post("/newessay", routes.AppHandler(routes.PostEssay))
+	loggedIn.Route("/roles", routes.GlobalRolesRouter)
+	loggedIn.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
 	return r
 }
 
@@ -118,6 +118,32 @@ func (routes *Routes) UserCtx(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), UserHCtxKey, &user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func (routes *Routes) DisceptoCtx(next http.Handler) http.Handler {
+	return routes.AppHandler(func(w http.ResponseWriter, r *http.Request) AppError {
+		userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
+
+		subH, err := routes.db.GetDisceptoH(r.Context(), userH)
+		if err != nil {
+			return &ErrInternal{Cause: err}
+		}
+
+		ctx := context.WithValue(r.Context(), DiscpetoHCtxKey, subH)
+		next.ServeHTTP(w, r.WithContext(ctx))
+		return nil
+	})
+}
+func (routes *Routes) EnforceCtx(ctxValue disceptoCtxKey) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return routes.AppHandler(func(w http.ResponseWriter, r *http.Request) AppError {
+			if r.Context().Value(ctxValue) == nil {
+				return &ErrInsuffPerms{}
+			}
+			next.ServeHTTP(w, r)
+			return nil
+		})
+	}
 }
 
 // Interface shared by every custom http error.
@@ -259,11 +285,7 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	return nil
 }
 func (routes *Routes) GetUsers(w http.ResponseWriter, r *http.Request) AppError {
-	user, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
-	disceptoH, err := routes.db.GetDisceptoH(r.Context(), user)
-	if err != nil {
-		return &ErrInternal{Cause: err}
-	}
+	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
 
 	users, err := disceptoH.ListUsers(r.Context())
 	if err != nil {

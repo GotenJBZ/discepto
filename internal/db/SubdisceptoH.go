@@ -11,9 +11,9 @@ import (
 )
 
 type SubdisceptoH struct {
-	sharedDB    DBTX
-	subdiscepto string
-	subPerms    models.SubPerms
+	sharedDB DBTX
+	name     string
+	subPerms models.SubPerms
 }
 
 func (sdb *SharedDB) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH *UserH) (*SubdisceptoH, error) {
@@ -85,7 +85,7 @@ func (h SubdisceptoH) CreateRole(ctx context.Context, subPerms models.SubPerms, 
 		if err != nil {
 			return err
 		}
-		return createSubRole(ctx, db, subPermsID, h.subdiscepto, role, false)
+		return createSubRole(ctx, db, subPermsID, h.name, role, false)
 	})
 
 	return err
@@ -94,31 +94,31 @@ func (h SubdisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, 
 	if !h.subPerms.ManageRole || !byUser.perms.Read {
 		return ErrPermDenied
 	}
-	newRolePerms, err := getSubRolePerms(ctx, h.sharedDB, h.subdiscepto, role, preset)
+	newRolePerms, err := getSubRolePerms(ctx, h.sharedDB, h.name, role, preset)
 	if err != nil {
 		return err
 	}
 	if newRolePerms.And(h.subPerms) != *newRolePerms {
 		return ErrPermDenied
 	}
-	return assignSubRole(ctx, h.sharedDB, h.subdiscepto, &byUser.id, toUser, role, preset)
+	return assignSubRole(ctx, h.sharedDB, h.name, &byUser.id, toUser, role, preset)
 }
 func (h SubdisceptoH) AddMember(ctx context.Context, userH UserH) error {
 	if !h.subPerms.ReadSubdiscepto || !userH.perms.Read {
 		return ErrPermDenied
 	}
-	err := addMember(ctx, h.sharedDB, h.subdiscepto, userH.id)
+	err := addMember(ctx, h.sharedDB, h.name, userH.id)
 	if err != nil {
 		return err
 	}
-	return assignSubRole(ctx, h.sharedDB, h.subdiscepto, nil, userH.id, "common", false)
+	return assignSubRole(ctx, h.sharedDB, h.name, nil, userH.id, "common", false)
 }
 func (h SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
 	// TODO: should check for specific permission to remove other users
 	if !h.subPerms.ReadSubdiscepto || !userH.perms.Read {
 		return ErrPermDenied
 	}
-	return removeMember(ctx, h.sharedDB, h.subdiscepto, userH.id)
+	return removeMember(ctx, h.sharedDB, h.name, userH.id)
 }
 func createReply(ctx context.Context, db DBTX, e *models.Essay) error {
 	_, err := db.Exec(ctx,
@@ -137,7 +137,7 @@ func (h SubdisceptoH) getEssayH(ctx context.Context, id int, uH UserH) (*EssayH,
 	sql, args, _ := psql.
 		Select("1").
 		From("essays").
-		Where(sq.Eq{"posted_in": h.subdiscepto, "id": id}).
+		Where(sq.Eq{"posted_in": h.name, "id": id}).
 		ToSql()
 
 	row := h.sharedDB.QueryRow(ctx, sql, args...)
@@ -172,6 +172,9 @@ func (h SubdisceptoH) ListReplies(ctx context.Context, e EssayH, replyType strin
 	}
 	return h.listReplies(ctx, e, replyType)
 }
+func (h SubdisceptoH) Name() string {
+	return h.name
+}
 
 func (h SubdisceptoH) createEssay(ctx context.Context, tx DBTX, essay *models.Essay) (*EssayH, error) {
 	clen := len(essay.Content)
@@ -195,7 +198,7 @@ func (h SubdisceptoH) createEssay(ctx context.Context, tx DBTX, essay *models.Es
 			essay.Content,
 			essay.AttributedToID,
 			essay.Published,
-			h.subdiscepto,
+			h.name,
 		).
 		ToSql()
 
@@ -251,7 +254,7 @@ func (h SubdisceptoH) read(ctx context.Context) (*models.Subdiscepto, error) {
 	sql, args, _ := psql.
 		Select("*").
 		From("subdisceptos").
-		Where(sq.Eq{"name": h.subdiscepto}).
+		Where(sq.Eq{"name": h.name}).
 		ToSql()
 	err := pgxscan.Get(ctx, h.sharedDB, &sub, sql, args...)
 	if err != nil {
@@ -265,7 +268,7 @@ func (h SubdisceptoH) listEssays(ctx context.Context) ([]*models.Essay, error) {
 	sql, args, _ := psql.
 		Select("*").
 		From("essays").
-		Where(sq.Eq{"posted_in": h.subdiscepto}).
+		Where(sq.Eq{"posted_in": h.name}).
 		ToSql()
 
 	err := pgxscan.Select(ctx, h.sharedDB, &essays, sql, args...)
@@ -277,7 +280,7 @@ func (h SubdisceptoH) listReplies(ctx context.Context, e EssayH, replyType strin
 		From("essays").
 		Where(sq.Eq{
 			"in_reply_to": e.id,
-			"posted_in":   h.subdiscepto,
+			"posted_in":   h.name,
 			"reply_type":  replyType,
 		}).
 		ToSql()
@@ -291,7 +294,7 @@ func (h SubdisceptoH) listReplies(ctx context.Context, e EssayH, replyType strin
 func (h SubdisceptoH) deleteSubdiscepto(ctx context.Context) error {
 	sql, args, _ := psql.
 		Delete("subdisceptos").
-		Where(sq.Eq{"name": h.subdiscepto}).
+		Where(sq.Eq{"name": h.name}).
 		ToSql()
 
 	_, err := h.sharedDB.Exec(ctx, sql, args...)
