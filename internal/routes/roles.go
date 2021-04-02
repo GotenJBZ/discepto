@@ -19,7 +19,7 @@ func (routes *Routes) SubRoleRouter(r chi.Router) {
 	r.Post("/{userID}", routes.AppHandler(routes.assignSubRole))
 }
 func (routes *Routes) createGlobalRole(w http.ResponseWriter, r *http.Request) AppError {
-	user := r.Context().Value("user").(*db.UserH)
+	user := r.Context().Value(UserHCtxKey).(*db.UserH)
 	disceptoH, err := routes.db.GetDisceptoH(r.Context(), user)
 	if err != nil {
 		return &ErrInternal{Cause: err}
@@ -35,7 +35,7 @@ func (routes *Routes) createGlobalRole(w http.ResponseWriter, r *http.Request) A
 	return nil
 }
 func (routes *Routes) assignGlobalRole(w http.ResponseWriter, r *http.Request) AppError {
-	user := r.Context().Value("user").(*db.UserH)
+	user := r.Context().Value(UserHCtxKey).(*db.UserH)
 	disceptoH, err := routes.db.GetDisceptoH(r.Context(), user)
 	if err != nil {
 		return &ErrInternal{Cause: err}
@@ -50,7 +50,7 @@ func (routes *Routes) assignGlobalRole(w http.ResponseWriter, r *http.Request) A
 	return nil
 }
 func (routes *Routes) createSubRole(w http.ResponseWriter, r *http.Request) AppError {
-	user := r.Context().Value("user").(*db.UserH)
+	user := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, err := routes.db.GetSubdisceptoH(r.Context(), chi.URLParam(r, "subdiscepto"), user)
 	if err != nil {
 		return &ErrInternal{Cause: err}
@@ -66,7 +66,7 @@ func (routes *Routes) createSubRole(w http.ResponseWriter, r *http.Request) AppE
 	return nil
 }
 func (routes *Routes) assignSubRole(w http.ResponseWriter, r *http.Request) AppError {
-	user := r.Context().Value("user").(*db.UserH)
+	user := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, err := routes.db.GetSubdisceptoH(r.Context(), chi.URLParam(r, "subdiscepto"), user)
 	if err != nil {
 		return &ErrInternal{Cause: err}

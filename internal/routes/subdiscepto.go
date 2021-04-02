@@ -19,7 +19,7 @@ func (routes *Routes) SubdisceptoRouter(r chi.Router) {
 	r.Post("/", routes.AppHandler(routes.PostSubdiscepto))
 }
 func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
-	user, ok := r.Context().Value("user").(*db.UserH)
+	user, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
 	if !ok {
 		return &ErrMustLogin{}
 	}
@@ -38,7 +38,7 @@ func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) A
 	return nil
 }
 func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
-	user, ok := r.Context().Value("user").(*db.UserH)
+	user, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
 	if !ok {
 		return &ErrMustLogin{}
 	}
@@ -65,7 +65,7 @@ func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) Ap
 }
 func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	subdiscepto := chi.URLParam(r, "subdiscepto")
-	user, ok := r.Context().Value("user").(*db.UserH)
+	user, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, err := routes.db.GetSubdisceptoH(r.Context(), subdiscepto, user)
 	if err != nil {
 		return &ErrNotFound{Cause: err}
@@ -113,7 +113,7 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 	return nil
 }
 func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
-	user, ok := r.Context().Value("user").(*db.UserH)
+	user, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
 	if !ok {
 		return &ErrMustLogin{}
 	}

@@ -16,6 +16,12 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/render"
 )
+type disceptoCtxKey int
+const (
+	UserHCtxKey disceptoCtxKey = iota
+	DiscpetoHCtxKey
+	SubdisceptoHCtxKey
+)
 
 type Routes struct {
 	envConfig   *models.EnvConfig
@@ -87,6 +93,7 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 	r.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
 	return r
 }
+
 func (routes *Routes) UserCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, _ := routes.cookiestore.Get(r, "discepto")
@@ -94,7 +101,7 @@ func (routes *Routes) UserCtx(next http.Handler) http.Handler {
 		token = fmt.Sprintf("%v", token) // conv to string
 
 		if token == "" {
-			ctx := context.WithValue(r.Context(), "user", nil)
+			ctx := context.WithValue(r.Context(), UserHCtxKey, nil)
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
@@ -103,12 +110,12 @@ func (routes *Routes) UserCtx(next http.Handler) http.Handler {
 		if err != nil {
 			session.Values["token"] = ""
 			session.Save(r, w)
-			ctx := context.WithValue(r.Context(), "user", nil)
+			ctx := context.WithValue(r.Context(), UserHCtxKey, nil)
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "user", &user)
+		ctx := context.WithValue(r.Context(), UserHCtxKey, &user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -222,7 +229,7 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 		MySubdisceptos []string
 		RecentEssays   []*models.Essay
 	}
-	user, ok := r.Context().Value("user").(*db.UserH)
+	user, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
 
 	userData := &models.User{}
 	if ok {
@@ -252,7 +259,7 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	return nil
 }
 func (routes *Routes) GetUsers(w http.ResponseWriter, r *http.Request) AppError {
-	user, _ := r.Context().Value("user").(*db.UserH)
+	user, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	disceptoH, err := routes.db.GetDisceptoH(r.Context(), user)
 	if err != nil {
 		return &ErrInternal{Cause: err}
