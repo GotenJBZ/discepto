@@ -14,9 +14,11 @@ import (
 
 func (routes *Routes) EssaysRouter(r chi.Router) {
 	r.Get("/{id}", routes.AppHandler(routes.GetEssay))
-	r.Post("/{essayID}/vote", routes.AppHandler(routes.PostVote))
-	r.Put("/", routes.UpdateEssay)
-	r.Delete("/{id}", routes.DeleteEssay)
+
+	loggedIn := r.With(routes.EnforceCtx(UserHCtxKey))
+	loggedIn.Put("/", routes.UpdateEssay)
+	loggedIn.Delete("/{id}", routes.DeleteEssay)
+	loggedIn.Post("/{essayID}/vote", routes.AppHandler(routes.PostVote))
 }
 func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppError {
 	subdiscepto := r.URL.Query().Get("subdiscepto")
