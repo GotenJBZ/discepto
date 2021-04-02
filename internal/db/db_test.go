@@ -47,12 +47,14 @@ func mockSubdiscepto() *models.Subdiscepto {
 	return &models.Subdiscepto{
 		Name:        mockSubName,
 		Description: "Mock subdiscepto",
+		Public:      true,
 	}
 }
 func mockSubdiscepto2() *models.Subdiscepto {
 	return &models.Subdiscepto{
 		Name:        mockSubName2,
 		Description: "Mock subdiscepto 2",
+		Public:      true,
 	}
 }
 
@@ -365,6 +367,7 @@ func TestRoles(t *testing.T) {
 		BanUserGlobally:   true,
 		ManageGlobalRole:  true,
 		SubPerms: models.SubPerms{
+			ReadSubdiscepto:   true,
 			CreateEssay:       true,
 			DeleteEssay:       true,
 			BanUser:           true,
@@ -390,7 +393,7 @@ func TestRoles(t *testing.T) {
 	subPerms2, err := getSubUserPerms(context.Background(), db.db, subH.subdiscepto, user2H.id)
 	require.Nil(err)
 	require.Equal(models.SubPerms{
-		Read:              true,
+		ReadSubdiscepto:   true,
 		CreateEssay:       true,
 		DeleteEssay:       false,
 		DeleteSubdiscepto: false,

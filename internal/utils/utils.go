@@ -3,6 +3,8 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"net/http"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -38,4 +40,22 @@ func GenToken(l int) string {
 	_, err := rand.Read(randBytes)
 	log.Fatal().AnErr("Generating random token", err)
 	return hex.EncodeToString(randBytes)
+}
+var (
+	matchFirstCapRe = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	matchAllCapRe   = regexp.MustCompile("([a-z0-9])([A-Z])")
+)
+
+func ToSnakeCase(str string) string {
+	snake := matchFirstCapRe.ReplaceAllString(str, "${1}_${2}")
+	snake = matchAllCapRe.ReplaceAllString(snake, "${1}_${2}")
+	return strings.ToLower(snake)
+}
+func ParsePermsForm(r *http.Request, into interface{}, mapFunc func (r *http.Request, field string) bool) {
+	t := reflect.ValueOf(into).Elem()
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		name := ToSnakeCase(f.String())
+		f.Set(reflect.ValueOf(mapFunc(r, name)))
+	}
 }

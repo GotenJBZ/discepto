@@ -18,6 +18,7 @@ func getGlobalUserPerms(ctx context.Context, db DBTX, userID int) (*models.Globa
 		bool_or("ban_user_globally"),
 		bool_or("delete_user"),
 		bool_or("manage_global_role"),
+		bool_or("read_subdiscepto"),
 		bool_or("create_essay"),
 		bool_or("delete_essay"),
 		bool_or("ban_user"),
@@ -38,6 +39,7 @@ func getGlobalUserPerms(ctx context.Context, db DBTX, userID int) (*models.Globa
 		&perms.BanUserGlobally,
 		&perms.DeleteUser,
 		&perms.ManageGlobalRole,
+		&perms.ReadSubdiscepto,
 		&perms.CreateEssay,
 		&perms.DeleteEssay,
 		&perms.BanUser,
@@ -71,6 +73,7 @@ func getSubUserPerms(ctx context.Context, db DBTX, subdiscepto string, userID in
 
 	sql, args, _ := psql.
 		Select(
+			bool_or("read_subdiscepto"),
 			bool_or("create_essay"),
 			bool_or("delete_essay"),
 			bool_or("ban_user"),
@@ -87,6 +90,7 @@ func getSubUserPerms(ctx context.Context, db DBTX, subdiscepto string, userID in
 	row := db.QueryRow(ctx, sql, args...)
 	perms = &models.SubPerms{}
 	err = row.Scan(
+		&perms.ReadSubdiscepto,
 		&perms.CreateEssay,
 		&perms.DeleteEssay,
 		&perms.BanUser,
@@ -99,10 +103,6 @@ func getSubUserPerms(ctx context.Context, db DBTX, subdiscepto string, userID in
 	} else if err != nil {
 		return nil, err
 	}
-	// If no error was returned, it means the user has some role assigned.
-	// If a user has at least one role, it automatically gets read permissions
-	// In fact, admins can ban a user simply by removing all roles from him
-	perms.Read = true
 	return perms, nil
 }
 func getGlobalRolePerms(ctx context.Context, db DBTX, role string, preset bool) (*models.GlobalPerms, error) {
@@ -203,6 +203,7 @@ func createSubPerms(ctx context.Context, db DBTX, perms models.SubPerms) (int, e
 	sql, args, _ := psql.
 		Insert("sub_perms").
 		Columns(
+			"read_subdiscepto",
 			"create_essay",
 			"delete_essay",
 			"ban_user",
@@ -211,6 +212,7 @@ func createSubPerms(ctx context.Context, db DBTX, perms models.SubPerms) (int, e
 			"manage_role",
 		).
 		Values(
+			perms.ReadSubdiscepto,
 			perms.CreateEssay,
 			perms.DeleteEssay,
 			perms.BanUser,

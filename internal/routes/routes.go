@@ -81,6 +81,7 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 	r.Post("/newessay", routes.AppHandler(routes.PostEssay))
 
 	r.Route("/s", routes.SubdisceptoRouter)
+	r.Route("/roles", routes.GlobalRolesRouter)
 	r.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
 	return r
 }
