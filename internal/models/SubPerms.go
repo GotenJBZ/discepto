@@ -1,7 +1,7 @@
 package models
 
 type SubPerms struct {
-	Read              bool
+	ReadSubdiscepto   bool
 	CreateEssay       bool
 	DeleteEssay       bool
 	BanUser           bool
@@ -11,7 +11,7 @@ type SubPerms struct {
 }
 
 var SubPermsOwner SubPerms = SubPerms{
-	Read:              true,
+	ReadSubdiscepto:   true,
 	CreateEssay:       true,
 	DeleteEssay:       true,
 	BanUser:           true,
@@ -22,7 +22,7 @@ var SubPermsOwner SubPerms = SubPerms{
 
 func (self SubPerms) And(other SubPerms) SubPerms {
 	return SubPerms{
-		Read:              self.Read && other.Read,
+		ReadSubdiscepto:   self.ReadSubdiscepto && other.ReadSubdiscepto,
 		CreateEssay:       self.CreateEssay && other.CreateEssay,
 		DeleteEssay:       self.DeleteEssay && other.DeleteEssay,
 		BanUser:           self.BanUser && other.BanUser,

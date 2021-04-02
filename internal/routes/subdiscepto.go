@@ -14,6 +14,7 @@ func (routes *Routes) SubdisceptoRouter(r chi.Router) {
 	r.Post("/{subdiscepto}/join", routes.AppHandler(routes.JoinSubdiscepto))
 	r.Route("/{subdiscepto}/", routes.EssaysRouter)
 	r.Get("/{subdiscepto}", routes.AppHandler(routes.GetSubdiscepto))
+	r.Route("/roles", routes.SubRoleRouter)
 	r.Get("/", routes.AppHandler(routes.GetSubdisceptos))
 	r.Post("/", routes.AppHandler(routes.PostSubdiscepto))
 }
