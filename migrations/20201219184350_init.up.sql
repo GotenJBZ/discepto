@@ -20,6 +20,17 @@ CREATE TABLE subdiscepto_users (
 	PRIMARY KEY(subdiscepto, user_id)
 );
 
+CREATE TABLE sub_perms (
+	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	read_subdiscepto boolean NOT NULL,
+	delete_essay boolean NOT NULL,
+	create_essay boolean NOT NULL,
+	ban_user boolean NOT NULL,
+	change_ranking boolean NOT NULL,
+	delete_subdiscepto boolean NOT NULL,
+	manage_role boolean NOT NULL
+);
+
 CREATE TABLE global_perms (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	login boolean NOT NULL,
@@ -27,25 +38,15 @@ CREATE TABLE global_perms (
 	hide_subdiscepto boolean NOT NULL,
 	ban_user_globally boolean NOT NULL,
 	delete_user boolean NOT NULL,
-	assign_global_roles boolean NOT NULL
-);
-
-CREATE TABLE sub_perms (
-	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-	delete_essay boolean NOT NULL,
-	create_essay boolean NOT NULL,
-	ban_user boolean NOT NULL,
-	change_ranking boolean NOT NULL,
-	delete_subdiscepto boolean NOT NULL,
-	assign_roles boolean NOT NULL
+	manage_global_role boolean NOT NULL,
+	sub_perms_id int REFERENCES sub_perms(id) ON DELETE CASCADE NOT NULL
 );
 
 CREATE TABLE global_roles (
-	global_perms_id int REFERENCES global_perms(id) NOT NULL,
-	sub_perms_id int REFERENCES sub_perms(id) NOT NULL,
+	global_perms_id int PRIMARY KEY REFERENCES global_perms(id) NOT NULL,
 	name varchar(50) NOT NULL,
 	preset boolean NOT NULL,
-	PRIMARY KEY (global_perms_id, sub_perms_id)
+	UNIQUE(name, preset)
 );
 
 CREATE TABLE sub_roles (
@@ -58,25 +59,26 @@ CREATE TABLE sub_roles (
 );
 
 -- Create initial roles. Manually set an easy to remember id.
-INSERT INTO global_perms
-(id,    login,  create_subdiscepto,  hide_subdiscepto,  ban_user_globally,  delete_user, assign_global_roles)
-OVERRIDING SYSTEM VALUE VALUES                                                                
-(-123,  true,   true,                true,              true,               true,        true),
-(0,  	true,   false,               false,             false,              false,       false);
-
 INSERT INTO sub_perms
-(id,    create_essay,  delete_essay,  ban_user,  change_ranking,  delete_subdiscepto,  assign_roles)
+(id,    read_subdiscepto, create_essay,  delete_essay,  ban_user,  change_ranking,  delete_subdiscepto,  manage_role)
 OVERRIDING SYSTEM VALUE VALUES
-(-123,  true,          true,          true,      true,            true,                true),
-(-100,  true,          true,          true,      true,            true,                false),
-(-99,   true,          false,         false,     true,            false,               false),
-(0,   	false,         false,         false,     false,           false,               false);
+(-123,  true,            true,          true,          true,      true,            true,                true),
+(-100,  true,            true,          true,          true,      true,            true,                false),
+(-99,   true,            true,          false,         false,     true,            false,               false),
+(0,   	false,           false,         false,         false,     false,           false,               false);
+
+INSERT INTO global_perms
+(id,    login,  create_subdiscepto,  hide_subdiscepto,  ban_user_globally,  delete_user, manage_global_role, sub_perms_id)
+OVERRIDING SYSTEM VALUE VALUES
+(-123,  true,   true,                true,              true,               true,        true,                -123),
+(0,  	true,   false,               false,             false,              false,       false,               0);
+
 
 INSERT INTO global_roles
-(global_perms_id, sub_perms_id, name, preset)
+(global_perms_id, name, preset)
 VALUES
-(-123, -123, 'admin', true),
-(0, 0, 	    'common', true);
+(-123, 'admin', true),
+(0,    'common', true);
 
 INSERT INTO sub_roles
 (sub_perms_id, subdiscepto, name, preset)
@@ -95,16 +97,16 @@ CREATE TABLE tokens (
 
 CREATE TABLE user_global_roles (
 	user_id int REFERENCES users(id) ON DELETE CASCADE,
-	global_perms_id int NOT NULL,
-	sub_perms_id int NOT NULL,
-	PRIMARY KEY(user_id, global_perms_id, sub_perms_id),
-	FOREIGN KEY(global_perms_id, sub_perms_id) REFERENCES global_roles(global_perms_id, sub_perms_id) ON DELETE CASCADE
+	global_perms_id int REFERENCES global_perms(id) ON DELETE CASCADE NOT NULL,
+	assigned_by int REFERENCES users(id),
+	PRIMARY KEY(user_id, global_perms_id)
 );
 
 CREATE TABLE user_sub_roles (
 	user_id int NOT NULL,
 	subdiscepto varchar(50) NOT NULL,
 	sub_perms_id int REFERENCES sub_roles(sub_perms_id) ON DELETE CASCADE NOT NULL,
+	assigned_by int REFERENCES users(id),
 	FOREIGN KEY (user_id, subdiscepto) REFERENCES subdiscepto_users(user_id, subdiscepto) ON DELETE CASCADE, 
 	PRIMARY KEY(user_id, sub_perms_id, subdiscepto)
 );

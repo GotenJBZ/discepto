@@ -14,9 +14,16 @@ type DisceptoH struct {
 	globalPerms models.GlobalPerms
 }
 
-func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) DisceptoH {
-	perms := getGlobalPerms(ctx, sdb.db, uH)
-	return DisceptoH{globalPerms: perms, sharedDB: sdb.db}
+func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) (*DisceptoH, error) {
+	globalPerms := &models.GlobalPerms{}
+	if uH != nil {
+		var err error
+		globalPerms, err = getGlobalUserPerms(ctx, sdb.db, uH.id)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &DisceptoH{globalPerms: *globalPerms, sharedDB: sdb.db}, nil
 }
 
 func (h *DisceptoH) ListUsers(ctx context.Context) ([]models.User, error) {
@@ -36,71 +43,71 @@ func (h *DisceptoH) CreateSubdiscepto(ctx context.Context, uH UserH, subd *model
 	}
 	return h.createSubdiscepto(ctx, uH, subd)
 }
+func (h DisceptoH) CreateGlobalRole(ctx context.Context, globalPerms models.GlobalPerms, role string) error {
+	if !h.globalPerms.ManageRole || h.globalPerms.And(globalPerms) != globalPerms {
+		return ErrPermDenied
+	}
+	err := execTx(ctx, h.sharedDB, func(ctx context.Context, db DBTX) error {
+		globalPermsID, err := createGlobalPerms(ctx, db, globalPerms)
+		if err != nil {
+			return err
+		}
+		return createGlobalRole(ctx, db, globalPermsID, role, false)
+	})
+	return err
+}
+func (h DisceptoH) AssignGlobalRole(ctx context.Context, byUser UserH, toUser int, role string, preset bool) error {
+	if !h.globalPerms.ManageRole || !byUser.perms.Read {
+		return ErrPermDenied
+	}
+	newRolePerms, err := getGlobalRolePerms(ctx, h.sharedDB, role, preset)
+	if err != nil {
+		return err
+	}
+	if newRolePerms.And(h.globalPerms) != *newRolePerms {
+		return ErrPermDenied
+	}
+	return assignGlobalRole(ctx, h.sharedDB, &byUser.id, toUser, role, preset)
+}
 func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd *models.Subdiscepto) (*SubdisceptoH, error) {
 	firstUserID := uH.id
 	err := execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
-		// Insert subdiscepto
-		sql, args, _ := psql.
-			Insert("subdisceptos").
-			Columns("name", "description", "min_length", "questions_required", "nsfw", "public").
-			Values(subd.Name, subd.Description, subd.MinLength, subd.QuestionsRequired, subd.Nsfw, subd.Public).
-			ToSql()
-		_, err := tx.Exec(ctx, sql, args...)
+		err := createSubdiscepto(ctx, tx, *subd)
 		if err != nil {
 			return err
 		}
 
-		// Create local "common" role (added to every user)
-		// Create permissions used by custom "common" role
-		sql, args, _ = psql.
-			Insert("sub_perms").
-			Columns(
-				"create_essay",
-				"delete_essay",
-				"ban_user",
-				"change_ranking",
-				"delete_subdiscepto",
-				"assign_roles",
-			).
-			Values(true, false, false, false, false, false).
-			Suffix("RETURNING id").
-			ToSql()
-
-		var subPermsID int
-		row := tx.QueryRow(ctx, sql, args...)
-		err = row.Scan(&subPermsID)
+		// Create a "common" role, added to every user of the subdiscepto
+		subPerms := models.SubPerms{
+			ReadSubdiscepto:   true,
+			CreateEssay:       true,
+			DeleteEssay:       false,
+			BanUser:           false,
+			ChangeRanking:     false,
+			DeleteSubdiscepto: false,
+			ManageRole:        false,
+		}
+		commonSubPermsID, err := createSubPerms(ctx, tx, subPerms)
 		if err != nil {
 			return err
 		}
-
-		// Insert "common" role
-		sql, args, _ = psql.
-			Insert("sub_roles").
-			Columns("subdiscepto", "name", "sub_perms_id", "preset").
-			Values(subd.Name, "common", subPermsID, false).
-			ToSql()
-		_, err = tx.Exec(ctx, sql, args...)
+		err = createSubRole(ctx, tx, commonSubPermsID, subd.Name, "common", false)
 		if err != nil {
 			return err
 		}
 
 		// Insert first user of subdiscepto
-		sql, args, _ = psql.
-			Insert("subdiscepto_users").
-			Columns("subdiscepto", "user_id").
-			Values(subd.Name, firstUserID).
-			ToSql()
-		_, err = tx.Exec(ctx, sql, args...)
+		err = addMember(ctx, tx, subd.Name, firstUserID)
+		if err != nil {
+			return err
+		}
+		// Add "common" role
+		err = assignSubRole(ctx, tx, subd.Name, nil, firstUserID, "common", false)
 		if err != nil {
 			return err
 		}
 
-		err = assignNamedSubRole(ctx, tx, firstUserID, subd.Name, "common", false)
-		if err != nil {
-			return err
-		}
-
-		err = assignNamedSubRole(ctx, tx, firstUserID, subd.Name, "admin", true)
+		err = assignSubRole(ctx, tx, subd.Name, nil, firstUserID, "admin", true)
 		return err
 	})
 	if err != nil {

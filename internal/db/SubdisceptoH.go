@@ -21,31 +21,31 @@ func (sdb *SharedDB) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH
 	var err error
 	if uH != nil {
 		// First, try getting user's permissions
-		subPerms, err = getSubPerms(ctx, sdb.db, subdiscepto, *uH)
+		subPerms, err = getSubUserPerms(ctx, sdb.db, subdiscepto, uH.id)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if subPerms == nil {
+	if subPerms == nil || !subPerms.ReadSubdiscepto {
 		// Check if the subdiscepto is publicly readable
-		if read := isSubPublic(ctx, sdb.db, subdiscepto); read {
-			subPerms = &models.SubPerms{Read: true}
-		} else {
+		public := isSubPublic(ctx, sdb.db, subdiscepto)
+		if !public {
 			return nil, ErrPermDenied
 		}
+		subPerms = &models.SubPerms{ReadSubdiscepto: public}
 	}
 
 	h := &SubdisceptoH{sdb.db, subdiscepto, *subPerms}
 	return h, nil
 }
 func (h SubdisceptoH) Read(ctx context.Context) (*models.Subdiscepto, error) {
-	if !h.subPerms.Read {
+	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
 	return h.read(ctx)
 }
 func (h SubdisceptoH) Delete(ctx context.Context) error {
-	if !(h.subPerms == models.SubPermsOwner) {
+	if h.subPerms != models.SubPermsOwner {
 		return ErrPermDenied
 	}
 	return h.deleteSubdiscepto(ctx)
@@ -76,6 +76,50 @@ func (h SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH 
 		return err
 	})
 }
+func (h SubdisceptoH) CreateRole(ctx context.Context, subPerms models.SubPerms, role string) error {
+	if !h.subPerms.ManageRole || h.subPerms.And(subPerms) != subPerms {
+		return ErrPermDenied
+	}
+	err := execTx(ctx, h.sharedDB, func(ctx context.Context, db DBTX) error {
+		subPermsID, err := createSubPerms(ctx, db, subPerms)
+		if err != nil {
+			return err
+		}
+		return createSubRole(ctx, db, subPermsID, h.subdiscepto, role, false)
+	})
+
+	return err
+}
+func (h SubdisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, role string, preset bool) error {
+	if !h.subPerms.ManageRole || !byUser.perms.Read {
+		return ErrPermDenied
+	}
+	newRolePerms, err := getSubRolePerms(ctx, h.sharedDB, h.subdiscepto, role, preset)
+	if err != nil {
+		return err
+	}
+	if newRolePerms.And(h.subPerms) != *newRolePerms {
+		return ErrPermDenied
+	}
+	return assignSubRole(ctx, h.sharedDB, h.subdiscepto, &byUser.id, toUser, role, preset)
+}
+func (h SubdisceptoH) AddMember(ctx context.Context, userH UserH) error {
+	if !h.subPerms.ReadSubdiscepto || !userH.perms.Read {
+		return ErrPermDenied
+	}
+	err := addMember(ctx, h.sharedDB, h.subdiscepto, userH.id)
+	if err != nil {
+		return err
+	}
+	return assignSubRole(ctx, h.sharedDB, h.subdiscepto, nil, userH.id, "common", false)
+}
+func (h SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
+	// TODO: should check for specific permission to remove other users
+	if !h.subPerms.ReadSubdiscepto || !userH.perms.Read {
+		return ErrPermDenied
+	}
+	return removeMember(ctx, h.sharedDB, h.subdiscepto, userH.id)
+}
 func createReply(ctx context.Context, db DBTX, e *models.Essay) error {
 	_, err := db.Exec(ctx,
 		"INSERT INTO essay_replies (from_id, to_id, reply_type) VALUES ($1, $2, $3)",
@@ -83,7 +127,7 @@ func createReply(ctx context.Context, db DBTX, e *models.Essay) error {
 	return err
 }
 func (h SubdisceptoH) GetEssayH(ctx context.Context, id int, uH UserH) (*EssayH, error) {
-	if !h.subPerms.Read {
+	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
 	return h.getEssayH(ctx, id, uH)
@@ -109,7 +153,7 @@ func (h SubdisceptoH) getEssayH(ctx context.Context, id int, uH UserH) (*EssayH,
 
 	// Finally assign capabilities
 	essayPerms := models.EssayPerms{
-		Read:          h.subPerms.Read || isOwner,
+		Read:          h.subPerms.ReadSubdiscepto || isOwner,
 		DeleteEssay:   h.subPerms.DeleteEssay || isOwner,
 		ChangeRanking: false, // TODO: to implement in future
 	}
@@ -117,13 +161,13 @@ func (h SubdisceptoH) getEssayH(ctx context.Context, id int, uH UserH) (*EssayH,
 	return e, nil
 }
 func (h SubdisceptoH) ListEssays(ctx context.Context) ([]*models.Essay, error) {
-	if !h.subPerms.Read {
+	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
 	return h.listEssays(ctx)
 }
 func (h SubdisceptoH) ListReplies(ctx context.Context, e EssayH, replyType string) ([]*models.Essay, error) {
-	if !h.subPerms.Read {
+	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
 	return h.listReplies(ctx, e, replyType)
@@ -273,32 +317,37 @@ func isSubPublic(ctx context.Context, db DBTX, subdiscepto string) bool {
 
 	return true
 }
-func (h *SubdisceptoH) addMember(ctx context.Context, uH UserH) error {
-	return execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
+func addMember(ctx context.Context, db DBTX, subdiscepto string, userID int) error {
+	return execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
 		sql, args, _ := psql.
 			Insert("subdiscepto_users").
 			Columns("subdiscepto", "user_id").
-			Values(h.subdiscepto, uH.id).
+			Values(subdiscepto, userID).
 			ToSql()
 
 		_, err := tx.Exec(ctx, sql, args...)
-		if err != nil {
-			return err
-		}
-
-		// Add "common" role
-		return assignNamedSubRole(ctx, tx, uH.id, h.subdiscepto, "common", false)
+		return err
 	})
 }
-func (h *SubdisceptoH) removeMember(ctx context.Context, uH UserH) error {
+func removeMember(ctx context.Context, db DBTX, subdiscepto string, userID int) error {
 	sql, args, _ := psql.
 		Delete("subdiscepto_users").
-		Where(sq.Eq{"subdiscepto": h.subdiscepto, "user_id": uH.id}).
+		Where(sq.Eq{"subdiscepto": subdiscepto, "user_id": userID}).
 		ToSql()
 
-	_, err := h.sharedDB.Exec(ctx, sql, args...)
+	_, err := db.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+func createSubdiscepto(ctx context.Context, db DBTX, sub models.Subdiscepto) error {
+	// Insert subdiscepto
+	sql, args, _ := psql.
+		Insert("subdisceptos").
+		Columns("name", "description", "min_length", "questions_required", "nsfw", "public").
+		Values(sub.Name, sub.Description, sub.MinLength, sub.QuestionsRequired, sub.Nsfw, sub.Public).
+		ToSql()
+	_, err := db.Exec(ctx, sql, args...)
+	return err
 }
