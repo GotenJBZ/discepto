@@ -31,6 +31,7 @@ func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH 
 	// Inherit global perms
 	subPerms = &models.SubPerms{
 		ReadSubdiscepto:   subPerms.ReadSubdiscepto || dH.globalPerms.ReadSubdiscepto,
+		UpdateSubdiscepto:   subPerms.UpdateSubdiscepto || dH.globalPerms.UpdateSubdiscepto,
 		CreateEssay:       subPerms.CreateEssay || dH.globalPerms.CreateEssay,
 		DeleteEssay:       subPerms.DeleteEssay || dH.globalPerms.DeleteEssay,
 		BanUser:           subPerms.BanUser || dH.globalPerms.BanUser,
@@ -151,6 +152,23 @@ func (h SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
 		return ErrPermDenied
 	}
 	return removeMember(ctx, h.sharedDB, h.name, userH.id)
+}
+func (h SubdisceptoH) Update(ctx context.Context, sub models.Subdiscepto) error {
+	if !h.subPerms.UpdateSubdiscepto {
+		return ErrPermDenied
+	}
+	sql, args, _ := psql.
+		Update("subdisceptos").
+		Set("name", sub.Name).
+		Set("description", sub.Description).
+		Set("questions_required", sub.QuestionsRequired).
+		Set("nsfw", sub.Nsfw).
+		Set("public", sub.Public).
+		Where(sq.Eq{"name": h.name}).
+		ToSql()
+
+	_, err := h.sharedDB.Exec(ctx, sql, args...)
+	return err
 }
 func createReply(ctx context.Context, db DBTX, fromID int, toID int, replyType string) error {
 	_, err := db.Exec(ctx,

@@ -54,7 +54,7 @@ func (h *DisceptoH) ReadPublicUser(ctx context.Context, userID int) (*models.Use
 	return user, nil
 }
 
-func (h *DisceptoH) CreateSubdiscepto(ctx context.Context, uH UserH, subd *models.Subdiscepto) (*SubdisceptoH, error) {
+func (h *DisceptoH) CreateSubdiscepto(ctx context.Context, uH UserH, subd models.Subdiscepto) (*SubdisceptoH, error) {
 	if !h.globalPerms.CreateSubdiscepto {
 		return nil, ErrPermDenied
 	}
@@ -90,10 +90,10 @@ func (h DisceptoH) AssignGlobalRole(ctx context.Context, byUser UserH, toUser in
 	}
 	return assignGlobalRole(ctx, h.sharedDB, &byUser.id, toUser, role, preset)
 }
-func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd *models.Subdiscepto) (*SubdisceptoH, error) {
+func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models.Subdiscepto) (*SubdisceptoH, error) {
 	firstUserID := uH.id
 	err := execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
-		err := createSubdiscepto(ctx, tx, *subd)
+		err := createSubdiscepto(ctx, tx, subd)
 		if err != nil {
 			return err
 		}
@@ -101,6 +101,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd *model
 		// Create a "common" role, added to every user of the subdiscepto
 		subPerms := models.SubPerms{
 			ReadSubdiscepto:   true,
+			UpdateSubdiscepto:   true,
 			CreateEssay:       true,
 			DeleteEssay:       false,
 			BanUser:           false,

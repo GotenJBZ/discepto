@@ -43,11 +43,8 @@ func (routes *Routes) GetSubRoles(w http.ResponseWriter, r *http.Request) AppErr
 }
 func (routes *Routes) createGlobalRole(w http.ResponseWriter, r *http.Request) AppError {
 	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
-	v := func(r *http.Request, formValue string) bool {
-		return r.FormValue(formValue) == "true"
-	}
 	globalPerms := &models.GlobalPerms{}
-	utils.ParsePermsForm(r, globalPerms, v)
+	utils.ParseFormStruct(r, globalPerms)
 
 	disceptoH.CreateGlobalRole(r.Context(), *globalPerms, r.FormValue("role_name"))
 	w.Write([]byte("ok, thank you"))
@@ -68,11 +65,8 @@ func (routes *Routes) assignGlobalRole(w http.ResponseWriter, r *http.Request) A
 }
 func (routes *Routes) createSubRole(w http.ResponseWriter, r *http.Request) AppError {
 	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
-	v := func(r *http.Request, formValue string) bool {
-		return r.FormValue(formValue) == "true"
-	}
 	subPerms := &models.SubPerms{}
-	utils.ParsePermsForm(r, subPerms, v)
+	utils.ParseFormStruct(r, subPerms)
 
 	subH.CreateRole(r.Context(), *subPerms, r.FormValue("name"))
 	w.Write([]byte("ok, thank you"))

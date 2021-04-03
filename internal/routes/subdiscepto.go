@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi"
 	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/utils"
 )
 
 func (routes *Routes) SubdisceptoRouter(r chi.Router) {
@@ -16,6 +17,7 @@ func (routes *Routes) SubdisceptoRouter(r chi.Router) {
 
 	specificSub := r.With(routes.SubdiscpetoCtx)
 	specificSub.Get("/{subdiscepto}", routes.AppHandler(routes.GetSubdiscepto))
+	specificSub.Put("/{subdiscepto}", routes.AppHandler(routes.PutSubdiscepto))
 	specificSub.Route("/{subdiscepto}/", routes.EssaysRouter)
 
 	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Route("/{subdiscepto}/settings", routes.SubSettingsRouter)
@@ -142,15 +144,32 @@ func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
 	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
 
-	sub := &models.Subdiscepto{
-		Name:        r.FormValue("name"),
-		Description: r.FormValue("description"),
-		Public:      r.FormValue("privacy") == "public", // TODO: Use checkbox instead of radio in html
+	sub := models.Subdiscepto{}
+	err := utils.ParseFormStruct(r, &sub)
+	if err != nil {
+		return &ErrBadRequest{}
 	}
 
-	_, err := disceptoH.CreateSubdiscepto(r.Context(), *userH, sub)
+	_, err = disceptoH.CreateSubdiscepto(r.Context(), *userH, sub)
 	if err != nil {
 		return &ErrInternal{Message: "Error creating subdiscepto", Cause: err}
+	}
+	http.Redirect(w, r, fmt.Sprintf("/s/%s", sub.Name), http.StatusSeeOther)
+	return nil
+}
+
+func (routes *Routes) PutSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
+	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+
+	sub := models.Subdiscepto{}
+	err := utils.ParseFormStruct(r, &sub)
+	if err != nil {
+		return &ErrBadRequest{}
+	}
+
+	err = subH.Update(r.Context(), sub)
+	if err != nil {
+		return &ErrInternal{Message: "Error updating subdiscepto data", Cause: err}
 	}
 	http.Redirect(w, r, fmt.Sprintf("/s/%s", sub.Name), http.StatusSeeOther)
 	return nil

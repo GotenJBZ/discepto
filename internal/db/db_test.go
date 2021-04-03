@@ -151,7 +151,7 @@ func TestEssay(t *testing.T) {
 
 	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
 	require.Nil(err)
-	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, mockSubdiscepto())
+	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, *mockSubdiscepto())
 	require.Nil(err)
 
 	essay := mockEssay(user.ID)
@@ -164,7 +164,7 @@ func TestEssay(t *testing.T) {
 
 	// Test list recent essays from joined subs
 	// Create and fill second sub
-	sub2H, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, mockSubdiscepto2())
+	sub2H, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, *mockSubdiscepto2())
 	require.Nil(err)
 	essay2 := mockEssay(user.ID)
 	essay2.PostedIn = mockSubName2
@@ -239,7 +239,7 @@ func TestSubdiscepto(t *testing.T) {
 		disceptoH, err := db.GetDisceptoH(context.Background(), userH)
 		require.Nil(err)
 
-		_, err = disceptoH.CreateSubdiscepto(context.Background(), *userH, subdis)
+		_, err = disceptoH.CreateSubdiscepto(context.Background(), *userH, *subdis)
 		require.Nil(err)
 
 		subs, err := db.ListSubdisceptos(context.Background(), userH)
@@ -299,7 +299,7 @@ func TestSearch(t *testing.T) {
 	require.Nil(err)
 	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
 	require.Nil(err)
-	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, mockSubdiscepto())
+	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, *mockSubdiscepto())
 	require.Nil(err)
 	essay := mockEssay(user.ID)
 	esH, err := subH.CreateEssay(context.Background(), essay)
@@ -334,7 +334,7 @@ func TestRoles(t *testing.T) {
 	require.Nil(err)
 	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
 	require.Nil(err)
-	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, mockSubdiscepto())
+	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, *mockSubdiscepto())
 	require.Nil(err)
 
 	user2 := user

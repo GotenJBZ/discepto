@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -52,11 +53,25 @@ func ToSnakeCase(str string) string {
 	snake = matchAllCapRe.ReplaceAllString(snake, "${1}_${2}")
 	return strings.ToLower(snake)
 }
-func ParsePermsForm(r *http.Request, into interface{}, mapFunc func(r *http.Request, field string) bool) {
-	t := reflect.ValueOf(into).Elem()
+func ParseFormStruct(r *http.Request, into interface{}) error {
+	v := reflect.ValueOf(into).Elem()
+	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		name := ToSnakeCase(f.String())
-		f.Set(reflect.ValueOf(mapFunc(r, name)))
+		name := ToSnakeCase(f.Name)
+		switch k := f.Type.Kind(); k {
+		case reflect.Int:
+			intg, err := strconv.Atoi(r.FormValue(name))
+			if err != nil {
+				return err
+			}
+			v.Field(i).Set(reflect.ValueOf(intg))
+		case reflect.Bool:
+			isChecked := r.FormValue(name) == "on"
+			v.Field(i).Set(reflect.ValueOf(isChecked))
+		case reflect.String:
+			v.Field(i).Set(reflect.ValueOf(r.FormValue(name)))
+		}
 	}
+	return nil
 }

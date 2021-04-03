@@ -37,27 +37,29 @@
                     </div>
 
 
-                    <div class="field">
-                        <label class="label">Privacy</label>
-                        <div class="control">
-                            <label class="radio">
-                            <input type="radio" name="privacy" value="public" checked> Public
-                        </label>
-                            <label class="radio">
-                            <input type="radio" name="privacy" value="restricted"> Restricted
-                        </label>
-                            <label class="radio">
-                            <input type="radio" name="privacy" value="private"> Private
-                        </label>
-                        </div>
+                <div class="field">
+                    <div class="control">
+                      <label class="checkbox">
+                          <input type="checkbox" name="public" checked> Public
+                      </label>
                     </div>
-                    <br>
-                    <div>
-                        <button class="button is-primary is-outlined" type="submit">Create</button>
+                </div>
+
+                <div class="field">
+                    <label class="label">Minimum length of posts</label>
+                    <div class="control has-icons-left">
+                        <input type="number" placeholder="Number of chars" class="input is-primary" required name="min_length">
+                        <span class="icon is-small is-left">
+                        <i class="fa fa-home"></i>
+                    </span>
                     </div>
-                </section>
-            </form>
-        </div>
+                </div>
+                <br>
+                <div>
+                    <button class="button is-primary is-outlined" type="submit">Create</button>
+                </div>
+            </section>
+        </form>
     </div>
 
     <script>
