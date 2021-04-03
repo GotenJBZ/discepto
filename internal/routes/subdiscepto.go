@@ -25,9 +25,10 @@ func (routes *Routes) SubdisceptoRouter(r chi.Router) {
 func (routes *Routes) SubdiscpetoCtx(next http.Handler) http.Handler {
 	return routes.AppHandler(func(w http.ResponseWriter, r *http.Request) AppError {
 		userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
+		disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
 
 		subName := chi.URLParam(r, "subdiscepto")
-		subH, err := routes.db.GetSubdisceptoH(r.Context(), subName, userH)
+		subH, err := disceptoH.GetSubdisceptoH(r.Context(), subName, userH)
 
 		if err != nil {
 			return &ErrInternal{Cause: err}

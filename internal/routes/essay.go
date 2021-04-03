@@ -84,8 +84,9 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 }
 func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError {
 	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
-	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
 
+	subH, err := disceptoH.GetSubdisceptoH(r.Context(), r.FormValue("postedIn"), userH)
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
 

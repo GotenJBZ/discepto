@@ -60,17 +60,6 @@ func getGlobalUserPerms(ctx context.Context, db DBTX, userID int) (*models.Globa
 // With the aggregate function "bool_or" we sum every premission.
 // The result is 1 row with the correct permissions.
 func getSubUserPerms(ctx context.Context, db DBTX, subdiscepto string, userID int) (perms *models.SubPerms, err error) {
-	queryGlobalRolesPermsID := sq.Select("sub_perms_id").
-		From("user_global_roles").
-		Join("global_perms ON user_global_roles.global_perms_id = global_perms.id").
-		Where(sq.Eq{"user_id": userID})
-
-	querySubRolesPermsID := sq.Select("sub_perms_id").
-		From("user_sub_roles").
-		Where(sq.Eq{"subdiscepto": subdiscepto, "user_id": userID})
-
-	everyPermsID := queryGlobalRolesPermsID.Suffix("UNION").SuffixExpr(querySubRolesPermsID)
-
 	sql, args, _ := psql.
 		Select(
 			bool_or("read_subdiscepto"),
@@ -81,9 +70,9 @@ func getSubUserPerms(ctx context.Context, db DBTX, subdiscepto string, userID in
 			bool_or("change_ranking"),
 			bool_or("manage_role"),
 		).
-		FromSelect(everyPermsID, "user_perms_ids").
-		Join("sub_perms ON sub_perms.id = user_perms_ids.sub_perms_id").
-		PlaceholderFormat(sq.Dollar).
+		From("user_sub_roles").
+		Join("sub_perms ON sub_perms.id = user_sub_roles.sub_perms_id").
+		Where(sq.Eq{"subdiscepto": subdiscepto, "user_id": userID}).
 		Having("COUNT(*) > 0").
 		ToSql()
 
