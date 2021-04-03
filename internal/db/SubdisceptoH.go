@@ -16,26 +16,38 @@ type SubdisceptoH struct {
 	subPerms models.SubPerms
 }
 
-func (sdb *SharedDB) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH *UserH) (*SubdisceptoH, error) {
+func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH *UserH) (*SubdisceptoH, error) {
 	var subPerms *models.SubPerms
 	var err error
 	if uH != nil {
 		// First, try getting user's permissions
-		subPerms, err = getSubUserPerms(ctx, sdb.db, subdiscepto, uH.id)
+		subPerms, err = getSubUserPerms(ctx, dH.sharedDB, subdiscepto, uH.id)
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	// Inherit global perms
+	subPerms = &models.SubPerms{
+		ReadSubdiscepto:   subPerms.ReadSubdiscepto || dH.globalPerms.ReadSubdiscepto,
+		CreateEssay:       subPerms.CreateEssay || dH.globalPerms.CreateEssay,
+		DeleteEssay:       subPerms.DeleteEssay || dH.globalPerms.DeleteEssay,
+		BanUser:           subPerms.BanUser || dH.globalPerms.BanUser,
+		DeleteSubdiscepto: subPerms.DeleteSubdiscepto || dH.globalPerms.DeleteSubdiscepto,
+		ChangeRanking:     subPerms.ChangeRanking || dH.globalPerms.ChangeRanking,
+		ManageRole:        subPerms.ManageRole || dH.globalPerms.ManageRole,
+	}
+
 	if subPerms == nil || !subPerms.ReadSubdiscepto {
 		// Check if the subdiscepto is publicly readable
-		public := isSubPublic(ctx, sdb.db, subdiscepto)
+		public := isSubPublic(ctx, dH.sharedDB, subdiscepto)
 		if !public {
 			return nil, ErrPermDenied
 		}
 		subPerms = &models.SubPerms{ReadSubdiscepto: public}
 	}
 
-	h := &SubdisceptoH{sdb.db, subdiscepto, *subPerms}
+	h := &SubdisceptoH{dH.sharedDB, subdiscepto, *subPerms}
 	return h, nil
 }
 func (h SubdisceptoH) Read(ctx context.Context) (*models.Subdiscepto, error) {
