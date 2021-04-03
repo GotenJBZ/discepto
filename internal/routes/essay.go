@@ -44,15 +44,14 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppErr
 	return nil
 }
 func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError {
-	user, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
-	subdiscepto := chi.URLParam(r, "subdiscepto")
-	subH, err := routes.db.GetSubdisceptoH(r.Context(), subdiscepto, user)
+	userH, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
+	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
-	esH, err := subH.GetEssayH(r.Context(), id, *user)
+	esH, err := subH.GetEssayH(r.Context(), id, *userH)
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
@@ -69,7 +68,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 
 	var subs []string
 	if ok {
-		subs, err = user.ListMySubdisceptos(r.Context())
+		subs, err = userH.ListMySubdisceptos(r.Context())
 	}
 
 	data := struct {
@@ -84,13 +83,8 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	return nil
 }
 func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError {
-	user, ok := db.ToUserH(r.Context().Value(UserHCtxKey))
-	if !ok {
-		return &ErrMustLogin{}
-	}
-
-	postedIn := r.FormValue("postedIn")
-	subH, err := routes.db.GetSubdisceptoH(r.Context(), postedIn, user)
+	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
+	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
@@ -115,8 +109,8 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 		Thesis:         r.FormValue("thesis"),
 		Content:        r.FormValue("content"),
 		Tags:           tags,
-		AttributedToID: user.ID(),
-		PostedIn:       postedIn,
+		AttributedToID: userH.ID(),
+		PostedIn:       subH.Name(),
 		InReplyTo:      inReplyTo,
 		ReplyType:      replyType,
 	}
@@ -124,7 +118,7 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 	// Finally create the essay
 	// If it's a reply, check if the user can actually see the parent essay
 	if inReplyTo.Valid {
-		parentH, err := subH.GetEssayH(r.Context(), int(inReplyTo.Int32), *user)
+		parentH, err := subH.GetEssayH(r.Context(), int(inReplyTo.Int32), *userH)
 		if err != nil {
 			return &ErrInternal{Cause: err}
 		}
@@ -152,10 +146,8 @@ func (routes *Routes) UpdateEssay(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Nope")
 }
 func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError {
-	user, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
-	if !ok {
-		return &ErrMustLogin{}
-	}
+	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
+	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
 	essayIDStr := chi.URLParam(r, "essayID")
 	essayID, err := strconv.Atoi(essayIDStr)
@@ -168,11 +160,10 @@ func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError 
 		vote = models.VoteTypeDownvote
 	}
 
-	subH, err := routes.db.GetSubdisceptoH(r.Context(), chi.URLParam(r, "subdiscepto"), user)
-	esH, err := subH.GetEssayH(r.Context(), essayID, *user)
+	esH, err := subH.GetEssayH(r.Context(), essayID, *userH)
 
-	esH.DeleteVote(r.Context(), *user)
-	err = esH.CreateVote(r.Context(), *user, vote)
+	esH.DeleteVote(r.Context(), *userH)
+	err = esH.CreateVote(r.Context(), *userH, vote)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
