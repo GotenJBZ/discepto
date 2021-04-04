@@ -178,7 +178,7 @@ func (h SubdisceptoH) ListEssays(ctx context.Context) ([]*models.Essay, error) {
 	}
 	return h.listEssays(ctx)
 }
-func (h SubdisceptoH) ListReplies(ctx context.Context, e EssayH, replyType string) ([]*models.Essay, error) {
+func (h SubdisceptoH) ListReplies(ctx context.Context, e EssayH, replyType *string) ([]*models.Essay, error) {
 	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
@@ -286,15 +286,21 @@ func (h SubdisceptoH) listEssays(ctx context.Context) ([]*models.Essay, error) {
 	err := pgxscan.Select(ctx, h.sharedDB, &essays, sql, args...)
 	return essays, err
 }
-func (h SubdisceptoH) listReplies(ctx context.Context, e EssayH, replyType string) (essays []*models.Essay, err error) {
-	sql, args, _ := psql.
-		Select("*").
-		From("essays").
-		Where(sq.Eq{
-			"in_reply_to": e.id,
-			"posted_in":   h.name,
-			"reply_type":  replyType,
-		}).
+func (h SubdisceptoH) listReplies(ctx context.Context, e EssayH, replyType *string) (essays []*models.Essay, err error) {
+	filterByType := sq.Eq{}
+	if replyType != nil {
+		filterByType = sq.Eq{"reply_type": replyType}
+	}
+
+	sql, args, _ := selectEssay.
+		From("essay_replies").
+		Join("essays ON essay_replies.from_id = essays.id").
+		LeftJoin("votes ON votes.essay_id = essays.id").
+		Where(
+			sq.Eq{"essay_replies.to_id": e.id},
+			filterByType,
+		).
+		GroupBy("essays.id", "essay_replies.from_id").
 		ToSql()
 
 	err = pgxscan.Select(ctx, h.sharedDB, &essays, sql, args...)

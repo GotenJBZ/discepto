@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	ReplyTypeSupports = sql.NullString{String: "refutes", Valid: true}
-	ReplyTypeRefutes  = sql.NullString{String: "supports", Valid: true}
+	ReplyTypeSupports = sql.NullString{String: "supports", Valid: true}
+	ReplyTypeRefutes  = sql.NullString{String: "refutes", Valid: true}
 	ReplyTypeCorrects = sql.NullString{String: "corrects", Valid: true}
 	ReplyTypeGeneral  = sql.NullString{String: "general", Valid: true}
 )
