@@ -203,6 +203,13 @@ func TestEssay(t *testing.T) {
 	require.Equal(0, updatedEssay.Upvotes)
 	require.Equal(1, updatedEssay.Downvotes)
 
+	// Check what a specific user did
+	did, err := essayH.GetUserDid(context.Background(), *userH)
+	require.Nil(err)
+	require.Equal(&models.EssayUserDid{
+		Vote: sql.NullString{String: string(models.VoteTypeDownvote), Valid: true},
+	}, did)
+
 	// list
 	essays, err = sub2H.ListReplies(context.Background(), *essay2H, &models.ReplyTypeSupports.String)
 	require.Nil(err)

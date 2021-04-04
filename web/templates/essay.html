@@ -57,13 +57,13 @@
                             </a>
                             <p>{{ .Essay.Upvotes }} &nbsp;</p>
                             <a onclick="send_vote('upvote')" class="level-item " aria-label="reply">
-                                <span class="icon is-small has-text-primary ">
+                                <span class="icon is-small {{ if eq .EssayUserDid.Vote.String "upvote" }}has-text-primary{{ end }}">
 										<i class="fa fa-arrow-up " aria-hidden="true "></i>
 									</span>
                             </a>
                             <p>{{ .Essay.Downvotes }} &nbsp;</p>
                             <a onclick="send_vote('downvote')" class="level-item " aria-label="retweet">
-                                <span class="icon is-small has-text-primary ">
+                                <span class="icon is-small {{ if eq .EssayUserDid.Vote.String "downvote" }}has-text-primary{{ end }}">
 										<i class="fa fa-arrow-down " aria-hidden="true "></i>
 									</span>
                             </a>

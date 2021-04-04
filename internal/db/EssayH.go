@@ -128,6 +128,23 @@ func (h EssayH) DeleteEssay(ctx context.Context) error {
 	}
 	return h.deleteEssay(ctx)
 }
+func (h EssayH) GetUserDid(ctx context.Context, userH UserH) (*models.EssayUserDid, error) {
+	sql, args, _ := psql.
+		Select("vote_type AS vote").
+		From("votes").
+		Where(sq.Eq{"user_id": userH.id}).
+		ToSql()
+
+	did := &models.EssayUserDid{}
+	err := pgxscan.Get(ctx, h.sharedDB, did, sql, args...)
+	if pgxscan.NotFound(err) {
+		return did, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	return did, nil
+}
 func (h EssayH) deleteEssay(ctx context.Context) error {
 	sql, args, _ := psql.Delete("essays").Where(sq.Eq{"id": h.id}).ToSql()
 	_, err := h.sharedDB.Exec(ctx, sql, args...)

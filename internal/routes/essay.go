@@ -61,6 +61,11 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 
+	essayUserDid, err := esH.GetUserDid(r.Context(), *userH)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
 	var subs []string
 	if ok {
 		subs, err = userH.ListMySubdisceptos(r.Context())
@@ -68,9 +73,11 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 
 	data := struct {
 		Essay           *models.Essay
+		EssayUserDid    *models.EssayUserDid
 		SubdisceptoList []string
 	}{
 		Essay:           essay,
+		EssayUserDid:    essayUserDid,
 		SubdisceptoList: subs,
 	}
 
