@@ -31,23 +31,26 @@ func isEssayOwner(ctx context.Context, db DBTX, essayID int, userID int) bool {
 
 	return isOwner == 1
 }
+
+var selectEssay = psql.
+	Select(
+		"id",
+		"thesis",
+		"content",
+		"attributed_to_id",
+		"published",
+		"posted_in",
+		"SUM(CASE votes.vote_type WHEN 'upvote' THEN 1 ELSE 0 END) AS upvotes",
+		"SUM(CASE votes.vote_type WHEN 'downvote' THEN 1 ELSE 0 END) AS downvotes",
+		"essay_replies.to_id AS in_reply_to",
+		"essay_replies.reply_type AS reply_type",
+	)
+
 func (h EssayH) GetEssay(ctx context.Context) (*models.Essay, error) {
 	if !h.essayPerms.Read {
 		return nil, ErrPermDenied
 	}
-	sql, args, _ := psql.
-		Select(
-			"id",
-			"thesis",
-			"content",
-			"attributed_to_id",
-			"published",
-			"posted_in",
-			"SUM(CASE votes.vote_type WHEN 'upvote' THEN 1 ELSE 0 END) AS upvotes",
-			"SUM(CASE votes.vote_type WHEN 'downvote' THEN 1 ELSE 0 END) AS downvotes",
-			"essay_replies.to_id AS in_reply_to",
-			"essay_replies.reply_type AS reply_type",
-		).
+	sql, args, _ := selectEssay.
 		From("essays").
 		LeftJoin("essay_replies ON essay_replies.from_id = essays.id").
 		LeftJoin("votes ON votes.essay_id = essays.id").

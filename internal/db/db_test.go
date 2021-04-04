@@ -165,7 +165,7 @@ func TestEssay(t *testing.T) {
 	require.Nil(err)
 	essay2 := mockEssay(user.ID)
 	essay2.PostedIn = mockSubName2
-	_, err = sub2H.CreateEssay(context.Background(), essay2)
+	essay2H, err := sub2H.CreateEssay(context.Background(), essay2)
 	require.Nil(err)
 
 	// list
@@ -195,7 +195,7 @@ func TestEssay(t *testing.T) {
 	err = essayH.DeleteVote(context.Background(), *userH)
 	require.Nil(err)
 
-	// Create upvote
+	// Create downvote
 	err = essayH.CreateVote(context.Background(), *userH, models.VoteTypeDownvote)
 	require.Nil(err)
 	updatedEssay, err = essayH.GetEssay(context.Background())
@@ -203,10 +203,10 @@ func TestEssay(t *testing.T) {
 	require.Equal(0, updatedEssay.Upvotes)
 	require.Equal(1, updatedEssay.Downvotes)
 
-	//// list
-	//essays, err = db.ListEssayReplies(essay2.ID, essay3.ReplyType)
-	//require.Nil(err)
-	//require.Len(essays, 1)
+	// list
+	essays, err = sub2H.ListReplies(context.Background(), *essay2H, &models.ReplyTypeSupports.String)
+	require.Nil(err)
+	require.Len(essays, 1)
 
 	// Clean
 	err = subH.Delete(context.Background())
