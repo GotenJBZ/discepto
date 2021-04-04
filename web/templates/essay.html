@@ -25,8 +25,8 @@
                             <p class="subtitle is-6"><a href="#">@utente</a>&nbsp; <time datetime="2018-1-1">{{ .Essay.Published }}</time></p>
                         </div>
                         <div class="media-right">
-                            {{if eq .Essay.ReplyType "supports" }}
-                            <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .Essay.ReplyType "refutes"}}
+                            {{if eq .Essay.ReplyType.String "supports" }}
+                            <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .Essay.ReplyType.String "refutes"}}
                             <span class="tag is-danger is-light is-medium">refutes</button> {{ else }}
                             <span class="tag is-warning is-light is-medium">General</button> {{ end }}
                         </div>
