@@ -61,11 +61,6 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 
-	essay.Upvotes, essay.Downvotes, err = esH.CountVotes(r.Context())
-	if err != nil {
-		return &ErrInternal{Cause: err}
-	}
-
 	var subs []string
 	if ok {
 		subs, err = userH.ListMySubdisceptos(r.Context())
@@ -91,16 +86,18 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
 
 	// Parse reply type
-	replyType := r.FormValue("replyType")
-	found := false
-	for _, t := range models.AvailableReplyTypes {
-		if replyType == t {
-			found = true
-			break
+	replyType := models.ReplyTypeGeneral
+	{
+		rType := r.FormValue("replyType")
+		for _, t := range models.AvailableReplyTypes {
+			if rType == t.String {
+				replyType = sql.NullString{
+					String: rType,
+					Valid:  true,
+				}
+				break
+			}
 		}
-	}
-	if !found {
-		replyType = models.ReplyTypeGeneral
 	}
 
 	// Parse tags

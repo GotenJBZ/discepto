@@ -36,9 +36,23 @@ func (h EssayH) GetEssay(ctx context.Context) (*models.Essay, error) {
 		return nil, ErrPermDenied
 	}
 	sql, args, _ := psql.
-		Select("*").
+		Select(
+			"id",
+			"thesis",
+			"content",
+			"attributed_to_id",
+			"published",
+			"posted_in",
+			"SUM(CASE votes.vote_type WHEN 'upvote' THEN 1 ELSE 0 END) AS upvotes",
+			"SUM(CASE votes.vote_type WHEN 'downvote' THEN 1 ELSE 0 END) AS downvotes",
+			"essay_replies.to_id AS in_reply_to",
+			"essay_replies.reply_type AS reply_type",
+		).
 		From("essays").
+		LeftJoin("essay_replies ON essay_replies.from_id = essays.id").
+		LeftJoin("votes ON votes.essay_id = essays.id").
 		Where(sq.Eq{"id": h.id}).
+		GroupBy("essays.id", "essay_replies.from_id").
 		ToSql()
 
 	var essay models.Essay
@@ -79,37 +93,6 @@ func (h EssayH) CreateReport(ctx context.Context, rep models.Report, userH UserH
 		return err
 	}
 	return nil
-}
-func (h EssayH) CountVotes(ctx context.Context) (upvotes, downvotes int, err error) {
-	if !h.essayPerms.Read {
-		return 0, 0, ErrPermDenied
-	}
-	sql, args, _ := psql.
-		Select("vote_type", "COUNT(*)").
-		From("votes").
-		Where(sq.Eq{"essay_id": h.id}).
-		GroupBy("vote_type").
-		ToSql()
-
-	rows, err := h.sharedDB.Query(ctx, sql, args...)
-	if err != nil {
-		return 0, 0, err
-	}
-	for rows.Next() {
-		var voteType string
-		var count int
-		err := rows.Scan(&voteType, &count)
-		if voteType == string(models.VoteTypeUpvote) {
-			upvotes = count
-		} else {
-			downvotes = count
-		}
-		if err != nil {
-			return 0, 0, err
-		}
-	}
-
-	return upvotes, downvotes, nil
 }
 func (h EssayH) DeleteVote(ctx context.Context, uH UserH) error {
 	if !h.essayPerms.Read {
