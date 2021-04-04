@@ -12,12 +12,12 @@ import (
 
 func (routes *Routes) SubdisceptoRouter(r chi.Router) {
 	r.Get("/", routes.AppHandler(routes.GetSubdisceptos))
-	r.Route("/roles", routes.SubRoleRouter)
 	r.With(routes.EnforceCtx(UserHCtxKey)).Post("/", routes.AppHandler(routes.PostSubdiscepto))
 
 	specificSub := r.With(routes.SubdiscpetoCtx)
 	specificSub.Get("/{subdiscepto}", routes.AppHandler(routes.GetSubdiscepto))
 	specificSub.Route("/{subdiscepto}/", routes.EssaysRouter)
+	specificSub.Route("/{subdiscepto}/roles", routes.SubRoleRouter)
 
 	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Post("/{subdiscepto}/leave", routes.AppHandler(routes.LeaveSubdiscepto))
 	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Post("/{subdiscepto}/join", routes.AppHandler(routes.JoinSubdiscepto))
