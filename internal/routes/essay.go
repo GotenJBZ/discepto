@@ -44,14 +44,14 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppErr
 	return nil
 }
 func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError {
-	userH, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
+	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
-	esH, err := subH.GetEssayH(r.Context(), id, *userH)
+	esH, err := subH.GetEssayH(r.Context(), id, userH)
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
@@ -61,14 +61,17 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 
-	essayUserDid, err := esH.GetUserDid(r.Context(), *userH)
-	if err != nil {
-		return &ErrInternal{Cause: err}
-	}
-
 	var subs []string
-	if ok {
+	essayUserDid := &models.EssayUserDid{}
+	if userH != nil {
+		essayUserDid, err = esH.GetUserDid(r.Context(), *userH)
+		if err != nil {
+			return &ErrInternal{Cause: err}
+		}
 		subs, err = userH.ListMySubdisceptos(r.Context())
+		if err != nil {
+			return &ErrInternal{Cause: err}
+		}
 	}
 
 	data := struct {
@@ -123,7 +126,7 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 	// Finally create the essay
 	// If it's a reply, check if the user can actually see the parent essay
 	if inReplyTo.Valid {
-		parentH, err := subH.GetEssayH(r.Context(), int(inReplyTo.Int32), *userH)
+		parentH, err := subH.GetEssayH(r.Context(), int(inReplyTo.Int32), userH)
 		if err != nil {
 			return &ErrInternal{Cause: err}
 		}
@@ -165,7 +168,7 @@ func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError 
 		vote = models.VoteTypeDownvote
 	}
 
-	esH, err := subH.GetEssayH(r.Context(), essayID, *userH)
+	esH, err := subH.GetEssayH(r.Context(), essayID, userH)
 
 	esH.DeleteVote(r.Context(), *userH)
 	err = esH.CreateVote(r.Context(), *userH, vote)

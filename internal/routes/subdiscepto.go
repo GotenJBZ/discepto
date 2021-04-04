@@ -70,8 +70,8 @@ func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) Ap
 	return nil
 }
 func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
-	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
-	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
+	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
 	subData, err := subH.Read(r.Context())
 	if err != nil {

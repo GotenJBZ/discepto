@@ -17,7 +17,7 @@ type SubdisceptoH struct {
 }
 
 func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH *UserH) (*SubdisceptoH, error) {
-	var subPerms *models.SubPerms
+	subPerms := &models.SubPerms{}
 	var err error
 	if uH != nil {
 		// First, try getting user's permissions
@@ -38,13 +38,13 @@ func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH 
 		ManageRole:        subPerms.ManageRole || dH.globalPerms.ManageRole,
 	}
 
-	if subPerms == nil || !subPerms.ReadSubdiscepto {
+	if !subPerms.ReadSubdiscepto {
 		// Check if the subdiscepto is publicly readable
 		public := isSubPublic(ctx, dH.sharedDB, subdiscepto)
-		if !public {
+		subPerms.ReadSubdiscepto = public
+		if !subPerms.ReadSubdiscepto {
 			return nil, ErrPermDenied
 		}
-		subPerms = &models.SubPerms{ReadSubdiscepto: public}
 	}
 
 	h := &SubdisceptoH{dH.sharedDB, subdiscepto, *subPerms}
@@ -138,13 +138,13 @@ func createReply(ctx context.Context, db DBTX, e *models.Essay) error {
 		e.ID, e.InReplyTo, e.ReplyType)
 	return err
 }
-func (h SubdisceptoH) GetEssayH(ctx context.Context, id int, uH UserH) (*EssayH, error) {
+func (h SubdisceptoH) GetEssayH(ctx context.Context, id int, uH *UserH) (*EssayH, error) {
 	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
 	return h.getEssayH(ctx, id, uH)
 }
-func (h SubdisceptoH) getEssayH(ctx context.Context, id int, uH UserH) (*EssayH, error) {
+func (h SubdisceptoH) getEssayH(ctx context.Context, id int, uH *UserH) (*EssayH, error) {
 	// Check if essay is inside this subdiscepto
 	sql, args, _ := psql.
 		Select("1").
@@ -160,8 +160,11 @@ func (h SubdisceptoH) getEssayH(ctx context.Context, id int, uH UserH) (*EssayH,
 		return nil, err
 	}
 
-	// Check if user owns the essay
-	isOwner := isEssayOwner(ctx, h.sharedDB, id, uH.id)
+	isOwner := false
+	if uH != nil {
+		// Check if user owns the essay
+		isOwner = isEssayOwner(ctx, h.sharedDB, id, uH.id)
+	}
 
 	// Finally assign capabilities
 	essayPerms := models.EssayPerms{
