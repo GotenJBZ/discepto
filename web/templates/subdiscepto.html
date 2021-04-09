@@ -1,38 +1,22 @@
-{{ define "subdiscepto" }} {{ template "head" . }} {{ template "simplemde" .}}
-<style>
-    body {
-        background-color: #EFEFEF;
-    }
-</style>
+{{ define "subdiscepto" }} {{ template "head" . }}
 </head>
 
 <body class="body">
     {{ template "navbar" .}}
-    <br>
-
     <div class="container is-max-desktop">
         <div class="columns is-vcentered">
-            <section class="hero">
-                <div class="hero-body">
-                    <article class="media">
-                        <figure class="media-left">
-                            <p class="image is-64x64">
-                                <img class="is-rounded" src="https://bulma.io/images/placeholders/128x128.png">
-                            </p>
-                        </figure>
-                        &nbsp
-                        <div class="media-content">
-                            <p class="title" style="padding-top: 10px;">s/{{ .Name }}</p>
-                        </div>
-                    </article>
+            <div class="hero">
+                <div class="hero-body is-flex">
+                    <p class="media-left image is-64x64">
+                        <img src="https://bulma.io/images/placeholders/128x128.png" class="is-rounded">
+                    </p>
+                    <h1 class="title" style="padding-top: 10px;">s/{{ .Name }}</h1>
                 </div>
-            </section>
+            </div>
         </div>
+
         <div class="columns">
-            <div class="column is-9">
-
-
-
+            <div class="column is-8 is-fluid px-5">
                 <a href="/newessay?subdiscepto={{ .Name}}">
                     <div class="box">
                         <article class="media">
@@ -52,9 +36,9 @@
                     </div>
                 </a>
                 <br> {{ range $e := .Essays }}
-                <div class="box">
+                <div class="box is-relative">
                     <article class="media">
-                        <figure class="media-left">
+                        <figure class="media-left is-hidden-touch">
                             <p class="image is-64x64">
                                 <img class="is-rounded" src="https://bulma.io/images/placeholders/128x128.png">
                             </p>
@@ -65,7 +49,7 @@
                                     <strong>{{$e.Thesis}}</strong> <small>@autore</small> <small>{{$e.Published}}</small>
                                     <br> {{$e.Content}}
                                 </p>
-                                <a href="/s/{{ $e.PostedIn }}/{{ $e.ID }}">Continue...</a>
+                                <a href="/s/{{ $e.PostedIn }}/{{ $e.ID }}" class="stretched-link"></a>
                             </div>
 
                             <nav class="level is-mobile">
@@ -75,27 +59,20 @@
                                             <i class="fa fa-heart" aria-hidden="true"></i>
                                         </span>
                                     </a>
-                                    <p>{{ $e.Upvotes }} &nbsp;</p>
                                     <a class="level-item" aria-label="reply">
                                         <span class="icon is-small has-text-primary">
                                             <i class="fa fa-arrow-up" aria-hidden="true"></i>
                                         </span>
                                     </a>
-                                    <p>{{ $e.Downvotes }} &nbsp;</p>
                                     <a class="level-item" aria-label="retweet">
                                         <span class="icon is-small has-text-primary">
                                             <i class="fa fa-arrow-down" aria-hidden="true"></i>
                                         </span>
                                     </a>
-                                    <a class="level-item" aria-label="like">
-                                        <span class="icon is-small has-text-danger">
-                                            <i class="fa fa-ban" aria-hidden="true"></i>
-                                        </span>
-                                    </a>
                                 </div>
                             </nav>
                         </div>
-                        <div class="media-right">
+                        <div class="media-right is-hidden-mobile">
                             {{if eq .ReplyType "supports" }}
                             <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .ReplyType "refutes"}}
                             <span class="tag is-danger is-light is-medium">refutes</button> {{ else }}
@@ -103,64 +80,76 @@
                             </div>
 
                         </article>
-                    </div>{{ end }}
+                </div>{{ end }}
             </div>
-            <div class="column is-5">
-
-                <div class="card">
-                    <div class="card-content">
-                        <div class="media">
-                            <div class="media-left">
-                                <figure class="image is-48x48">
-                                    <img src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
-                                </figure>
-                            </div>
-                            &nbsp;&nbsp;
-                            <div class="media-content">
+            <div class="column is-4 is-fluid px-5">
+                <div class="box">
+                        <div class="field is-grouped">
+                            <figure class="image is-48x48">
+                                <img class="is-rounded" src="https://bulma.io/images/placeholders/48x48.png">
+                              </figure>
+                            <div class="field pl-5">
                                 <p class="title is-4">s/{{ .Name }}</p>
                                 <p class="subtitle is-6">Inserire membri</p>
                             </div>
                         </div>
-
-                        <div class="content">
-                            <p>{{ .Description }}</p>
+                        <p>{{ .Description }}</p>
+                        <br>
+                        <div class="field is-grouped">
+                            <div class="control is-expanded">
                             {{ if .IsMember }}
-                            <button class="button is-fullwidth is-rounded" id="follow" onclick="join()">Leave</button>{{ else }}
-                            <button class="button is-primary is-fullwidth is-rounded" id="follow" onclick="join()">Join</button> {{ end }}
+                                <button class="button is-danger is-outlined is-fullwidth is-rounded" id="follow" onclick="join()">Leave</button>{{ else }}
+                                <button class="button is-primary is-fullwidth is-rounded" id="follow" onclick="join()">Join</button> {{ end }}
+                            </div>
+                            {{ if true}}
+                            <div class="control is-expanded">
+                                <a class="button is-info is-outlined is-fullwidth is-rounded" href="/todo">settings</a>
+                            </div>{{ end }}
                         </div>
-                    </div>
                 </div>
                 <br>
                 <div class="card events-card">
                     <nav class="panel is-primary">
-                        <p class="panel-heading">Your Communities</p>
-                        {{ range $s := .SubdisceptoList}}
-                        <a href="/s/{{.}}" class="panel-block">s/{{.}}</a>{{end}}
+                        <p class="panel-heading ">Your Communities</p>
+                        
+                        {{ $length := len .SubdisceptoList }} {{ if eq $length 0 }}
+                        <a href="/s" class="panel-block ">join in a comunity</a>
+                        {{ else }} {{ range .SubdisceptoList }}
+                        <a href="/s/{{ . }} " class="panel-block ">s/{{ . }}</a> {{ end }} {{end}}
                     </nav>
                 </div>
             </div>
-
         </div>
-        <script>
-            function join() {
-                var btn = document.getElementById('follow');
-                if (btn.textContent == 'Leave') {
-                    fetch('/s/{{ .Name }}/leave', {
-                        method: 'POST',
-                        credentials: 'include'
-                    });
-                    btn.classList.add('is-primary');
-                    btn.textContent = 'Join'
-                } else {
-                    fetch('/s/{{ .Name }}/join', {
-                        method: 'POST',
-                        credentials: 'include'
-                    });
-                    btn.textContent = 'Leave'
-                    btn.classList.remove('is-primary');
+
+
+            <script>
+                function join() {
+                    var btn = document.getElementById('follow');
+                    if (btn.textContent == 'Leave') {
+                        fetch('/s/{{ .Name }}/leave', {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        btn.blur();
+                        btn.classList.remove("is-danger");
+                        btn.classList.remove("is-outlined");
+                        btn.classList.add('is-primary');
+                        btn.textContent = 'Join'
+                    } else {
+                        fetch('/s/{{ .Name }}/join', {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        btn.blur();
+                        btn.classList.remove('is-primary');
+                        btn.classList.add("is-danger");
+                        btn.classList.add("is-outlined");
+                        btn.textContent = 'Leave'
+                    }
                 }
-            }
-        </script>
+            </script>
+
+    </div>
 </body>
 
 </html>

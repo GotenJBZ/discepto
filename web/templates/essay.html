@@ -1,9 +1,4 @@
 {{ define "essay" }} {{ template "head" . }}
-<style>
-    body {
-        background-color: #EFEFEF;
-    }
-</style>
 </head>
 
 <body class="body">
@@ -11,83 +6,77 @@
     <br>
     <div class="container">
         <div class="columns">
-            <div class="column is-9">
-
+            <div class="column is-9 is-narrow px-5">
                 <div class="box">
-                    <div class="media">
-                        <div class="media-left">
+                    <div class="columns is-mobile is-grouped">
+                        <div class="column is-1 is-hidden-touch">
                             <figure class="image is-48x48 is-rounded">
-                                <img class="is-rounded" src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
+                                <img class="is-rounded" src="https://bulma.io/images/placeholders/96x96.png">
                             </figure>
                         </div>
-                        <div class="media-content">
+                        <div class="column is-primary">
                             <p class="title is-4">{{ .Essay.Thesis}}</p>
                             <p class="subtitle is-6"><a href="#">@utente</a>&nbsp; <time datetime="2018-1-1">{{ .Essay.Published }}</time></p>
                         </div>
-                        <div class="media-right">
+                        <div class="column is-hidden-mobile is-2 has-text-right">
                             {{if eq .Essay.ReplyType "supports" }}
                             <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .Essay.ReplyType "refutes"}}
                             <span class="tag is-danger is-light is-medium">refutes</button> {{ else }}
                             <span class="tag is-warning is-light is-medium">General</button> {{ end }}
                         </div>
                     </div>
-                    <br>
-                    <div class="card-image">
-                        <figure class="image is-2by1">
-                            <img src="https://bulma.io/images/placeholders/1280x960.png" alt="Placeholder image">
-                        </figure>
+
+
+                    <div class="content ml-6">
+                        <p>{{ .Essay.Content }}</p>
                     </div>
 
-                    <div class="card-content">
-
-                        <div class="content" style="padding: 15px;">
-                            {{ .Essay.Content }}
-                            <br>
-
+                    <div class="columns is-grouped is-mobile">
+                        <div class="column is-1 is-offset-1 is-narrow">
+                            <a onclick="send_vote('favourite')" aria-label="reply">
+                                <span class="icon is-small has-text-danger">
+								    <i class="fa fa-heart " aria-hidden="true"></i>
+							    </span>
+                            </a>
                         </div>
-                        <nav class="level is-mobile">
-
-
-
-                            <div class="level-left">
-                                <a onclick="send_vote('favourite')" class="level-item" aria-label="reply">
-                                    <span class=" icon is-small has-text-danger ">
-										<i class="fa fa-heart " aria-hidden="true "></i>
-									</span>
+                        <div class="column is-1 is-narrow">
+                            <a onclick="send_vote('upvote')" class="level-item" aria-label="reply">
+                                <span class="icon is-small">
+									<i class="fa fa-arrow-up has-text-primary" aria-hidden="true"></i>
+                                    <p class="has-text-black">&nbsp;{{ .Essay.Upvotes }}</p>
+								</span>
                             </a>
-                            <p>{{ .Essay.Upvotes }} &nbsp;</p>
-                            <a onclick="send_vote('upvote')" class="level-item " aria-label="reply">
-                                <span class="icon is-small has-text-primary ">
-										<i class="fa fa-arrow-up " aria-hidden="true "></i>
-									</span>
-                            </a>
-                            <p>{{ .Essay.Downvotes }} &nbsp;</p>
-                            <a onclick="send_vote('downvote')" class="level-item " aria-label="retweet">
-                                <span class="icon is-small has-text-primary ">
-										<i class="fa fa-arrow-down " aria-hidden="true "></i>
-									</span>
-                            </a>
-                            <a href='/essays/{{.Essay.ID}}/report' class="level-item " aria-label="like ">
-                                <span class="icon is-small has-text-danger ">
-										<i class="fa fa-ban " aria-hidden="true "></i>
-									</span>
+                        </div>
+                        <div class="column is-1 is-narrow">
+                            <a onclick="send_vote('downvote')" class="level-item" aria-label="retweet">
+                                <span class="icon is-small">
+								    <i class="fa fa-arrow-down has-text-primary" aria-hidden="true"></i>
+                                    <p class="has-text-black">&nbsp;{{ .Essay.Downvotes }}</p>
+						        </span>
                             </a>
                         </div>
 
-                        <script>
-                            function send_vote(type) {
-                                fetch('/s/{{.Essay.PostedIn}}/{{.Essay.ID}}/vote', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/x-www-form-urlencoded',
-                                    },
-                                    body: 'vote=' + type
-
-                                });
-                            }
-                        </script>
-                        </nav>
+                        <div class="column is-narrow is-1">
+                            <a href='/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/report' class="level-item" aria-label="like ">
+                                <span class="icon is-small has-text-danger">
+									<i class="fa fa-ban " aria-hidden="true"></i>
+								</span>
+                            </a>
+                        </div>
                     </div>
+
+                    <script>
+                        function send_vote(type) {
+                            fetch('/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/vote', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                body: 'vote=' + type
+
+                            });
+                        }
+                    </script>
                 </div>
 
                 <br>
@@ -118,7 +107,7 @@
 
 
 
-                <div class="box " style="cursor: pointer; " onclick="window.location='/essay/1' ; ">
+                <div class="box">
                     <article class="media ">
                         <figure class="media-left ">
                             <p class="image is-64x64 ">
@@ -129,7 +118,7 @@
                         <div class="media-content ">
                             <div class="content ">
                                 <p>
-                                <strong>Title</strong> <small>@johnsmith</small> <small>31m</small>
+                                    <strong>Titolo</strong> <small>@johnsmith</small> <small>31m</small>
                                     <br> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin ornare magna eros, eu pellentesque tortor vestibulum ut. Maecenas non massa sem. Etiam finibus odio quis feugiat facilisis.
                                 </p>
 
@@ -138,23 +127,23 @@
                                 <div class="level-left ">
 
 
-                                    <a onclick="javascript:fetch( '/essay/1/favourite') " class="level-item " aria-label="reply ">
+                                    <a class="level-item " aria-label="reply ">
                                         <span class="icon is-small has-text-danger ">
 				 							<i class="far fa-heart " aria-hidden="true "></i>
 			 							</span>
                                     </a>
 
-                                    <a onclick="javascript:fetch( '/essay/1/like') " class="level-item " aria-label="reply ">
+                                    <a class="level-item " aria-label="reply ">
                                         <span class="icon is-small has-text-primary ">
 				 							<i class="fa fa-arrow-up " aria-hidden="true "></i>
 			 							</span>
                                     </a>
-                                    <a onclick="javascript:fetch( '/essay/1/dislike') " class="level-item " aria-label="retweet ">
+                                    <a class="level-item " aria-label="retweet ">
                                         <span class="icon is-small has-text-primary ">
 				 							<i class="fa fa-arrow-down " aria-hidden="true "></i>
 			 							</span>
                                     </a>
-                                    <a href='/essay/1/report' class="level-item " aria-label="like ">
+                                    <a class="level-item " aria-label="like ">
                                         <span class="icon is-small has-text-danger ">
 				 							<i class="fa fa-ban " aria-hidden="true "></i>
 			 							</span>
@@ -172,47 +161,47 @@
 
 
 
-            <div class="column is-3 ">
-
+            <div class="column is-3 is-fluid px-5">
                 <div class="card ">
                     <nav class="panel is-primary ">
-                        <p class="panel-heading ">Fonti</p>
-                        {{ range .Essay.Sources }}
-                        <a class="panel-block ">{{ . }}</a> {{ end }}
+                        <p class="panel-heading ">Sources</p>
+                        {{ $length := len .Essay.Sources }} {{ if eq $length 0 }}
+                        <a class="panel-block ">The user didn't provide the fonts</a> {{ else }} {{ range .Essay.Sources }}
+                        <a class="panel-block ">{{ . }}</a> {{ end }} {{end}}
                     </nav>
                 </div>
 
                 <br>
 
-                <div class="card ">
-                    <div class="card-content ">
-                        <div class="media ">
-                            <div class="media-left ">
-                                <figure class="image is-48x48 ">
-                                    <img src="https://bulma.io/images/placeholders/96x96.png " alt="Placeholder image ">
-                                </figure>
-                            </div>
-                            &nbsp;&nbsp;
-                            <div class="media-content ">
-                                <p class="title is-4 ">s/{{ .Essay.PostedIn }}</p>
-                                <p class="subtitle is-6 ">666 mebri</p>
-                            </div>
-                        </div>
+                <div class="box is-relative">
 
-                        <div class="content ">
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus nec iaculis mauris.</p>
-                            <button class="button is-primary is-fullwidth is-rounded " id="follow " onclick="join() ">join</button>
+                    <div class="field is-grouped is-relative ">
+                        <figure class="image is-48x48  is-hidden-desktop-only  is-hidden-tablet-only">
+                            <img class="is-rounded" src="https://bulma.io/images/placeholders/48x48.png">
+                        </figure>
+                        <div class="field pl-5">
+                            <p class="title is-4">s/{{ .NameSubdiscepto }}</p>
+                            <p class="subtitle is-6">Inserire membri</p>
                         </div>
+                        <a href="/s/{{ .NameSubdiscepto }}" class="stretched-link"></a>
+                    </div>
+                    <div class="content">
+                        <p>{{ .DescSubdiscepto }}</p>
+                        {{ if .IsMember }}
+                        <button class="button is-danger is-outlined is-fullwidth is-rounded" id="follow" onclick="join()">Leave</button>{{ else }}
+                        <button class="button is-primary is-fullwidth is-rounded" id="follow" onclick="join()">Join</button> {{ end }}
                     </div>
                 </div>
 
                 <br>
 
-                <div class="card ">
-                    <nav class="panel is-primary ">
-                        <p class="panel-heading">Your Communities</p>
-                        {{ range $s := .SubdisceptoList }}
-                        <a href="/s/{{.}}" class="panel-block">s/{{.}}</a>{{end}}
+                <div class="card">
+                    <nav class="panel is-primary">
+                        <p class="panel-heading ">Your Communities</p>
+
+                        {{ $length := len .SubdisceptoList }} {{ if eq $length 0 }}
+                        <a href="/s" class="panel-block ">join in a comunity</a> {{ else }} {{ range .SubdisceptoList }}
+                        <a href="/s/{{ . }} " class="panel-block ">s/{{ . }}</a> {{ end }} {{end}}
                     </nav>
                 </div>
             </div>
@@ -221,23 +210,28 @@
                 function join() {
                     var btn = document.getElementById('follow');
                     if (btn.textContent == 'Leave') {
-                        fetch('/s/lamer/leave', {
+                        fetch('/s/{{ .NameSubdiscepto }}/leave', {
                             method: 'POST',
                             credentials: 'include'
                         });
+                        btn.blur();
+                        btn.classList.remove("is-danger");
+                        btn.classList.remove("is-outlined");
                         btn.classList.add('is-primary');
                         btn.textContent = 'Join'
                     } else {
-                        fetch('/s/lamer/join', {
+                        fetch('/s/{{ .NameSubdiscepto }}/join', {
                             method: 'POST',
                             credentials: 'include'
                         });
-                        btn.textContent = 'Leave'
+                        btn.blur();
                         btn.classList.remove('is-primary');
+                        btn.classList.add("is-danger");
+                        btn.classList.add("is-outlined");
+                        btn.textContent = 'Leave'
                     }
                 }
             </script>
-
 
 
 </body>

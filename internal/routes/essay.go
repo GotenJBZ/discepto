@@ -48,6 +48,11 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	subdiscepto := chi.URLParam(r, "subdiscepto")
 	subH, err := routes.db.GetSubdisceptoH(r.Context(), subdiscepto, user)
 
+	subData, err := subH.Read(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
@@ -57,6 +62,22 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 
+	/*
+		refutesList, err := subH.ListReplies(r.Context(), *esH, models.ReplyTypeRefutes)
+		if err != nil {
+			return &ErrInternal{Cause: err}
+		}
+
+		supportList, err := subH.ListReplies(r.Context(), *esH, models.ReplyTypeSupports)
+		if err != nil {
+			return &ErrInternal{Cause: err}
+		}
+
+		generalList, err := subH.ListReplies(r.Context(), *esH, models.ReplyTypeGeneral)
+		if err != nil {
+			return &ErrInternal{Cause: err}
+		}
+	*/
 	essay, err := esH.GetEssay(r.Context())
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
@@ -67,17 +88,40 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrInternal{Cause: err}
 	}
 
+	isMember := false
 	var subs []string
 	if ok {
 		subs, err = user.ListMySubdisceptos(r.Context())
+		if err != nil {
+			return &ErrInternal{Cause: err, Message: "Error getting sub membership"}
+		}
+		for _, s := range subs {
+			if s == subdiscepto {
+				isMember = true
+				break
+			}
+		}
+
 	}
 
 	data := struct {
+		NameSubdiscepto string
+		DescSubdiscepto string
+		IsMember        bool
 		Essay           *models.Essay
+		RefutesList     []*models.Essay
+		GeneralList     []*models.Essay
+		SupportList     []*models.Essay
 		SubdisceptoList []string
 	}{
+		NameSubdiscepto: subData.Name,
+		DescSubdiscepto: subData.Description,
+		IsMember:        isMember,
 		Essay:           essay,
 		SubdisceptoList: subs,
+		RefutesList:     []*models.Essay{},
+		GeneralList:     []*models.Essay{},
+		SupportList:     []*models.Essay{},
 	}
 
 	routes.tmpls.RenderHTML(w, "essay", data)

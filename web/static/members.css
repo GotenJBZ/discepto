@@ -1,0 +1,24 @@
+.button.is-primary.is-alt {
+    background: #00c6ff;
+    background: -webkit-linear-gradient(to bottom, #0072ff, #00c6ff);
+    background: linear-gradient(to bottom, #0072ff, #00c6ff);
+    font-weight: 700;
+    font-size: 14px;
+    height: 3rem;
+    line-height: 2.8;
+}
+
+.media-left img {
+    border-radius: 50%;
+}
+
+article.post {
+    margin: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #E6EAEE;
+}
+
+article.post:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
