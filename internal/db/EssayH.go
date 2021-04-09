@@ -31,14 +31,31 @@ func isEssayOwner(ctx context.Context, db DBTX, essayID int, userID int) bool {
 
 	return isOwner == 1
 }
+
+var selectEssay = psql.
+	Select(
+		"id",
+		"thesis",
+		"content",
+		"attributed_to_id",
+		"published",
+		"posted_in",
+		"SUM(CASE votes.vote_type WHEN 'upvote' THEN 1 ELSE 0 END) AS upvotes",
+		"SUM(CASE votes.vote_type WHEN 'downvote' THEN 1 ELSE 0 END) AS downvotes",
+		"essay_replies.to_id AS in_reply_to",
+		"essay_replies.reply_type AS reply_type",
+	)
+
 func (h EssayH) GetEssay(ctx context.Context) (*models.Essay, error) {
 	if !h.essayPerms.Read {
 		return nil, ErrPermDenied
 	}
-	sql, args, _ := psql.
-		Select("*").
+	sql, args, _ := selectEssay.
 		From("essays").
+		LeftJoin("essay_replies ON essay_replies.from_id = essays.id").
+		LeftJoin("votes ON votes.essay_id = essays.id").
 		Where(sq.Eq{"id": h.id}).
+		GroupBy("essays.id", "essay_replies.from_id").
 		ToSql()
 
 	var essay models.Essay
@@ -80,37 +97,6 @@ func (h EssayH) CreateReport(ctx context.Context, rep models.Report, userH UserH
 	}
 	return nil
 }
-func (h EssayH) CountVotes(ctx context.Context) (upvotes, downvotes int, err error) {
-	if !h.essayPerms.Read {
-		return 0, 0, ErrPermDenied
-	}
-	sql, args, _ := psql.
-		Select("vote_type", "COUNT(*)").
-		From("votes").
-		Where(sq.Eq{"essay_id": h.id}).
-		GroupBy("vote_type").
-		ToSql()
-
-	rows, err := h.sharedDB.Query(ctx, sql, args...)
-	if err != nil {
-		return 0, 0, err
-	}
-	for rows.Next() {
-		var voteType string
-		var count int
-		err := rows.Scan(&voteType, &count)
-		if voteType == string(models.VoteTypeUpvote) {
-			upvotes = count
-		} else {
-			downvotes = count
-		}
-		if err != nil {
-			return 0, 0, err
-		}
-	}
-
-	return upvotes, downvotes, nil
-}
 func (h EssayH) DeleteVote(ctx context.Context, uH UserH) error {
 	if !h.essayPerms.Read {
 		return ErrPermDenied
@@ -141,6 +127,23 @@ func (h EssayH) DeleteEssay(ctx context.Context) error {
 		return ErrPermDenied
 	}
 	return h.deleteEssay(ctx)
+}
+func (h EssayH) GetUserDid(ctx context.Context, userH UserH) (*models.EssayUserDid, error) {
+	sql, args, _ := psql.
+		Select("vote_type AS vote").
+		From("votes").
+		Where(sq.Eq{"user_id": userH.id}).
+		ToSql()
+
+	did := &models.EssayUserDid{}
+	err := pgxscan.Get(ctx, h.sharedDB, did, sql, args...)
+	if pgxscan.NotFound(err) {
+		return did, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	return did, nil
 }
 func (h EssayH) deleteEssay(ctx context.Context) error {
 	sql, args, _ := psql.Delete("essays").Where(sq.Eq{"id": h.id}).ToSql()

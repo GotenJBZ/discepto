@@ -16,26 +16,38 @@ type SubdisceptoH struct {
 	subPerms models.SubPerms
 }
 
-func (sdb *SharedDB) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH *UserH) (*SubdisceptoH, error) {
-	var subPerms *models.SubPerms
+func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH *UserH) (*SubdisceptoH, error) {
+	subPerms := &models.SubPerms{}
 	var err error
 	if uH != nil {
 		// First, try getting user's permissions
-		subPerms, err = getSubUserPerms(ctx, sdb.db, subdiscepto, uH.id)
+		subPerms, err = getSubUserPerms(ctx, dH.sharedDB, subdiscepto, uH.id)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if subPerms == nil || !subPerms.ReadSubdiscepto {
-		// Check if the subdiscepto is publicly readable
-		public := isSubPublic(ctx, sdb.db, subdiscepto)
-		if !public {
-			return nil, ErrPermDenied
-		}
-		subPerms = &models.SubPerms{ReadSubdiscepto: public}
+
+	// Inherit global perms
+	subPerms = &models.SubPerms{
+		ReadSubdiscepto:   subPerms.ReadSubdiscepto || dH.globalPerms.ReadSubdiscepto,
+		CreateEssay:       subPerms.CreateEssay || dH.globalPerms.CreateEssay,
+		DeleteEssay:       subPerms.DeleteEssay || dH.globalPerms.DeleteEssay,
+		BanUser:           subPerms.BanUser || dH.globalPerms.BanUser,
+		DeleteSubdiscepto: subPerms.DeleteSubdiscepto || dH.globalPerms.DeleteSubdiscepto,
+		ChangeRanking:     subPerms.ChangeRanking || dH.globalPerms.ChangeRanking,
+		ManageRole:        subPerms.ManageRole || dH.globalPerms.ManageRole,
 	}
 
-	h := &SubdisceptoH{sdb.db, subdiscepto, *subPerms}
+	if !subPerms.ReadSubdiscepto {
+		// Check if the subdiscepto is publicly readable
+		public := isSubPublic(ctx, dH.sharedDB, subdiscepto)
+		subPerms.ReadSubdiscepto = public
+		if !subPerms.ReadSubdiscepto {
+			return nil, ErrPermDenied
+		}
+	}
+
+	h := &SubdisceptoH{dH.sharedDB, subdiscepto, *subPerms}
 	return h, nil
 }
 func (h SubdisceptoH) Read(ctx context.Context) (*models.Subdiscepto, error) {
@@ -126,13 +138,13 @@ func createReply(ctx context.Context, db DBTX, e *models.Essay) error {
 		e.ID, e.InReplyTo, e.ReplyType)
 	return err
 }
-func (h SubdisceptoH) GetEssayH(ctx context.Context, id int, uH UserH) (*EssayH, error) {
+func (h SubdisceptoH) GetEssayH(ctx context.Context, id int, uH *UserH) (*EssayH, error) {
 	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
 	return h.getEssayH(ctx, id, uH)
 }
-func (h SubdisceptoH) getEssayH(ctx context.Context, id int, uH UserH) (*EssayH, error) {
+func (h SubdisceptoH) getEssayH(ctx context.Context, id int, uH *UserH) (*EssayH, error) {
 	// Check if essay is inside this subdiscepto
 	sql, args, _ := psql.
 		Select("1").
@@ -148,8 +160,11 @@ func (h SubdisceptoH) getEssayH(ctx context.Context, id int, uH UserH) (*EssayH,
 		return nil, err
 	}
 
-	// Check if user owns the essay
-	isOwner := isEssayOwner(ctx, h.sharedDB, id, uH.id)
+	isOwner := false
+	if uH != nil {
+		// Check if user owns the essay
+		isOwner = isEssayOwner(ctx, h.sharedDB, id, uH.id)
+	}
 
 	// Finally assign capabilities
 	essayPerms := models.EssayPerms{
@@ -166,7 +181,7 @@ func (h SubdisceptoH) ListEssays(ctx context.Context) ([]*models.Essay, error) {
 	}
 	return h.listEssays(ctx)
 }
-func (h SubdisceptoH) ListReplies(ctx context.Context, e EssayH, replyType string) ([]*models.Essay, error) {
+func (h SubdisceptoH) ListReplies(ctx context.Context, e EssayH, replyType *string) ([]*models.Essay, error) {
 	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
@@ -274,15 +289,21 @@ func (h SubdisceptoH) listEssays(ctx context.Context) ([]*models.Essay, error) {
 	err := pgxscan.Select(ctx, h.sharedDB, &essays, sql, args...)
 	return essays, err
 }
-func (h SubdisceptoH) listReplies(ctx context.Context, e EssayH, replyType string) (essays []*models.Essay, err error) {
-	sql, args, _ := psql.
-		Select("*").
-		From("essays").
-		Where(sq.Eq{
-			"in_reply_to": e.id,
-			"posted_in":   h.name,
-			"reply_type":  replyType,
-		}).
+func (h SubdisceptoH) listReplies(ctx context.Context, e EssayH, replyType *string) (essays []*models.Essay, err error) {
+	filterByType := sq.Eq{}
+	if replyType != nil {
+		filterByType = sq.Eq{"reply_type": replyType}
+	}
+
+	sql, args, _ := selectEssay.
+		From("essay_replies").
+		Join("essays ON essay_replies.from_id = essays.id").
+		LeftJoin("votes ON votes.essay_id = essays.id").
+		Where(
+			sq.Eq{"essay_replies.to_id": e.id},
+			filterByType,
+		).
+		GroupBy("essays.id", "essay_replies.from_id").
 		ToSql()
 
 	err = pgxscan.Select(ctx, h.sharedDB, &essays, sql, args...)

@@ -152,7 +152,7 @@ func TestEssay(t *testing.T) {
 	require.Nil(err)
 
 	essay := mockEssay(user.ID)
-	_, err = subH.CreateEssay(context.Background(), essay)
+	essayH, err := subH.CreateEssay(context.Background(), essay)
 	require.Nil(err)
 
 	essays, err := subH.ListEssays(context.Background())
@@ -165,7 +165,7 @@ func TestEssay(t *testing.T) {
 	require.Nil(err)
 	essay2 := mockEssay(user.ID)
 	essay2.PostedIn = mockSubName2
-	_, err = sub2H.CreateEssay(context.Background(), essay2)
+	essay2H, err := sub2H.CreateEssay(context.Background(), essay2)
 	require.Nil(err)
 
 	// list
@@ -182,10 +182,38 @@ func TestEssay(t *testing.T) {
 	require.Nil(err)
 	_, err = sub2H.CreateEssayReply(context.Background(), essay3, *parentEssayH)
 	require.Nil(err)
-	//// list
-	//essays, err = db.ListEssayReplies(essay2.ID, essay3.ReplyType)
-	//require.Nil(err)
-	//require.Len(essays, 1)
+
+	// Create upvote
+	err = essayH.CreateVote(context.Background(), *userH, models.VoteTypeUpvote)
+	require.Nil(err)
+	updatedEssay, err := essayH.GetEssay(context.Background())
+	require.Nil(err)
+	require.Equal(1, updatedEssay.Upvotes)
+	require.Equal(0, updatedEssay.Downvotes)
+
+	// Delete vote
+	err = essayH.DeleteVote(context.Background(), *userH)
+	require.Nil(err)
+
+	// Create downvote
+	err = essayH.CreateVote(context.Background(), *userH, models.VoteTypeDownvote)
+	require.Nil(err)
+	updatedEssay, err = essayH.GetEssay(context.Background())
+	require.Nil(err)
+	require.Equal(0, updatedEssay.Upvotes)
+	require.Equal(1, updatedEssay.Downvotes)
+
+	// Check what a specific user did
+	did, err := essayH.GetUserDid(context.Background(), *userH)
+	require.Nil(err)
+	require.Equal(&models.EssayUserDid{
+		Vote: sql.NullString{String: string(models.VoteTypeDownvote), Valid: true},
+	}, did)
+
+	// list
+	essays, err = sub2H.ListReplies(context.Background(), *essay2H, &models.ReplyTypeSupports.String)
+	require.Nil(err)
+	require.Len(essays, 1)
 
 	// Clean
 	err = subH.Delete(context.Background())
@@ -195,54 +223,6 @@ func TestEssay(t *testing.T) {
 	require.Nil(userH.Delete(context.Background()))
 }
 
-func TestVotes(t *testing.T) {
-	require := require.New(t)
-
-	// Setup needed data
-	user := mockUser()
-	userH, err := db.CreateUser(context.Background(), user, mockPasswd)
-	require.Nil(err)
-
-	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
-	require.Nil(err)
-
-	essay := mockEssay(user.ID)
-	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, mockSubdiscepto())
-	require.Nil(err)
-	esH, err := subH.CreateEssay(context.Background(), essay)
-	require.Nil(err)
-
-	// Actual test
-	upvotes, downvotes, err := esH.CountVotes(context.Background())
-	require.Nil(err)
-	require.Equal(0, upvotes)
-	require.Equal(0, downvotes)
-
-	// Add upvote
-	require.Nil(esH.CreateVote(context.Background(), *userH, models.VoteTypeUpvote))
-
-	// Check added upvote
-	upvotes, downvotes, err = esH.CountVotes(context.Background())
-	require.Nil(err)
-	require.Equal(1, upvotes)
-	require.Equal(0, downvotes)
-
-	// Delete (needed to change vote type for same user)
-	require.Nil(esH.DeleteVote(context.Background(), *userH))
-
-	// Add downvote
-	require.Nil(esH.CreateVote(context.Background(), *userH, models.VoteTypeDownvote))
-	upvotes, downvotes, err = esH.CountVotes(context.Background())
-	require.Nil(err)
-	require.Equal(0, upvotes)
-	require.Equal(1, downvotes)
-
-	// Clean
-	require.Nil(esH.DeleteVote(context.Background(), *userH))
-	require.Nil(esH.DeleteEssay(context.Background()))
-	require.Nil(subH.Delete(context.Background()))
-	require.Nil(userH.Delete(context.Background()))
-}
 func TestSubdiscepto(t *testing.T) {
 	require := require.New(t)
 	{
@@ -272,7 +252,9 @@ func TestSubdiscepto(t *testing.T) {
 		userH, err := db.CreateUser(context.Background(), user, mockPasswd)
 		require.Nil(err)
 
-		subH, err := db.GetSubdisceptoH(context.Background(), mockSubdiscepto().Name, userH)
+		disceptoH, err := db.GetDisceptoH(context.Background(), userH)
+		require.Nil(err)
+		subH, err := disceptoH.GetSubdisceptoH(context.Background(), mockSubdiscepto().Name, userH)
 		require.Nil(err)
 		err = subH.AddMember(context.Background(), *userH)
 		require.Nil(err)
@@ -297,7 +279,9 @@ func TestSubdiscepto(t *testing.T) {
 	require.Nil(err)
 	userH, err := db.GetUserH(context.Background(), token)
 	require.Nil(err)
-	subH, err := db.GetSubdisceptoH(context.Background(), mockSubName, &userH)
+	disceptoH, err := db.GetDisceptoH(context.Background(), &userH)
+	require.Nil(err)
+	subH, err := disceptoH.GetSubdisceptoH(context.Background(), mockSubName, &userH)
 	require.Nil(err)
 	err = subH.Delete(context.Background())
 	require.Nil(err)

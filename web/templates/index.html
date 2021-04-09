@@ -69,8 +69,8 @@
                             </nav>
                         </div>
                         <div class="media-right is-hidden-mobile">
-                            {{if eq .ReplyType "supports " }}
-                            <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .ReplyType "refutes"}}
+                            {{if eq .ReplyType.String "supports " }}
+                            <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .ReplyType.String "refutes"}}
                             <span class="tag is-danger is-light is-medium">refutes</button> {{ else }}
                                 <span class="tag is-warning is-light is-medium">General</button> {{ end }}
                             </div>

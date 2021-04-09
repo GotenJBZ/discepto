@@ -19,8 +19,8 @@
                             <p class="subtitle is-6"><a href="#">@utente</a>&nbsp; <time datetime="2018-1-1">{{ .Essay.Published }}</time></p>
                         </div>
                         <div class="column is-hidden-mobile is-2 has-text-right">
-                            {{if eq .Essay.ReplyType "supports" }}
-                            <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .Essay.ReplyType "refutes"}}
+                            {{if eq .Essay.ReplyType.String "supports" }}
+                            <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .Essay.ReplyType.String "refutes"}}
                             <span class="tag is-danger is-light is-medium">refutes</button> {{ else }}
                             <span class="tag is-warning is-light is-medium">General</button> {{ end }}
                         </div>
@@ -42,7 +42,7 @@
                         <div class="column is-1 is-narrow">
                             <a onclick="send_vote('upvote')" class="level-item" aria-label="reply">
                                 <span class="icon is-small">
-									<i class="fa fa-arrow-up has-text-primary" aria-hidden="true"></i>
+									<i class="fa fa-arrow-up {{ if eq .EssayUserDid.Vote.String "upvote" }} has-text-primary {{ end }} " aria-hidden="true"></i>
                                     <p class="has-text-black">&nbsp;{{ .Essay.Upvotes }}</p>
 								</span>
                             </a>
@@ -50,7 +50,7 @@
                         <div class="column is-1 is-narrow">
                             <a onclick="send_vote('downvote')" class="level-item" aria-label="retweet">
                                 <span class="icon is-small">
-								    <i class="fa fa-arrow-down has-text-primary" aria-hidden="true"></i>
+								    <i class="fa fa-arrow-down {{ if eq .EssayUserDid.Vote.String "downvote" }} has-text-primary {{ end }}" aria-hidden="true"></i>
                                     <p class="has-text-black">&nbsp;{{ .Essay.Downvotes }}</p>
 						        </span>
                             </a>

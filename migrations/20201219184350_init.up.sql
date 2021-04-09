@@ -121,10 +121,9 @@ CREATE TABLE essays (
 );
 
 CREATE TABLE essay_replies (
-	from_id int REFERENCES essays(id) ON DELETE CASCADE,
+	from_id int PRIMARY KEY REFERENCES essays(id) ON DELETE CASCADE,
 	to_id int REFERENCES essays(id) ON DELETE CASCADE,
-	reply_type varchar(24) NOT NULL,
-	PRIMARY KEY (from_id, to_id)
+	reply_type varchar(24) NOT NULL
 );
 
 CREATE TABLE essay_tags (
