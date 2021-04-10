@@ -133,7 +133,11 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
 
 	subH, err := disceptoH.GetSubdisceptoH(r.Context(), r.FormValue("postedIn"), userH)
-	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	rep, err := strconv.Atoi(r.FormValue("inReplyTo"))
+
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
 
 	// Parse reply type

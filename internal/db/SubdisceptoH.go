@@ -280,10 +280,12 @@ func (h SubdisceptoH) read(ctx context.Context) (*models.Subdiscepto, error) {
 func (h SubdisceptoH) listEssays(ctx context.Context) ([]*models.Essay, error) {
 	var essays []*models.Essay
 
-	sql, args, _ := psql.
-		Select("*").
+	sql, args, _ := selectEssay.
 		From("essays").
+		LeftJoin("essay_replies ON essays.id = essay_replies.from_id").
+		LeftJoin("votes ON votes.essay_id = essays.id").
 		Where(sq.Eq{"posted_in": h.name}).
+		GroupBy("essays.id", "essay_replies.from_id").
 		ToSql()
 
 	err := pgxscan.Select(ctx, h.sharedDB, &essays, sql, args...)

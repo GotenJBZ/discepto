@@ -16,10 +16,11 @@ import (
 )
 
 func (sdb *SharedDB) ListRecentEssaysIn(ctx context.Context, subs []string) (essays []*models.Essay, err error) {
-	sql, args, _ := psql.
-		Select("*").
+	sql, args, _ := selectEssay.
 		From("essays").
-		Where(sq.Eq{"posted_in": subs}).
+		LeftJoin("essay_replies ON essays.id = essay_replies.from_id").
+		LeftJoin("votes ON votes.essay_id = essays.id").
+		GroupBy("essays.id", "essay_replies.from_id").
 		ToSql()
 
 	err = pgxscan.Select(ctx, sdb.db, &essays, sql, args...)
