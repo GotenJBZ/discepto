@@ -73,48 +73,47 @@
                             </nav>
                         </div>
                         <div class="media-right is-hidden-mobile">
-                            {{if eq .ReplyType.String "supports" }}
-                            <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .ReplyType.String "refutes"}}
-                            <span class="tag is-danger is-light is-medium">refutes</button> {{ else }}
-                                <span class="tag is-warning is-light is-medium">General</button> {{ end }}
-                            </div>
+                            {{if eq $e.ReplyType.String "supports" }}
+                            <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq $e.ReplyType.String "refutes"}}
+                            <span class="tag is-danger is-light is-medium">refutes</span> {{ else }}
+                            <span class="tag is-warning is-light is-medium">{{$e.ReplyType}}</span> {{ end }}
+                        </div>
 
-                        </article>
+                    </article>
                 </div>{{ end }}
             </div>
             <div class="column is-4 is-fluid px-5">
                 <div class="box">
-                        <div class="field is-grouped">
-                            <figure class="image is-48x48">
-                                <img class="is-rounded" src="https://bulma.io/images/placeholders/48x48.png">
-                              </figure>
-                            <div class="field pl-5">
-                                <p class="title is-4">s/{{ .Name }}</p>
-                                <p class="subtitle is-6">Inserire membri</p>
-                            </div>
+                    <div class="field is-grouped">
+                        <figure class="image is-48x48">
+                            <img class="is-rounded" src="https://bulma.io/images/placeholders/48x48.png">
+                        </figure>
+                        <div class="field pl-5">
+                            <p class="title is-4">s/{{ .Name }}</p>
+                            <p class="subtitle is-6">Inserire membri</p>
                         </div>
-                        <p>{{ .Description }}</p>
-                        <br>
-                        <div class="field is-grouped">
-                            <div class="control is-expanded">
+                    </div>
+                    <p>{{ .Description }}</p>
+                    <br>
+                    <div class="field is-grouped">
+                        <div class="control is-expanded">
                             {{ if .IsMember }}
-                                <button class="button is-danger is-outlined is-fullwidth is-rounded" id="follow" onclick="join()">Leave</button>{{ else }}
-                                <button class="button is-primary is-fullwidth is-rounded" id="follow" onclick="join()">Join</button> {{ end }}
-                            </div>
-                            {{ if true}}
-                            <div class="control is-expanded">
-                                <a class="button is-info is-outlined is-fullwidth is-rounded" href="/todo">settings</a>
-                            </div>{{ end }}
+                            <button class="button is-danger is-outlined is-fullwidth is-rounded" id="follow" onclick="join()">Leave</button>{{ else }}
+                            <button class="button is-primary is-fullwidth is-rounded" id="follow" onclick="join()">Join</button> {{ end }}
                         </div>
+                        {{ if true}}
+                        <div class="control is-expanded">
+                            <a class="button is-info is-outlined is-fullwidth is-rounded" href="/todo">settings</a>
+                        </div>{{ end }}
+                    </div>
                 </div>
                 <br>
                 <div class="card events-card">
                     <nav class="panel is-primary">
                         <p class="panel-heading ">Your Communities</p>
-                        
+
                         {{ $length := len .SubdisceptoList }} {{ if eq $length 0 }}
-                        <a href="/s" class="panel-block ">join in a comunity</a>
-                        {{ else }} {{ range .SubdisceptoList }}
+                        <a href="/s" class="panel-block ">join in a comunity</a> {{ else }} {{ range .SubdisceptoList }}
                         <a href="/s/{{ . }} " class="panel-block ">s/{{ . }}</a> {{ end }} {{end}}
                     </nav>
                 </div>
@@ -122,32 +121,32 @@
         </div>
 
 
-            <script>
-                function join() {
-                    var btn = document.getElementById('follow');
-                    if (btn.textContent == 'Leave') {
-                        fetch('/s/{{ .Name }}/leave', {
-                            method: 'POST',
-                            credentials: 'include'
-                        });
-                        btn.blur();
-                        btn.classList.remove("is-danger");
-                        btn.classList.remove("is-outlined");
-                        btn.classList.add('is-primary');
-                        btn.textContent = 'Join'
-                    } else {
-                        fetch('/s/{{ .Name }}/join', {
-                            method: 'POST',
-                            credentials: 'include'
-                        });
-                        btn.blur();
-                        btn.classList.remove('is-primary');
-                        btn.classList.add("is-danger");
-                        btn.classList.add("is-outlined");
-                        btn.textContent = 'Leave'
-                    }
+        <script>
+            function join() {
+                var btn = document.getElementById('follow');
+                if (btn.textContent == 'Leave') {
+                    fetch('/s/{{ .Name }}/leave', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    btn.blur();
+                    btn.classList.remove("is-danger");
+                    btn.classList.remove("is-outlined");
+                    btn.classList.add('is-primary');
+                    btn.textContent = 'Join'
+                } else {
+                    fetch('/s/{{ .Name }}/join', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    btn.blur();
+                    btn.classList.remove('is-primary');
+                    btn.classList.add("is-danger");
+                    btn.classList.add("is-outlined");
+                    btn.textContent = 'Leave'
                 }
-            </script>
+            }
+        </script>
 
     </div>
 </body>
