@@ -46,6 +46,7 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppErr
 func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError {
 	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
 
 	subData, err := subH.Read(r.Context())
 	if err != nil {
@@ -81,6 +82,11 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 
+	UserData, err := disceptoH.ReadPublicUser(r.Context(), essay.AttributedToID)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
 	isMember := false
 	var subs []string
 	var essayUserDid *models.EssayUserDid
@@ -112,6 +118,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		SupportList     []*models.Essay
 		EssayUserDid    *models.EssayUserDid
 		SubdisceptoList []string
+		User            string
 	}{
 		NameSubdiscepto: subData.Name,
 		DescSubdiscepto: subData.Description,
@@ -122,6 +129,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		RefutesList:     refutesList,
 		GeneralList:     generalList,
 		SupportList:     supportList,
+		User:            UserData.Name,
 	}
 
 	routes.tmpls.RenderHTML(w, "essay", data)

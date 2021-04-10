@@ -16,7 +16,7 @@
                         </div>
                         <div class="column is-primary">
                             <p class="title is-4">{{ .Essay.Thesis}}</p>
-                            <p class="subtitle is-6"><a href="#">@utente</a>&nbsp; <time datetime="2018-1-1">{{ .Essay.Published }}</time></p>
+                            <p class="subtitle is-6"><a href="#">@{{.User}}</a>&nbsp; <time datetime="2018-1-1">{{ .Essay.Published }}</time></p>
                         </div>
                         <div class="column is-hidden-mobile is-2 has-text-right ">
                             {{if eq .Essay.ReplyType.String "supports" }}

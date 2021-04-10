@@ -249,11 +249,19 @@ func (routes *Routes) AppHandler(handler func(w http.ResponseWriter, r *http.Req
 
 // Routes
 func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
+
+	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
+
+	type userEssay struct {
+		Essay *models.Essay
+		User  string
+	}
+
 	type homeData struct {
 		User           *models.User
 		LoggedIn       bool
 		MySubdisceptos []string
-		RecentEssays   []*models.Essay
+		RecentEssays   []userEssay
 	}
 	user, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
 
@@ -265,7 +273,6 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 			return &ErrInternal{Cause: err}
 		}
 	}
-	fmt.Println(user)
 	data := homeData{User: userData, LoggedIn: ok}
 	if data.LoggedIn {
 		mySubs, err := user.ListMySubdisceptos(r.Context())
@@ -278,7 +285,19 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 		if err != nil {
 			return &ErrInternal{Message: "Can't list recent essays", Cause: err}
 		}
-		data.RecentEssays = recentEssays
+
+		var userEssays []userEssay
+
+		//TODO: optimize
+		for _, e := range recentEssays {
+			user, err := disceptoH.ReadPublicUser(r.Context(), e.AttributedToID)
+			if err != nil {
+				return &ErrInternal{Cause: err}
+			}
+			userEssays = append(userEssays, userEssay{e, user.Name})
+		}
+
+		data.RecentEssays = userEssays
 	}
 
 	routes.tmpls.RenderHTML(w, "home", data)

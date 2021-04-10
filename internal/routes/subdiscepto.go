@@ -107,6 +107,7 @@ func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) Ap
 func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
 
 	subData, err := subH.Read(r.Context())
 	if err != nil {
@@ -116,6 +117,22 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 	essays, err := subH.ListEssays(r.Context())
 	if err != nil {
 		return &ErrInternal{Cause: err, Message: "Can't list essays"}
+	}
+
+	type userEssay struct {
+		Essay *models.Essay
+		User  string
+	}
+
+	var userEssays []userEssay
+
+	//TODO: optimize
+	for _, e := range essays {
+		user, err := disceptoH.ReadPublicUser(r.Context(), e.AttributedToID)
+		if err != nil {
+			return &ErrInternal{Cause: err}
+		}
+		userEssays = append(userEssays, userEssay{e, user.Name})
 	}
 
 	isMember := false
@@ -133,16 +150,17 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 			}
 		}
 	}
+
 	data := struct {
 		Name            string
 		Description     string
-		Essays          []*models.Essay
+		Essays          *[]userEssay
 		IsMember        bool
 		SubdisceptoList []string
 	}{
 		Name:            subData.Name,
 		Description:     subData.Description,
-		Essays:          essays,
+		Essays:          &userEssays,
 		IsMember:        isMember,
 		SubdisceptoList: subs,
 	}

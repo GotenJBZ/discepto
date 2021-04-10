@@ -46,10 +46,10 @@
                         <div class="media-content">
                             <div class="content">
                                 <p>
-                                    <strong>{{$e.Thesis}}</strong> <small>@autore</small> <small>{{$e.Published}}</small>
-                                    <br> {{$e.Content}}
+                                    <strong>{{$e.Essay.Thesis}}</strong> <small>@{{$e.User}}</small> <small>{{$e.Essay.Published}}</small>
+                                    <br> {{$e.Essay.Content}}
                                 </p>
-                                <a href="/s/{{ $e.PostedIn }}/{{ $e.ID }}" class="stretched-link"></a>
+                                <a href="/s/{{ $e.Essay.PostedIn }}/{{ $e.Essay.ID }}" class="stretched-link"></a>
                             </div>
 
                             <nav class="level is-mobile">
@@ -73,8 +73,8 @@
                             </nav>
                         </div>
                         <div class="media-right is-hidden-mobile">
-                            {{if eq $e.ReplyType.String "supports" }}
-                            <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq $e.ReplyType.String "refutes"}}
+                            {{if eq $e.Essay.ReplyType.String "supports" }}
+                            <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq $e.Essay.ReplyType.String "refutes"}}
                             <span class="tag is-danger is-light is-medium">refutes</span> {{ else }}
                             <span class="tag is-warning is-light is-medium">General</span> {{ end }}
                         </div>
