@@ -3,8 +3,13 @@
 
 
 <body class="body">
-    {{ if .LoggedIn }} {{ template "navbar" .}}
-    <br>
+
+    {{ if .LoggedIn }}
+    <br> {{ $length := len .MySubdisceptos }} {{ if eq $length 0 }}
+    <script>
+        window.location = "/s"
+    </script>
+    {{ end }} {{ template "navbar" .}}
     <div class="container is-max-desktop">
         <div class="columns">
             <div class="column is-8 is-fluid px-5">
