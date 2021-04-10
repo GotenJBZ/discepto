@@ -10,7 +10,7 @@
                     <h1 class="title">Discover comunities</h1>
                 </div>
             </div>
-            {{ range . }}
+            {{ range .OtherSubs }}
             <div class="box">
                 <div class="columns is-mobile">
                     <div class="column">
@@ -27,7 +27,27 @@
 
                 </div>
             </div>
+            {{end}} {{ range .MySubs }}
+            <div class="box">
+                <div class="columns is-mobile">
+                    <div class="column">
+                        <div class="field">
+                            <p class="title is-4">{{.Name}}</p>
+                            <p class="subtitle is-6">{{.Description}}</p>
+                        </div>
+                    </div>
+                    <div class="column is-one-quarter is-narrow">
+                        <div class="field">
+                            <button class="button is-danger is-outlined is-fullwidth is-rounded" id="follow-{{.Name}}" onclick="join('{{.Name}}')">Leave</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
             {{end}}
+
+
+
 
         </section>
     </div>
