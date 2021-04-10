@@ -302,8 +302,10 @@ func (h SubdisceptoH) listReplies(ctx context.Context, e EssayH, replyType *stri
 		Join("essays ON essay_replies.from_id = essays.id").
 		LeftJoin("votes ON votes.essay_id = essays.id").
 		Where(
-			sq.Eq{"essay_replies.to_id": e.id},
-			filterByType,
+			sq.And{
+				sq.Eq{"essay_replies.to_id": e.id},
+				filterByType,
+			},
 		).
 		GroupBy("essays.id", "essay_replies.from_id").
 		ToSql()
