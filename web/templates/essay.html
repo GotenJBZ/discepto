@@ -21,8 +21,8 @@
                         <div class="column is-hidden-mobile is-2 has-text-right ">
                             {{if eq .Essay.ReplyType.String "supports" }}
                             <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .Essay.ReplyType.String "refutes"}}
-                            <span class="tag is-danger is-light is-medium">refutes</button> {{ else }}
-                            <span class="tag is-warning is-light is-medium">General</button> {{ end }}
+                            <span class="tag is-danger is-light is-medium">refutes</span> {{ else }}
+                            <span class="tag is-warning is-light is-medium">General</span> {{ end }}
                         </div>
                         <div class="column is-1">
                             <div class="dropdown">
@@ -32,400 +32,345 @@
                                             <i class="fa fa-ellipsis-v"></i>
                                         </span>
                             </button>
-                        </div>
-                        <div class="dropdown-menu" id="dropdown-menu">
-                            <div class="dropdown-content is-small">
-                                <a href="/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/report" class="dropdown-item has-text-danger">report</a>
+                                </div>
+                                <div class="dropdown-menu" id="dropdown-menu">
+                                    <div class="dropdown-content is-small">
+                                        <a href="/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/report" class="dropdown-item has-text-danger">report</a>
+                                    </div>
+                                </div>
                             </div>
+
+
+                            <script>
+                                var dropdown = document.querySelector('.dropdown');
+                                dropdown.addEventListener('click', function(event) {
+                                    event.stopPropagation();
+                                    dropdown.classList.toggle('is-active');
+                                });
+                            </script>
                         </div>
                     </div>
 
 
-                    <script>
-                        var dropdown = document.querySelector('.dropdown');
-                        dropdown.addEventListener('click', function(event) {
-                            event.stopPropagation();
-                            dropdown.classList.toggle('is-active');
-                        });
-                    </script>
-                </div>
-            </div>
+                    <div class="content ml-6">
+                        <p>{{ .Essay.Content }}</p>
+                    </div>
 
-
-            <div class="content ml-6">
-                <p>{{ .Essay.Content }}</p>
-            </div>
-
-            <div class="columns is-grouped is-mobile">
-                <div class="column is-1 is-offset-1 is-narrow">
-                    <a onclick="send_vote('favourite')" aria-label="reply">
-                        <span class="icon is-small has-text-danger">
+                    <div class="columns is-grouped is-mobile">
+                        <div class="column is-1 is-offset-1 is-narrow">
+                            <a onclick="send_vote('favourite')" aria-label="reply">
+                                <span class="icon is-small has-text-danger">
 								    <i class="fa fa-heart " aria-hidden="true"></i>
 							    </span>
-                    </a>
-                </div>
-                <div class="column is-1 is-narrow">
-                    <a onclick="send_vote('upvote')" class="level-item" aria-label="reply">
-                        <span class="icon is-small">
+                            </a>
+                        </div>
+                        <div class="column is-1 is-narrow">
+                            <a onclick="send_vote('upvote')" class="level-item" aria-label="reply">
+                                <span class="icon is-small">
 									<i class="fa fa-arrow-up {{ if eq .EssayUserDid.Vote.String "upvote" }} has-text-primary {{ end }} " aria-hidden="true"></i>
                                     <p class="has-text-black">&nbsp;{{ .Essay.Upvotes }}</p>
 								</span>
-                    </a>
-                </div>
-                <div class="column is-1 is-narrow">
-                    <a onclick="send_vote('downvote')" class="level-item" aria-label="retweet">
-                        <span class="icon is-small">
+                            </a>
+                        </div>
+                        <div class="column is-1 is-narrow">
+                            <a onclick="send_vote('downvote')" class="level-item" aria-label="retweet">
+                                <span class="icon is-small">
 								    <i class="fa fa-arrow-down {{ if eq .EssayUserDid.Vote.String "downvote" }} has-text-primary {{ end }}" aria-hidden="true"></i>
                                     <p class="has-text-black">&nbsp;{{ .Essay.Downvotes }}</p>
 						        </span>
-                    </a>
+                            </a>
+                        </div>
+                    </div>
+
+                    <script>
+                        function send_vote(type) {
+                            fetch('/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/vote', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                body: 'vote=' + type
+
+                            });
+                        }
+                    </script>
+                </div>
+
+                <br>
+                <h1 class="title is-2 ">Replies</h1>
+
+
+
+                <div class="tabs">
+                    <ul class="tabs-menu">
+                        <li data-target="general-tab" class="is-active"><a>Generals</a></li>
+                        <li data-target="refute-tab"><a>Refutes</a></li>
+                        <li data-target="support-tab"><a>Supports</a></li>
+                    </ul>
+                </div>
+
+                <a href="/newessay?inReplyTo={{ .Essay.ID }}&subdiscepto={{ .Essay.PostedIn }}">
+                    <div class="box">
+                        <article class="media">
+                            <figure class="media-left">
+                                <p class="image is-64x64">
+                                    <img class="is-rounded" src="https://bulma.io/images/placeholders/128x128.png">
+                                </p>
+                            </figure>
+                            <div class="media-content">
+                                <div class="content">
+                                    <p class="title is-7"></p>
+                                    <input class="input is-primary" type="text" placeholder="Write an essay" readonly>
+                                </div>
+
+                            </div>
+                        </article>
+                    </div>
+                </a>
+                <br>
+
+
+
+                <div class="tab-content" id="general-tab">
+                    {{ range $g := .GeneralList }}
+                    <div class="box is-relative">
+                        <article class="media">
+                            <figure class="media-left is-hidden-touch">
+                                <p class="image is-64x64 ">
+                                    <img class="is-rounded " src="https://bulma.io/images/placeholders/128x128.png ">
+                                </p>
+                            </figure>
+
+                            <div class="media-content ">
+                                <div class="content ">
+                                    <p>
+                                        <strong>{{$g.Thesis}}</strong> <small>@autore</small> <small>{{$g.Published}}</small>
+                                        <br> {{$g.Content}}
+                                    </p>
+                                    <a href="/s/{{ $g.PostedIn }}/{{ $g.ID }}" class="stretched-link"></a>
+                                </div>
+
+                                <nav class="level is-mobile">
+                                    <div class="level-left ">
+
+                                        <a class="level-item " aria-label="reply ">
+                                            <span class="icon is-small has-text-danger ">
+                                        <i class="fa fa-heart " aria-hidden="true "></i>
+                                    </span>
+                                        </a>
+                                        <a class="level-item " aria-label="reply ">
+                                            <span class="icon is-small has-text-primary ">
+                                        <i class="fa fa-arrow-up " aria-hidden="true "></i>
+                                    </span>
+                                        </a>
+                                        <a class="level-item " aria-label="retweet ">
+                                            <span class="icon is-small has-text-primary ">
+                                        <i class="fa fa-arrow-down " aria-hidden="true "></i>
+                                    </span>
+                                        </a>
+                                    </div>
+                                </nav>
+                            </div>
+                            <div class="media-right is-hidden-mobile">
+                                <span class="tag is-warning is-light is-medium">General</span>
+                            </div>
+                        </article>
+                    </div>{{ end }}
+                </div>
+                <div class="tab-content" id="refute-tab">
+                    {{ range $r := .RefutesList }}
+                    <div class="box is-relative">
+                        <article class="media">
+                            <figure class="media-left is-hidden-touch">
+                                <p class="image is-64x64 ">
+                                    <img class="is-rounded " src="https://bulma.io/images/placeholders/128x128.png ">
+                                </p>
+                            </figure>
+
+                            <div class="media-content ">
+                                <div class="content ">
+                                    <p>
+                                        <strong>{{$r.Thesis}}</strong> <small>@autore</small> <small>{{$r.Published}}</small>
+                                        <br> {{$r.Content}}
+                                    </p>
+                                    <a href="/s/{{ $r.PostedIn }}/{{ $r.ID }}" class="stretched-link"></a>
+                                </div>
+
+                                <nav class="level is-mobile">
+                                    <div class="level-left ">
+
+                                        <a class="level-item " aria-label="reply ">
+                                            <span class="icon is-small has-text-danger ">
+                                        <i class="fa fa-heart " aria-hidden="true "></i>
+                                    </span>
+                                        </a>
+                                        <a class="level-item " aria-label="reply ">
+                                            <span class="icon is-small has-text-primary ">
+                                        <i class="fa fa-arrow-up " aria-hidden="true "></i>
+                                    </span>
+                                        </a>
+                                        <a class="level-item " aria-label="retweet ">
+                                            <span class="icon is-small has-text-primary ">
+                                        <i class="fa fa-arrow-down " aria-hidden="true "></i>
+                                    </span>
+                                        </a>
+                                    </div>
+                                </nav>
+                            </div>
+                            <div class="media-right is-hidden-mobile">
+                                <span class="tag is-danger is-light is-medium">refutes</span>
+                            </div>
+                        </article>
+                    </div>{{ end }}
+                </div>
+                <div class="tab-content" id="support-tab">
+                    {{ range $s := .SupportList }}
+                    <div class="box is-relative">
+                        <article class="media">
+                            <figure class="media-left is-hidden-touch">
+                                <p class="image is-64x64 ">
+                                    <img class="is-rounded " src="https://bulma.io/images/placeholders/128x128.png ">
+                                </p>
+                            </figure>
+
+                            <div class="media-content ">
+                                <div class="content">
+                                    <p>
+                                        <strong>{{$s.Thesis}}</strong> <small>@autore</small> <small>{{$s.Published}}</small>
+                                        <br> {{$s.Content}}
+                                    </p>
+                                    <a href="/s/{{ $s.PostedIn }}/{{ $s.ID }}" class="stretched-link"></a>
+                                </div>
+
+                                <nav class="level is-mobile">
+                                    <div class="level-left ">
+
+                                        <a class="level-item " aria-label="reply ">
+                                            <span class="icon is-small has-text-danger ">
+                                        <i class="fa fa-heart " aria-hidden="true "></i>
+                                    </span>
+                                        </a>
+                                        <a class="level-item " aria-label="reply ">
+                                            <span class="icon is-small has-text-primary ">
+                                        <i class="fa fa-arrow-up " aria-hidden="true "></i>
+                                    </span>
+                                        </a>
+                                        <a class="level-item " aria-label="retweet ">
+                                            <span class="icon is-small has-text-primary">
+                                        <i class="fa fa-arrow-down " aria-hidden="true"></i>
+                                    </span>
+                                        </a>
+                                    </div>
+                                </nav>
+                            </div>
+                            <div class="media-right is-hidden-mobile">
+                                <span class="tag is-success is-light is-medium">Supports</span>
+                            </div>
+                        </article>
+                    </div>{{ end }}
+                </div>
+
+
+
+                <script>
+                    const tabSystem = {
+                        init() {
+                            document.querySelectorAll('.tabs-menu').forEach(tabMenu => {
+                                Array.from(tabMenu.children).forEach((child, ind) => {
+                                    child.addEventListener('click', () => {
+                                        tabSystem.toggle(child.dataset.target);
+                                    });
+                                    if (child.className.includes('is-active')) {
+                                        tabSystem.toggle(child.dataset.target);
+                                    }
+                                });
+                            });
+                        },
+                        toggle(targetId) {
+                            document.querySelectorAll('.tab-content').forEach(contentElement => {
+                                contentElement.style.display = contentElement.id === targetId ? 'block' : 'none';
+                                document.querySelector(`[data-target="${contentElement.id}"]`).classList[contentElement.id === targetId ? 'add' : 'remove']('is-active');
+                            })
+                        },
+                    };
+                    tabSystem.init()
+                </script>
+            </div>
+
+
+
+
+            <div class="column is-3 is-fluid px-5">
+                <div class="card ">
+                    <nav class="panel is-primary ">
+                        <p class="panel-heading ">Sources</p>
+                        {{ $length := len .Essay.Sources }} {{ if eq $length 0 }}
+                        <a class="panel-block ">The user didn't provide the fonts</a> {{ else }} {{ range .Essay.Sources }}
+                        <a class="panel-block ">{{ . }}</a> {{ end }} {{end}}
+                    </nav>
+                </div>
+
+                <br>
+
+                <div class="box is-relative">
+
+                    <div class="field is-grouped is-relative ">
+                        <figure class="image is-48x48  is-hidden-desktop-only  is-hidden-tablet-only">
+                            <img class="is-rounded" src="https://bulma.io/images/placeholders/48x48.png">
+                        </figure>
+                        <div class="field pl-5">
+                            <p class="title is-4">s/{{ .NameSubdiscepto }}</p>
+                            <p class="subtitle is-6">Inserire membri</p>
+                        </div>
+                        <a href="/s/{{ .NameSubdiscepto }}" class="stretched-link"></a>
+                    </div>
+                    <div class="content">
+                        <p>{{ .DescSubdiscepto }}</p>
+                        {{ if .IsMember }}
+                        <button class="button is-danger is-outlined is-fullwidth is-rounded" id="follow" onclick="join()">Leave</button>{{ else }}
+                        <button class="button is-primary is-fullwidth is-rounded" id="follow" onclick="join()">Join</button> {{ end }}
+                    </div>
+                </div>
+
+                <br>
+
+                <div class="card">
+                    <nav class="panel is-primary">
+                        <p class="panel-heading ">Your Communities</p>
+
+                        {{ $length := len .SubdisceptoList }} {{ if eq $length 0 }}
+                        <a href="/s" class="panel-block ">join in a comunity</a> {{ else }} {{ range .SubdisceptoList }}
+                        <a href="/s/{{ . }} " class="panel-block ">s/{{ . }}</a> {{ end }} {{end}}
+                    </nav>
                 </div>
             </div>
 
             <script>
-                function send_vote(type) {
-                    fetch('/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/vote', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: 'vote=' + type
-
-                    });
+                function join() {
+                    var btn = document.getElementById('follow');
+                    if (btn.textContent == 'Leave') {
+                        fetch('/s/{{ .NameSubdiscepto }}/leave', {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        btn.blur();
+                        btn.classList.remove("is-danger");
+                        btn.classList.remove("is-outlined");
+                        btn.classList.add('is-primary');
+                        btn.textContent = 'Join'
+                    } else {
+                        fetch('/s/{{ .NameSubdiscepto }}/join', {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        btn.blur();
+                        btn.classList.remove('is-primary');
+                        btn.classList.add("is-danger");
+                        btn.classList.add("is-outlined");
+                        btn.textContent = 'Leave'
+                    }
                 }
             </script>
-        </div>
-
-        <br>
-        <h1 class="title is-2 ">Replies</h1>
-
-
-
-        <div class="tabs">
-            <ul class="tabs-menu">
-                <li data-target="general-tab" class="is-active"><a>Generals</a></li>
-                <li data-target="refute-tab"><a>Refutes</a></li>
-                <li data-target="support-tab"><a>Supports</a></li>
-            </ul>
-        </div>
-        <div class="tab-content" id="general-tab">
-            {{ range $e := .GeneralList }}
-            <div class="box is-relative">
-                <article class="media">
-                    <figure class="media-left is-hidden-touch">
-                        <p class="image is-64x64 ">
-                            <img class="is-rounded " src="https://bulma.io/images/placeholders/128x128.png ">
-                        </p>
-                    </figure>
-
-                    <div class="media-content ">
-                        <div class="content ">
-                            <p>
-                                <strong>{{$e.Thesis}}</strong> <small>@autore</small> <small>{{$e.Published}}</small>
-                                <br> {{$e.Content}}
-                            </p>
-                            <a href="/s/{{ $e.PostedIn }}/{{ $e.ID }}" class="stretched-link"></a>
-                        </div>
-
-                        <nav class="level is-mobile">
-                            <div class="level-left ">
-
-                                <a class="level-item " aria-label="reply ">
-                                    <span class="icon is-small has-text-danger ">
-                                        <i class="fa fa-heart " aria-hidden="true "></i>
-                                    </span>
-                                </a>
-                                <a class="level-item " aria-label="reply ">
-                                    <span class="icon is-small has-text-primary ">
-                                        <i class="fa fa-arrow-up " aria-hidden="true "></i>
-                                    </span>
-                                </a>
-                                <a class="level-item " aria-label="retweet ">
-                                    <span class="icon is-small has-text-primary ">
-                                        <i class="fa fa-arrow-down " aria-hidden="true "></i>
-                                    </span>
-                                </a>
-                            </div>
-                        </nav>
-                    </div>
-                    <div class="media-right is-hidden-mobile">
-                        <span class="tag is-warning is-light is-medium">General</span>
-                    </div>
-                </article>
-            </div>{{ end }}
-        </div>
-        <div class="tab-content" id="refute-tab">
-            {{ range $e := .RefutesList }}
-            <div class="box is-relative">
-                <article class="media">
-                    <figure class="media-left is-hidden-touch">
-                        <p class="image is-64x64 ">
-                            <img class="is-rounded " src="https://bulma.io/images/placeholders/128x128.png ">
-                        </p>
-                    </figure>
-
-                    <div class="media-content ">
-                        <div class="content ">
-                            <p>
-                                <strong>{{$e.Thesis}}</strong> <small>@autore</small> <small>{{$e.Published}}</small>
-                                <br> {{$e.Content}}
-                            </p>
-                            <a href="/s/{{ $e.PostedIn }}/{{ $e.ID }}" class="stretched-link"></a>
-                        </div>
-
-                        <nav class="level is-mobile">
-                            <div class="level-left ">
-
-                                <a class="level-item " aria-label="reply ">
-                                    <span class="icon is-small has-text-danger ">
-                                        <i class="fa fa-heart " aria-hidden="true "></i>
-                                    </span>
-                                </a>
-                                <a class="level-item " aria-label="reply ">
-                                    <span class="icon is-small has-text-primary ">
-                                        <i class="fa fa-arrow-up " aria-hidden="true "></i>
-                                    </span>
-                                </a>
-                                <a class="level-item " aria-label="retweet ">
-                                    <span class="icon is-small has-text-primary ">
-                                        <i class="fa fa-arrow-down " aria-hidden="true "></i>
-                                    </span>
-                                </a>
-                            </div>
-                        </nav>
-                    </div>
-                    <div class="media-right is-hidden-mobile">
-                        <span class="tag is-danger is-light is-medium">refutes</span>
-                    </div>
-                </article>
-            </div>{{ end }}
-        </div>
-        <div class="tab-content" id="support-tab">
-            {{ range $e := .SupportList }}
-            <div class="box is-relative">
-                <article class="media">
-                    <figure class="media-left is-hidden-touch">
-                        <p class="image is-64x64 ">
-                            <img class="is-rounded " src="https://bulma.io/images/placeholders/128x128.png ">
-                        </p>
-                    </figure>
-
-                    <div class="media-content ">
-                        <div class="content ">
-                            <p>
-                                <strong>{{$e.Thesis}}</strong> <small>@autore</small> <small>{{$e.Published}}</small>
-                                <br> {{$e.Content}}
-                            </p>
-                            <a href="/s/{{ $e.PostedIn }}/{{ $e.ID }}" class="stretched-link"></a>
-                        </div>
-
-                        <nav class="level is-mobile">
-                            <div class="level-left ">
-
-                                <a class="level-item " aria-label="reply ">
-                                    <span class="icon is-small has-text-danger ">
-                                        <i class="fa fa-heart " aria-hidden="true "></i>
-                                    </span>
-                                </a>
-                                <a class="level-item " aria-label="reply ">
-                                    <span class="icon is-small has-text-primary ">
-                                        <i class="fa fa-arrow-up " aria-hidden="true "></i>
-                                    </span>
-                                </a>
-                                <a class="level-item " aria-label="retweet ">
-                                    <span class="icon is-small has-text-primary ">
-                                        <i class="fa fa-arrow-down " aria-hidden="true "></i>
-                                    </span>
-                                </a>
-                            </div>
-                        </nav>
-                    </div>
-                    <div class="media-right is-hidden-mobile">
-                        <span class="tag is-success is-light is-medium">Supports</span>
-                    </div>
-                </article>
-            </div>{{ end }}
-        </div>
-
-
-
-        <script>
-            const tabSystem = {
-                init() {
-                    document.querySelectorAll('.tabs-menu').forEach(tabMenu => {
-                        Array.from(tabMenu.children).forEach((child, ind) => {
-                            child.addEventListener('click', () => {
-                                tabSystem.toggle(child.dataset.target);
-                            });
-                            if (child.className.includes('is-active')) {
-                                tabSystem.toggle(child.dataset.target);
-                            }
-                        });
-                    });
-                },
-                toggle(targetId) {
-                    document.querySelectorAll('.tab-content').forEach(contentElement => {
-                        contentElement.style.display = contentElement.id === targetId ? 'block' : 'none';
-                        document.querySelector(`[data-target="${contentElement.id}"]`).classList[contentElement.id === targetId ? 'add' : 'remove']('is-active');
-                    })
-                },
-            };
-            tabSystem.init()
-        </script>
-
-
-
-        <a href="/newessay?inReplyTo={{ .Essay.ID }}&subdiscepto={{ .Essay.PostedIn }}">
-            <div class="box">
-                <article class="media">
-                    <figure class="media-left">
-                        <p class="image is-64x64">
-                            <img class="is-rounded" src="https://bulma.io/images/placeholders/128x128.png">
-                        </p>
-                    </figure>
-                    <div class="media-content">
-                        <div class="content">
-                            <p class="title is-7"></p>
-                            <input class="input is-primary" type="text" placeholder="Write an essay" readonly>
-                        </div>
-
-                    </div>
-                </article>
-            </div>
-        </a>
-
-        <br>
-
-
-
-
-
-
-        <div class="box">
-            <article class="media ">
-                <figure class="media-left ">
-                    <p class="image is-64x64 ">
-                        <img class="is-rounded " src="https://bulma.io/images/placeholders/128x128.png ">
-                    </p>
-                </figure>
-
-                <div class="media-content ">
-                    <div class="content ">
-                        <p>
-                            <strong>Titolo</strong> <small>@johnsmith</small> <small>31m</small>
-                            <br> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin ornare magna eros, eu pellentesque tortor vestibulum ut. Maecenas non massa sem. Etiam finibus odio quis feugiat facilisis.
-                        </p>
-
-                    </div>
-                    <nav class="level is-mobile ">
-                        <div class="level-left ">
-
-
-                            <a class="level-item " aria-label="reply ">
-                                <span class="icon is-small has-text-danger ">
-				 							<i class="far fa-heart " aria-hidden="true "></i>
-			 							</span>
-                            </a>
-
-                            <a class="level-item " aria-label="reply ">
-                                <span class="icon is-small has-text-primary ">
-				 							<i class="fa fa-arrow-up " aria-hidden="true "></i>
-			 							</span>
-                            </a>
-                            <a class="level-item " aria-label="retweet ">
-                                <span class="icon is-small has-text-primary ">
-				 							<i class="fa fa-arrow-down " aria-hidden="true "></i>
-			 							</span>
-                            </a>
-                            <a class="level-item " aria-label="like ">
-                                <span class="icon is-small has-text-danger ">
-				 							<i class="fa fa-ban " aria-hidden="true "></i>
-			 							</span>
-                            </a>
-                        </div>
-                    </nav>
-                </div>
-                <div class="media-right ">
-                    <span class="tag is-primary is-light is-medium">Supports</span>
-                </div>
-            </article>
-        </div>
-    </div>
-
-
-
-
-    <div class="column is-3 is-fluid px-5">
-        <div class="card ">
-            <nav class="panel is-primary ">
-                <p class="panel-heading ">Sources</p>
-                {{ $length := len .Essay.Sources }} {{ if eq $length 0 }}
-                <a class="panel-block ">The user didn't provide the fonts</a> {{ else }} {{ range .Essay.Sources }}
-                <a class="panel-block ">{{ . }}</a> {{ end }} {{end}}
-            </nav>
-        </div>
-
-        <br>
-
-        <div class="box is-relative">
-
-            <div class="field is-grouped is-relative ">
-                <figure class="image is-48x48  is-hidden-desktop-only  is-hidden-tablet-only">
-                    <img class="is-rounded" src="https://bulma.io/images/placeholders/48x48.png">
-                </figure>
-                <div class="field pl-5">
-                    <p class="title is-4">s/{{ .NameSubdiscepto }}</p>
-                    <p class="subtitle is-6">Inserire membri</p>
-                </div>
-                <a href="/s/{{ .NameSubdiscepto }}" class="stretched-link"></a>
-            </div>
-            <div class="content">
-                <p>{{ .DescSubdiscepto }}</p>
-                {{ if .IsMember }}
-                <button class="button is-danger is-outlined is-fullwidth is-rounded" id="follow" onclick="join()">Leave</button>{{ else }}
-                <button class="button is-primary is-fullwidth is-rounded" id="follow" onclick="join()">Join</button> {{ end }}
-            </div>
-        </div>
-
-        <br>
-
-        <div class="card">
-            <nav class="panel is-primary">
-                <p class="panel-heading ">Your Communities</p>
-
-                {{ $length := len .SubdisceptoList }} {{ if eq $length 0 }}
-                <a href="/s" class="panel-block ">join in a comunity</a> {{ else }} {{ range .SubdisceptoList }}
-                <a href="/s/{{ . }} " class="panel-block ">s/{{ . }}</a> {{ end }} {{end}}
-            </nav>
-        </div>
-    </div>
-
-    <script>
-        function join() {
-            var btn = document.getElementById('follow');
-            if (btn.textContent == 'Leave') {
-                fetch('/s/{{ .NameSubdiscepto }}/leave', {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                btn.blur();
-                btn.classList.remove("is-danger");
-                btn.classList.remove("is-outlined");
-                btn.classList.add('is-primary');
-                btn.textContent = 'Join'
-            } else {
-                fetch('/s/{{ .NameSubdiscepto }}/join', {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                btn.blur();
-                btn.classList.remove('is-primary');
-                btn.classList.add("is-danger");
-                btn.classList.add("is-outlined");
-                btn.textContent = 'Leave'
-            }
-        }
-    </script>
 
 
 </body>
