@@ -196,7 +196,27 @@ func (h SubdisceptoH) createEssay(ctx context.Context, tx DBTX, essay *models.Es
 	if clen > LimitMaxContentLen || clen < LimitMinContentLen {
 		return nil, ErrBadContentLen
 	}
+	if essay.PostedIn != h.name {
+		return nil, ErrPermDenied
+	}
 
+	err := insertEssay(ctx, tx, essay)
+	if err != nil {
+		return nil, err
+	}
+	err = insertTags(ctx, tx, essay)
+	if err != nil {
+		return nil, err
+	}
+
+	essayPerms := models.EssayPerms{
+		Read:          true,
+		DeleteEssay:   true,
+		ChangeRanking: false,
+	}
+	return &EssayH{h.sharedDB, essay.ID, essayPerms}, err
+}
+func insertEssay(ctx context.Context, tx DBTX, essay *models.Essay) error {
 	// Insert essay
 	sql, args, _ := psql.
 		Insert("essays").
@@ -213,25 +233,13 @@ func (h SubdisceptoH) createEssay(ctx context.Context, tx DBTX, essay *models.Es
 			essay.Content,
 			essay.AttributedToID,
 			essay.Published,
-			h.name,
+			essay.PostedIn,
 		).
 		ToSql()
 
 	row := tx.QueryRow(ctx, sql, args...)
 	err := row.Scan(&essay.ID)
-	if err != nil {
-		return nil, err
-	}
-	err = insertTags(ctx, tx, essay)
-	if err != nil {
-		return nil, err
-	}
-	essayPerms := models.EssayPerms{
-		Read:          true,
-		DeleteEssay:   true,
-		ChangeRanking: false,
-	}
-	return &EssayH{h.sharedDB, essay.ID, essayPerms}, err
+	return err
 }
 func insertTags(ctx context.Context, db DBTX, essay *models.Essay) error {
 	// Insert essay tags
