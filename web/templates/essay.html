@@ -52,36 +52,26 @@
                     </div>
 
 
-                    <div class="content ml-6">
+                    <div class="ml-6">
                         <p>{{ .Essay.Content }}</p>
+                        <button onclick="send_vote('favourite')" class="button mr-3 is-white">
+                                    <span class="icon is-small has-text-danger">
+                                        <i class="fa fa-heart " aria-hidden="true"></i>
+                                    </span>
+                                </button>
+                        <button onclick="send_vote('upvote')" class="button mr-3 is-white">
+                                    <span class="icon is-small">
+                                        <i class="fa fa-arrow-up {{ if eq .EssayUserDid.Vote.String "upvote" }} has-text-primary {{ end }} " aria-hidden="true"></i>
+                                        <p class="has-text-black">&nbsp;{{ .Essay.Upvotes }}</p>
+                                    </span>
+                                </button>
+                        <button onclick="send_vote('downvote')" class="button mr-3 is-white">
+                                    <span class="icon is-small">
+                                        <i class="fa fa-arrow-down {{ if eq .EssayUserDid.Vote.String "downvote" }} has-text-primary {{ end }}" aria-hidden="true"></i>
+                                        <p class="has-text-black">&nbsp;{{ .Essay.Downvotes }}</p>
+                                    </span>
+                                </button>
                     </div>
-
-                    <div class="columns is-grouped is-mobile">
-                        <div class="column is-1 is-offset-1 is-narrow">
-                            <a onclick="send_vote('favourite')" aria-label="reply">
-                                <span class="icon is-small has-text-danger">
-								    <i class="fa fa-heart " aria-hidden="true"></i>
-							    </span>
-                            </a>
-                        </div>
-                        <div class="column is-1 is-narrow">
-                            <a onclick="send_vote('upvote')" class="level-item" aria-label="reply">
-                                <span class="icon is-small">
-									<i class="fa fa-arrow-up {{ if eq .EssayUserDid.Vote.String "upvote" }} has-text-primary {{ end }} " aria-hidden="true"></i>
-                                    <p class="has-text-black">&nbsp;{{ .Essay.Upvotes }}</p>
-								</span>
-                            </a>
-                        </div>
-                        <div class="column is-1 is-narrow">
-                            <a onclick="send_vote('downvote')" class="level-item" aria-label="retweet">
-                                <span class="icon is-small">
-								    <i class="fa fa-arrow-down {{ if eq .EssayUserDid.Vote.String "downvote" }} has-text-primary {{ end }}" aria-hidden="true"></i>
-                                    <p class="has-text-black">&nbsp;{{ .Essay.Downvotes }}</p>
-						        </span>
-                            </a>
-                        </div>
-                    </div>
-
                     <script>
                         function send_vote(type) {
                             fetch('/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/vote', {
