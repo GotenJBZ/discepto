@@ -1,7 +1,7 @@
 package models
 
 type Question struct {
-	ID int
+	ID      int
 	EssayID int
-	Text string
+	Text    string
 }

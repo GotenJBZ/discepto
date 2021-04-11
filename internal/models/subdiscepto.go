@@ -8,3 +8,9 @@ type Subdiscepto struct {
 	Nsfw              bool
 	Public            bool
 }
+
+type SubdisceptoView struct {
+	Name         string
+	Description  string
+	MembersCount int
+}

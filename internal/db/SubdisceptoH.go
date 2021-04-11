@@ -74,9 +74,11 @@ func (h SubdisceptoH) CreateEssay(ctx context.Context, e *models.Essay) (*EssayH
 	})
 }
 func (h SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH EssayH) (*EssayH, error) {
-	if !h.subPerms.CreateEssay || e.InReplyTo.Int32 != int32(pH.id) {
+	if !h.subPerms.CreateEssay {
 		return nil, ErrPermDenied
 	}
+	e.InReplyTo.Int32 = int32(pH.id)
+	e.InReplyTo.Valid = true
 	var essay *EssayH
 	return essay, execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
 		var err error
@@ -84,7 +86,7 @@ func (h SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH 
 		if err != nil {
 			return err
 		}
-		err = createReply(ctx, tx, e)
+		err = createReply(ctx, tx, e.ID, int(e.InReplyTo.Int32), e.ReplyType.String)
 		return err
 	})
 }
@@ -132,10 +134,10 @@ func (h SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
 	}
 	return removeMember(ctx, h.sharedDB, h.name, userH.id)
 }
-func createReply(ctx context.Context, db DBTX, e *models.Essay) error {
+func createReply(ctx context.Context, db DBTX, fromID int, toID int, replyType string) error {
 	_, err := db.Exec(ctx,
 		"INSERT INTO essay_replies (from_id, to_id, reply_type) VALUES ($1, $2, $3)",
-		e.ID, e.InReplyTo, e.ReplyType)
+		fromID, toID, replyType)
 	return err
 }
 func (h SubdisceptoH) GetEssayH(ctx context.Context, id int, uH *UserH) (*EssayH, error) {
@@ -175,13 +177,13 @@ func (h SubdisceptoH) getEssayH(ctx context.Context, id int, uH *UserH) (*EssayH
 	e := &EssayH{h.sharedDB, id, essayPerms}
 	return e, nil
 }
-func (h SubdisceptoH) ListEssays(ctx context.Context) ([]*models.Essay, error) {
+func (h SubdisceptoH) ListEssays(ctx context.Context) ([]models.EssayView, error) {
 	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
 	return h.listEssays(ctx)
 }
-func (h SubdisceptoH) ListReplies(ctx context.Context, e EssayH, replyType *string) ([]*models.Essay, error) {
+func (h SubdisceptoH) ListReplies(ctx context.Context, e EssayH, replyType *string) ([]models.EssayView, error) {
 	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
@@ -196,15 +198,13 @@ func (h SubdisceptoH) createEssay(ctx context.Context, tx DBTX, essay *models.Es
 	if clen > LimitMaxContentLen || clen < LimitMinContentLen {
 		return nil, ErrBadContentLen
 	}
-	if essay.PostedIn != h.name {
-		return nil, ErrPermDenied
-	}
+	essay.PostedIn = h.name
 
 	err := insertEssay(ctx, tx, essay)
 	if err != nil {
 		return nil, err
 	}
-	err = insertTags(ctx, tx, essay)
+	err = insertTags(ctx, tx, essay.ID, essay.Tags)
 	if err != nil {
 		return nil, err
 	}
@@ -241,9 +241,9 @@ func insertEssay(ctx context.Context, tx DBTX, essay *models.Essay) error {
 	err := row.Scan(&essay.ID)
 	return err
 }
-func insertTags(ctx context.Context, db DBTX, essay *models.Essay) error {
+func insertTags(ctx context.Context, db DBTX, essayID int, tags []string) error {
 	// Insert essay tags
-	if len(essay.Tags) > LimitMaxTags {
+	if len(tags) > LimitMaxTags {
 		return ErrTooManyTags
 	}
 
@@ -254,14 +254,14 @@ func insertTags(ctx context.Context, db DBTX, essay *models.Essay) error {
 		Insert("essay_tags").
 		Columns("essay_id", "tag")
 
-	for _, tag := range essay.Tags {
+	for _, tag := range tags {
 		if duplicate[tag] {
 			continue
 		}
 		duplicate[tag] = true
 
 		sql, args, _ := insertCols.
-			Values(essay.ID, tag).
+			Values(essayID, tag).
 			ToSql()
 
 		_, err := db.Exec(ctx,
@@ -285,19 +285,18 @@ func (h SubdisceptoH) read(ctx context.Context) (*models.Subdiscepto, error) {
 	}
 	return &sub, nil
 }
-func (h SubdisceptoH) listEssays(ctx context.Context) ([]*models.Essay, error) {
-	var essays []*models.Essay
+func (h SubdisceptoH) listEssays(ctx context.Context) ([]models.EssayView, error) {
+	var essays []models.EssayView
 
-	sql, args, _ := psql.
-		Select("*").
-		From("essays").
+	sql, args, _ := selectEssayWithJoins.
+		GroupBy("essays.id", "users.name", "essay_replies.to_id", "essay_replies.reply_type").
 		Where(sq.Eq{"posted_in": h.name}).
 		ToSql()
 
 	err := pgxscan.Select(ctx, h.sharedDB, &essays, sql, args...)
 	return essays, err
 }
-func (h SubdisceptoH) listReplies(ctx context.Context, e EssayH, replyType *string) (essays []*models.Essay, err error) {
+func (h SubdisceptoH) listReplies(ctx context.Context, e EssayH, replyType *string) (essays []models.EssayView, err error) {
 	filterByType := sq.Eq{}
 	if replyType != nil {
 		filterByType = sq.Eq{"reply_type": replyType}
@@ -305,13 +304,14 @@ func (h SubdisceptoH) listReplies(ctx context.Context, e EssayH, replyType *stri
 
 	sql, args, _ := selectEssay.
 		From("essay_replies").
-		Join("essays ON essay_replies.from_id = essays.id").
-		LeftJoin("votes ON votes.essay_id = essays.id").
+		Join("essays ON essays.id = essay_replies.from_id ").
+		LeftJoin("votes ON essays.id = votes.essay_id").
+		Join("users ON essays.attributed_to_id = users.id").
 		Where(
 			sq.Eq{"essay_replies.to_id": e.id},
 			filterByType,
 		).
-		GroupBy("essays.id", "essay_replies.from_id").
+		GroupBy("essays.id", "essay_replies.from_id", "users.name").
 		ToSql()
 
 	err = pgxscan.Select(ctx, h.sharedDB, &essays, sql, args...)

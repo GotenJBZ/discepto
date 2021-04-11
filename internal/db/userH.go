@@ -93,3 +93,28 @@ func (h UserH) ListMySubdisceptos(ctx context.Context) (subs []string, err error
 	}
 	return subs, nil
 }
+func (h UserH) ListNotifications(ctx context.Context) ([]models.Notification, error) {
+	if !h.perms.Read {
+		return nil, ErrPermDenied
+	}
+	notifs := []models.Notification{}
+	sql, args, _ := psql.Select("notif_type", "description", "action_url").
+		From("notifications").
+		Where(sq.Eq{"user_id": h.id}).
+		ToSql()
+
+	err := pgxscan.Select(ctx, h.sharedDB, &notifs, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return notifs, nil
+}
+func sendNotification(ctx context.Context, db DBTX, userH UserH, notif models.Notification) error {
+	sql, args, _ := psql.
+		Insert("notifications").
+		Columns("user_id", "notif_type", "description", "action_url").
+		Values(userH.id, notif.NotifType, notif.Description, notif.ActionURL.String()).
+		ToSql()
+	_, err := db.Exec(ctx, sql, args...)
+	return err
+}

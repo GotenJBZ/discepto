@@ -253,7 +253,7 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 		User           *models.User
 		LoggedIn       bool
 		MySubdisceptos []string
-		RecentEssays   []*models.Essay
+		RecentEssays   []models.EssayView
 	}
 	user, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
 
@@ -265,7 +265,6 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 			return &ErrInternal{Cause: err}
 		}
 	}
-	fmt.Println(user)
 	data := homeData{User: userData, LoggedIn: ok}
 	if data.LoggedIn {
 		mySubs, err := user.ListMySubdisceptos(r.Context())
@@ -275,6 +274,7 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 		data.MySubdisceptos = mySubs
 
 		recentEssays, err := routes.db.ListRecentEssaysIn(r.Context(), mySubs)
+		fmt.Println(err)
 		if err != nil {
 			return &ErrInternal{Message: "Can't list recent essays", Cause: err}
 		}
