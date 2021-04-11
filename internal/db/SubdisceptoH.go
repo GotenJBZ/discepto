@@ -50,7 +50,7 @@ func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH 
 	h := &SubdisceptoH{dH.sharedDB, subdiscepto, *subPerms}
 	return h, nil
 }
-func (h SubdisceptoH) Read(ctx context.Context) (*models.Subdiscepto, error) {
+func (h SubdisceptoH) ReadView(ctx context.Context) (*models.SubdisceptoView, error) {
 	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
@@ -272,13 +272,20 @@ func insertTags(ctx context.Context, db DBTX, essayID int, tags []string) error 
 	}
 	return nil
 }
-func (h SubdisceptoH) read(ctx context.Context) (*models.Subdiscepto, error) {
-	var sub models.Subdiscepto
+func (h SubdisceptoH) read(ctx context.Context) (*models.SubdisceptoView, error) {
+	var sub models.SubdisceptoView
 	sql, args, _ := psql.
-		Select("*").
+		Select(
+			"name",
+			"description",
+			"COUNT(DISTINCT subdiscepto_users.user_id) AS members_count",
+		).
 		From("subdisceptos").
+		Join("subdiscepto_users ON subdisceptos.name = subdiscepto_users.subdiscepto").
+		GroupBy("subdisceptos.name").
 		Where(sq.Eq{"name": h.name}).
 		ToSql()
+
 	err := pgxscan.Get(ctx, h.sharedDB, &sub, sql, args...)
 	if err != nil {
 		return nil, err

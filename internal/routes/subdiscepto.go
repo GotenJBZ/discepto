@@ -108,7 +108,7 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
-	subData, err := subH.Read(r.Context())
+	subData, err := subH.ReadView(r.Context())
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
@@ -138,14 +138,12 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 	}
 
 	data := struct {
-		Name            string
-		Description     string
+		*models.SubdisceptoView
 		Essays          []models.EssayView
 		IsMember        bool
 		SubdisceptoList []string
 	}{
-		Name:            subData.Name,
-		Description:     subData.Description,
+		SubdisceptoView: subData,
 		Essays:          essays,
 		IsMember:        isMember,
 		SubdisceptoList: subs,

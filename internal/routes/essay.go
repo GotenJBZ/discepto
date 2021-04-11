@@ -49,7 +49,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
-	subData, err := subH.Read(r.Context())
+	subData, err := subH.ReadView(r.Context())
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
@@ -105,7 +105,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	}
 
 	data := struct {
-		Subdiscepto     *models.Subdiscepto
+		Subdiscepto     *models.SubdisceptoView
 		IsMember        bool
 		Essay           *models.EssayView
 		RefutesList     []models.EssayView
