@@ -117,6 +117,9 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 	if err != nil {
 		return &ErrInternal{Cause: err, Message: "Can't list essays"}
 	}
+	for _, e := range essays {
+		e.Content = e.Content[0:150] + "..."
+	}
 
 	isMember := false
 	var subs []string

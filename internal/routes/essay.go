@@ -111,7 +111,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		RefutesList     []models.EssayView
 		GeneralList     []models.EssayView
 		SupportList     []models.EssayView
-		Sources     	[]string
+		Sources         []string
 		EssayUserDid    *models.EssayUserDid
 		SubdisceptoList []string
 	}{
