@@ -15,18 +15,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (sdb *SharedDB) ListRecentEssaysIn(ctx context.Context, subs []string) (essays []*models.Essay, err error) {
-	sql, args, _ := psql.
-		Select("*").
-		From("essays").
+func (sdb *SharedDB) ListRecentEssaysIn(ctx context.Context, subs []string) ([]models.EssayView, error) {
+	essayPreviews := []models.EssayView{}
+	sql, args, _ := selectEssayWithJoins.
 		Where(sq.Eq{"posted_in": subs}).
+		GroupBy("essays.id", "essay_replies.from_id", "users.name").
 		ToSql()
 
-	err = pgxscan.Select(ctx, sdb.db, &essays, sql, args...)
+	err := pgxscan.Select(ctx, sdb.db, &essayPreviews, sql, args...)
 	if err != nil {
 		return nil, err
 	}
-	return essays, nil
+	return essayPreviews, nil
 }
 func (sdb *SharedDB) ListSubdisceptos(ctx context.Context) ([]*models.Subdiscepto, error) {
 	var subs []*models.Subdiscepto

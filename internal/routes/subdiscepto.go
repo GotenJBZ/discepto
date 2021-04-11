@@ -101,7 +101,7 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 	data := struct {
 		Name            string
 		Description     string
-		Essays          []*models.Essay
+		Essays          []models.EssayView
 		IsMember        bool
 		SubdisceptoList []string
 	}{

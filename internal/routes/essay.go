@@ -34,8 +34,10 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppErr
 		MySubdisceptos []string
 	}{
 		Essay: &models.Essay{
-			PostedIn:  subdiscepto,
-			InReplyTo: inReplyTo,
+			PostedIn: subdiscepto,
+			Replying: models.Replying{
+				InReplyTo: inReplyTo,
+			},
 		},
 		MySubdisceptos: subs,
 	}
@@ -56,7 +58,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 
-	essay, err := esH.GetEssay(r.Context())
+	essay, err := esH.ReadView(r.Context())
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
@@ -75,7 +77,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	}
 
 	data := struct {
-		Essay           *models.Essay
+		Essay           *models.EssayView
 		EssayUserDid    *models.EssayUserDid
 		SubdisceptoList []string
 	}{
@@ -113,14 +115,17 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 	// Parse tags
 	tags := strings.Fields(r.FormValue("tags"))
 
+	replyData := models.Replying{
+		InReplyTo: inReplyTo,
+		ReplyType: replyType,
+	}
 	essay := models.Essay{
 		Thesis:         r.FormValue("thesis"),
 		Content:        r.FormValue("content"),
-		Tags:           tags,
 		AttributedToID: userH.ID(),
 		PostedIn:       subH.Name(),
-		InReplyTo:      inReplyTo,
-		ReplyType:      replyType,
+		Replying:       replyData,
+		Tags:           tags,
 	}
 
 	// Finally create the essay

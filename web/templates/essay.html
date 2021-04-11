@@ -22,7 +22,7 @@
                         </div>
                         <div class="media-content">
                             <p class="title is-4">{{ .Essay.Thesis}}</p>
-                            <p class="subtitle is-6"><a href="#">@utente</a>&nbsp; <time datetime="2018-1-1">{{ .Essay.Published }}</time></p>
+                            <p class="subtitle is-6"><a href="#">{{ .Essay.AttributedToName }}</a>&nbsp; <time datetime="2018-1-1">{{ .Essay.Published }}</time></p>
                         </div>
                         <div class="media-right">
                             {{if eq .Essay.ReplyType.String "supports" }}
@@ -177,8 +177,6 @@
                 <div class="card ">
                     <nav class="panel is-primary ">
                         <p class="panel-heading ">Fonti</p>
-                        {{ range .Essay.Sources }}
-                        <a class="panel-block ">{{ . }}</a> {{ end }}
                     </nav>
                 </div>
 

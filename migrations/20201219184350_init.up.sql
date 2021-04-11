@@ -115,8 +115,8 @@ CREATE TABLE essays (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	thesis varchar(350) NOT NULL,
 	content text NOT NULL,
-	attributed_to_id int REFERENCES users(id) NOT NULL,
-	posted_in varchar(50) REFERENCES subdisceptos(name) ON DELETE CASCADE NOT NULL,
+	attributed_to_id int NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+	posted_in varchar(50) NOT NULL REFERENCES subdisceptos(name) ON DELETE CASCADE,
 	published timestamp NOT NULL
 );
 
@@ -128,14 +128,34 @@ CREATE TABLE essay_replies (
 
 CREATE TABLE essay_tags (
 	essay_id int REFERENCES essays(id) ON DELETE CASCADE,
-	tag varchar(15),
+	tag varchar(15) NOT NULL,
 	PRIMARY KEY(essay_id, tag)
 );
 
 CREATE TABLE essay_sources (
 	essay_id int REFERENCES essays(id) ON DELETE CASCADE,
-	source varchar(255),
+	source varchar(255) NOT NULL,
 	PRIMARY KEY(essay_id, source)
+);
+
+CREATE TABLE notifications (
+	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	user_id int NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	notif_type varchar(30) NOT NULL,
+	description varchar(500) NOT NULL,
+	action_url varchar(255) NOT NULL
+);
+
+CREATE TABLE questions (
+	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	essay_id int NOT NULL REFERENCES essays(id) ON DELETE CASCADE,
+	text varchar(500) NOT NULL
+);
+
+CREATE TABLE answers (
+	question_id int PRIMARY KEY REFERENCES questions(id) ON DELETE CASCADE,
+	text varchar(250) NOT NULL,
+	correct boolean NOT NULL
 );
 
 CREATE TYPE flag_type as ENUM ('offensive', 'fake', 'spam', 'inaccurate');

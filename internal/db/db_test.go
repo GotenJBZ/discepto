@@ -23,11 +23,14 @@ func mockUser() *models.User {
 	}
 
 }
-func mockUrl() *url.URL {
+func mockUrl() url.URL {
 	url, _ := url.Parse("https://example.com")
-	return url
+	return *url
 }
 func mockEssay(userID int) *models.Essay {
+	replyData := models.Replying{
+		ReplyType: models.ReplyTypeGeneral,
+	}
 	return &models.Essay{
 		Thesis: "Banana is the best fruit",
 		Content: `Banana is the best fruit because...
@@ -36,11 +39,11 @@ func mockEssay(userID int) *models.Essay {
 		Banana is the best fruit because...
 		Banana is the best fruit because...`,
 		AttributedToID: userID, // it's a reference, can't mock this
-		Tags:           []string{"banana", "fruit", "best"},
-		Sources:        []*url.URL{mockUrl()},
 		Published:      time.Now(),
 		PostedIn:       mockSubName,
-		ReplyType:      models.ReplyTypeGeneral,
+		Replying:       replyData,
+		Tags:           []string{"banana", "fruit", "best"},
+		Sources:        []url.URL{mockUrl()},
 	}
 }
 func mockSubdiscepto() *models.Subdiscepto {
@@ -170,15 +173,15 @@ func TestEssay(t *testing.T) {
 
 	// list
 	subs := []string{mockSubName, mockSubName2}
-	essays, err = db.ListRecentEssaysIn(context.Background(), subs)
+	recentEssays, err := db.ListRecentEssaysIn(context.Background(), subs)
 	require.Nil(err)
-	require.Len(essays, 2)
+	require.Len(recentEssays, 2)
 
 	// Test list essays in favor
 	essay3 := mockEssay(user.ID)
 	essay3.InReplyTo = sql.NullInt32{Int32: int32(essay2.ID), Valid: true}
 	essay3.ReplyType = models.ReplyTypeSupports
-	parentEssayH, err := sub2H.GetEssayH(context.Background(), essay2.ID, *userH)
+	parentEssayH, err := sub2H.GetEssayH(context.Background(), essay2.ID, userH)
 	require.Nil(err)
 	_, err = sub2H.CreateEssayReply(context.Background(), essay3, *parentEssayH)
 	require.Nil(err)
@@ -186,7 +189,7 @@ func TestEssay(t *testing.T) {
 	// Create upvote
 	err = essayH.CreateVote(context.Background(), *userH, models.VoteTypeUpvote)
 	require.Nil(err)
-	updatedEssay, err := essayH.GetEssay(context.Background())
+	updatedEssay, err := essayH.ReadView(context.Background())
 	require.Nil(err)
 	require.Equal(1, updatedEssay.Upvotes)
 	require.Equal(0, updatedEssay.Downvotes)
@@ -198,7 +201,7 @@ func TestEssay(t *testing.T) {
 	// Create downvote
 	err = essayH.CreateVote(context.Background(), *userH, models.VoteTypeDownvote)
 	require.Nil(err)
-	updatedEssay, err = essayH.GetEssay(context.Background())
+	updatedEssay, err = essayH.ReadView(context.Background())
 	require.Nil(err)
 	require.Equal(0, updatedEssay.Upvotes)
 	require.Equal(1, updatedEssay.Downvotes)
@@ -211,9 +214,9 @@ func TestEssay(t *testing.T) {
 	}, did)
 
 	// list
-	essays, err = sub2H.ListReplies(context.Background(), *essay2H, &models.ReplyTypeSupports.String)
+	essayReplies, err := sub2H.ListReplies(context.Background(), *essay2H, &models.ReplyTypeSupports.String)
 	require.Nil(err)
-	require.Len(essays, 1)
+	require.Len(essayReplies, 1)
 
 	// Clean
 	err = subH.Delete(context.Background())
