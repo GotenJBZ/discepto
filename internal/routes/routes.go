@@ -290,6 +290,7 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 
 		//TODO: optimize
 		for _, e := range recentEssays {
+			e.Content = e.Content[0:150] + "..."
 			user, err := disceptoH.ReadPublicUser(r.Context(), e.AttributedToID)
 			if err != nil {
 				return &ErrInternal{Cause: err}

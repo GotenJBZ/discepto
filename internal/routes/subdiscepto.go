@@ -128,6 +128,7 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 
 	//TODO: optimize
 	for _, e := range essays {
+		e.Content = e.Content[0:150] + "..."
 		user, err := disceptoH.ReadPublicUser(r.Context(), e.AttributedToID)
 		if err != nil {
 			return &ErrInternal{Cause: err}
