@@ -1,18 +1,18 @@
 {{ define "home" }} {{ template "head" . }}
-<style>
-    body {
-        background-color: #EFEFEF;
-    }
-</style>
 </head>
 
 
 <body class="body">
-    {{ if .LoggedIn }} {{ template "navbar" .}}
-    <br>
+
+    {{ if .LoggedIn }}
+    <br> {{ $length := len .MySubdisceptos }} {{ if eq $length 0 }}
+    <script>
+        window.location = "/s"
+    </script>
+    {{ end }} {{ template "navbar" .}}
     <div class="container is-max-desktop">
         <div class="columns">
-            <div class="column is-9">
+            <div class="column is-8 is-fluid px-5">
 
                 <a href="/newessay">
                     <div class="box">
@@ -33,9 +33,9 @@
                     </div>
                 </a>
                 <br> {{ range .RecentEssays }}
-                <div class="box">
-                    <article class="media ">
-                        <figure class="media-left ">
+                <div class="box is-relative">
+                    <article class="media">
+                        <figure class="media-left is-hidden-touch">
                             <p class="image is-64x64 ">
                                 <img class="is-rounded " src="https://bulma.io/images/placeholders/128x128.png ">
                             </p>
@@ -44,13 +44,13 @@
                         <div class="media-content ">
                             <div class="content ">
                                 <p>
-                                    <strong>{{.Thesis}}</strong> <small>@autore</small> <small>{{.Published}}</small>
+                                    <strong>{{.Thesis}}</strong> <small>@{{.AttributedToName}}</small> <small>{{.Published}}</small>
                                     <br> {{.Content}}
                                 </p>
-                                <a href="/s/{{ .PostedIn }}/{{ .ID }}">Continue...</a>
+                                <a href="/s/{{ .PostedIn }}/{{ .ID }}" class="stretched-link"></a>
                             </div>
 
-                            <nav class="level is-mobile ">
+                            <nav class="level is-mobile">
                                 <div class="level-left ">
 
                                     <a class="level-item " aria-label="reply ">
@@ -58,41 +58,36 @@
                                             <i class="fa fa-heart " aria-hidden="true "></i>
                                         </span>
                                     </a>
-                                    <p>{{ .Upvotes }} &nbsp;</p>
                                     <a class="level-item " aria-label="reply ">
                                         <span class="icon is-small has-text-primary ">
                                             <i class="fa fa-arrow-up " aria-hidden="true "></i>
                                         </span>
                                     </a>
-                                    <p>{{ .Downvotes }} &nbsp;</p>
                                     <a class="level-item " aria-label="retweet ">
                                         <span class="icon is-small has-text-primary ">
                                             <i class="fa fa-arrow-down " aria-hidden="true "></i>
                                         </span>
                                     </a>
-                                    <a class="level-item " aria-label="like ">
-                                        <span class="icon is-small has-text-danger ">
-                                            <i class="fa fa-ban " aria-hidden="true "></i>
-                                        </span>
-                                    </a>
                                 </div>
                             </nav>
                         </div>
-                        <div class="media-right ">
-                            {{if eq .ReplyType.String "supports " }}
+                        <div class="media-right is-hidden-mobile">
+                            {{if eq .ReplyType.String "supports" }}
                             <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .ReplyType.String "refutes"}}
-                            <span class="tag is-danger is-light is-medium">refutes</button> {{ else }}
-                                <span class="tag is-warning is-light is-medium">General</button> {{ end }}
-                            </div>
-                        </article>
-                    </div>{{ end }}
+                            <span class="tag is-danger is-light is-medium">refutes</span> {{ else }}
+                            <span class="tag is-warning is-light is-medium">General</span> {{ end }}
+                        </div>
+                    </article>
+                </div>{{ end }}
             </div>
-            <div class="column is-3 ">
+            <div class="column is-4 is-fluid px-5">
                 <div class="card events-card ">
-                    <nav class="panel is-primary ">
+                    <nav class="panel is-primary">
                         <p class="panel-heading ">Your Communities</p>
-                        {{ range .MySubdisceptos }}
-                        <a href="s/{{ . }} " class="panel-block ">s/{{ . }}</a> {{ end }}
+
+                        {{ $length := len .MySubdisceptos }} {{ if eq $length 0 }}
+                        <a href="/s" class="panel-block ">join in a comunity</a> {{ else }} {{ range .MySubdisceptos }}
+                        <a href="/s/{{ . }} " class="panel-block ">s/{{ . }}</a> {{ end }} {{end}}
                     </nav>
                 </div>
             </div>

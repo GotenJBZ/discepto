@@ -1,8 +1,16 @@
-{{ define "signup" }} {{ template "head" }}
-<script src="/static/js/particles.js"></script>
-<script src="/static/js/login-main.js"></script>
-<link rel="stylesheet" href="/static/css/main.css">
-<title>Sing up - Discepto</title>
+{{ define "signup" }}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script defer src="https://use.fontawesome.com/releases/v5.14.0/js/all.js"></script>
+    <link rel="stylesheet" href="/static/css/bulma.min.css">
+    <script src="/static/js/particles.js"></script>
+    <script src="/static/js/login-main.js"></script>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <title>Login - Discepto</title>
 </head>
 
 <body>
@@ -17,7 +25,7 @@
                     <div class="field">
                         <label class="label">Username</label>
                         <div class="control has-icons-right">
-                            <input class="input" type="text" name="name">
+                            <input class="input" type="text" name="name" required>
                             <span class="icon is-small is-right">
                 <i class="fa fa-user"></i>
               </span>
@@ -27,24 +35,26 @@
                     <div class="field">
                         <label class="label">Email</label>
                         <div class="control has-icons-right">
-                            <input class="input" type="text" name="email">
+                            <input class="input" type="text" id="email" name="email" required>
                             <span class="icon is-small is-right">
                 <i class="fa fa-envelope"></i>
               </span>
                         </div>
+
                     </div>
 
                     <div class="field">
                         <label class="label">Password</label>
                         <div class="control has-icons-right">
-                            <input class="input" type="password" name="password">
+                            <input class="input" type="password" id="password" name="password" required>
                             <span class="icon is-small is-right">
                 <i class="fa fa-key"></i>
               </span>
+                            <p class="help"></p>
                         </div>
                     </div>
                     <div class="has-text-centered">
-                        <button class="button is-vcentered is-primary is-outlined" type="submit">Sing Up!</button>
+                        <button class="button is-vcentered is-primary " type="submit">Sing Up!</button>
                     </div>
                     <div class="has-text-centered">
                         <a href="login"> Already have an account? Log in now !</a>
@@ -52,10 +62,24 @@
                 </section>
             </form>
         </div>
-        <div id="particles-js" class="interactive-bg column is-8">
-
-        </div>
+        <div id="particles-js" class="interactive-bg column is-8"></div>
     </div>
+
+    <script>
+        document.getElementById('email').addEventListener("keyup", function(evt) {
+            if (validateEmail(this.value)) {
+                this.classList.remove("is-danger")
+                this.classList.add("is-success")
+            } else {
+                this.classList.add("is-danger")
+            }
+        }, false);
+
+        function validateEmail(email) {
+            const re = /(?:[a-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+\/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
+            return re.test(email);
+        }
+    </script>
 
 </body>
 

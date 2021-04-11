@@ -49,6 +49,11 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
+	subData, err := subH.Read(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
@@ -58,12 +63,28 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 
+	refutesList, err := subH.ListReplies(r.Context(), *esH, &models.ReplyTypeRefutes.String)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
+	supportList, err := subH.ListReplies(r.Context(), *esH, &models.ReplyTypeSupports.String)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
+	generalList, err := subH.ListReplies(r.Context(), *esH, &models.ReplyTypeGeneral.String)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
 	essay, err := esH.ReadView(r.Context())
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 
-	var subs []string
+	subs := []string{}
+	isMember := false
 	essayUserDid := &models.EssayUserDid{}
 	if userH != nil {
 		essayUserDid, err = esH.GetUserDid(r.Context(), *userH)
@@ -74,16 +95,35 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		if err != nil {
 			return &ErrInternal{Cause: err}
 		}
+
+		for _, s := range subs {
+			if s == subH.Name() {
+				isMember = true
+				break
+			}
+		}
 	}
 
 	data := struct {
+		Subdiscepto     *models.Subdiscepto
+		IsMember        bool
 		Essay           *models.EssayView
+		RefutesList     []models.EssayView
+		GeneralList     []models.EssayView
+		SupportList     []models.EssayView
+		Sources     	[]string
 		EssayUserDid    *models.EssayUserDid
 		SubdisceptoList []string
 	}{
+		Subdiscepto:     subData,
+		IsMember:        isMember,
 		Essay:           essay,
 		EssayUserDid:    essayUserDid,
 		SubdisceptoList: subs,
+		Sources:         []string{},
+		RefutesList:     refutesList,
+		GeneralList:     generalList,
+		SupportList:     supportList,
 	}
 
 	routes.tmpls.RenderHTML(w, "essay", data)
@@ -94,7 +134,11 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
 
 	subH, err := disceptoH.GetSubdisceptoH(r.Context(), r.FormValue("postedIn"), userH)
-	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	rep, err := strconv.Atoi(r.FormValue("inReplyTo"))
+
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
 
 	// Parse reply type

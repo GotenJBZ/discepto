@@ -32,6 +32,27 @@ func (h *DisceptoH) ListUsers(ctx context.Context) ([]models.User, error) {
 	err := pgxscan.Select(ctx, h.sharedDB, &users, "SELECT id, name, email FROM users")
 	return users, err
 }
+func (h *DisceptoH) ReadPublicUser(ctx context.Context, userID int) (*models.User, error) {
+	if !h.globalPerms.Login {
+		return nil, ErrPermDenied
+	}
+	user := &models.User{}
+	sql, args, _ := psql.
+		Select("users.name", "users.id").
+		From("users").
+		Where(sq.Eq{"id": userID}).
+		ToSql()
+
+	err := pgxscan.Get(
+		ctx,
+		h.sharedDB, user,
+		sql, args...)
+
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
 
 func (h *DisceptoH) CreateSubdiscepto(ctx context.Context, uH UserH, subd *models.Subdiscepto) (*SubdisceptoH, error) {
 	if !h.globalPerms.CreateSubdiscepto {

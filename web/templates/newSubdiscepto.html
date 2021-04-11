@@ -1,61 +1,62 @@
 {{ define "newSubdiscepto" }} {{ template "head" . }} {{ template "simplemde" .}}
 </head>
 
-<body>
+<body class="body">
     {{ template "navbar" . }}
+    <div class="section">
+        <div class="container is-max-desktop box">
+            <form action="/s" method="post" id="formid">
+                <section class="section">
 
-    <div class="login column is-half is-offset-one-quarter">
-        <form action="/s" method="post" id="formid">
-            <section class="section">
-
-                <div class="field">
-                    <h1 class="title is-1">Create a new community</h1>
-                </div>
-                <br>
-                <div class="field">
-                    <label class="label">Name</label>
-                    <div class="control has-icons-left">
-                        <input type="text" placeholder="Name of the community" class="input is-primary" required name="name">
-                        <span class="icon is-small is-left">
+                    <div class="field">
+                        <h1 class="title is-1">Create a new community</h1>
+                    </div>
+                    <br>
+                    <div class="field">
+                        <label class="label">Name</label>
+                        <div class="control has-icons-left">
+                            <input type="text" placeholder="Name of the community" class="input is-primary" required name="name">
+                            <span class="icon is-small is-left">
                         <i class="fa fa-home"></i>
                     </span>
+                        </div>
                     </div>
-                </div>
 
-                <div class="field">
-                    <label class="label">Description</label>
-                    <textarea id="SubDisceptoDesc"></textarea>
-                    <input name="description" type="hidden">
-                </div>
+                    <div class="field">
+                        <label class="label">Description</label>
+                        <textarea id="SubDisceptoDesc"></textarea>
+                        <input name="description" type="hidden">
+                    </div>
 
-                <div class="field">
-                    <label class="label">Topics</label>
+                    <div class="field">
+                        <label class="label">Topics</label>
+                        <div class="control">
+                            <input type="text" placeholder="Insert topics" class="input is-primary" required name="topics">
+                        </div>
+                        <p class="help">Insert topics separated by commas e.g. tags1,tags2,tags3</p>
+                    </div>
+
+
+                    <div class="field"></div>
+                    <label class="label">Privacy</label>
                     <div class="control">
-                        <input type="text" placeholder="Insert topics" class="input is-primary" required name="topics">
-                    </div>
-                    <p class="help">Insert topics separated by commas e.g. tags1,tags2,tags3</p>
-                </div>
-
-
-                <div class="field"></div>
-                <label class="label">Privacy</label>
-                <div class="control">
-                    <label class="radio">
+                        <label class="radio">
                   <input type="radio" name="privacy" value="public" checked> Public
                 </label>
-                    <label class="radio">
+                        <label class="radio">
                   <input type="radio" name="privacy" value="restricted"> Restricted
                 </label>
-                    <label class="radio">
+                        <label class="radio">
                   <input type="radio" name="privacy" value="private"> Private
                 </label>
-                </div>
-                <br>
-                <div>
-                    <button class="button is-primary is-outlined" type="submit">Create</button>
-                </div>
-            </section>
-        </form>
+                    </div>
+                    <br>
+                    <div>
+                        <button class="button is-primary is-outlined" type="submit">Create</button>
+                    </div>
+                </section>
+            </form>
+        </div>
     </div>
 
     <script>
