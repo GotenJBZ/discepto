@@ -91,6 +91,11 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 	loggedIn.Post("/newessay", routes.AppHandler(routes.PostEssay))
 	loggedIn.Route("/roles", routes.GlobalRolesRouter)
 	loggedIn.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
+
+	// Fallback
+	r.NotFound(func (w http.ResponseWriter, r *http.Request) {
+		routes.tmpls.RenderHTML(w, "404", nil)
+	})
 	return r
 }
 
@@ -149,7 +154,7 @@ func (routes *Routes) EnforceCtx(ctxValue disceptoCtxKey) func(http.Handler) htt
 // Interface shared by every custom http error.
 // Needed to provide custom error handling for each error type
 type AppError interface {
-	Respond(w http.ResponseWriter, r *http.Request) LoggableErr
+	Respond(w http.ResponseWriter, r *http.Request, routes *Routes) LoggableErr
 }
 
 // Printable error data related to a request
@@ -165,13 +170,13 @@ type ErrInternal struct {
 	Cause   error
 }
 
-func (err *ErrInternal) Respond(w http.ResponseWriter, r *http.Request) LoggableErr {
+func (err *ErrInternal) Respond(w http.ResponseWriter, r *http.Request, routes *Routes) LoggableErr {
 	loggableErr := LoggableErr{
 		Cause:   err.Cause,
 		Message: err.Message,
 		Status:  http.StatusInternalServerError,
 	}
-	http.Error(w, "Internal server error", loggableErr.Status)
+	routes.tmpls.RenderHTML(w, "500", nil)
 	return loggableErr
 }
 
@@ -180,19 +185,19 @@ type ErrNotFound struct {
 	Thing string
 }
 
-func (err *ErrNotFound) Respond(w http.ResponseWriter, r *http.Request) LoggableErr {
+func (err *ErrNotFound) Respond(w http.ResponseWriter, r *http.Request, routes *Routes) LoggableErr {
 	loggableErr := LoggableErr{
 		Cause:   err.Cause,
 		Status:  http.StatusNotFound,
 		Message: fmt.Sprintf("Retrieving %s", err.Thing),
 	}
-	http.NotFound(w, r)
+	routes.tmpls.RenderHTML(w, "404", nil)
 	return loggableErr
 }
 
 type ErrMustLogin struct{}
 
-func (err *ErrMustLogin) Respond(w http.ResponseWriter, r *http.Request) LoggableErr {
+func (err *ErrMustLogin) Respond(w http.ResponseWriter, r *http.Request, routes *Routes) LoggableErr {
 	loggableErr := LoggableErr{
 		Cause:  errors.New("Not logged in"),
 		Status: http.StatusSeeOther,
@@ -206,13 +211,13 @@ type ErrBadRequest struct {
 	Motivation string
 }
 
-func (err *ErrBadRequest) Respond(w http.ResponseWriter, r *http.Request) LoggableErr {
+func (err *ErrBadRequest) Respond(w http.ResponseWriter, r *http.Request, routes *Routes) LoggableErr {
 	loggableErr := LoggableErr{
 		Cause:   err.Cause,
 		Message: err.Motivation,
 		Status:  http.StatusBadRequest,
 	}
-	http.Error(w, err.Motivation, loggableErr.Status)
+	routes.tmpls.RenderHTML(w, "400", err.Motivation)
 	return loggableErr
 }
 
@@ -220,13 +225,13 @@ type ErrInsuffPerms struct {
 	Action string
 }
 
-func (err *ErrInsuffPerms) Respond(w http.ResponseWriter, r *http.Request) LoggableErr {
+func (err *ErrInsuffPerms) Respond(w http.ResponseWriter, r *http.Request, routes *Routes) LoggableErr {
 	loggableErr := LoggableErr{
 		Cause:   errors.New(fmt.Sprintf("Insufficient permissions for action %v)", err.Action)),
 		Message: "Insufficient permissions to execute this action",
 		Status:  http.StatusBadRequest,
 	}
-	http.Error(w, loggableErr.Message, loggableErr.Status)
+	routes.tmpls.RenderHTML(w, "403", nil)
 	return loggableErr
 }
 
@@ -235,7 +240,7 @@ func (routes *Routes) AppHandler(handler func(w http.ResponseWriter, r *http.Req
 	res := func(w http.ResponseWriter, r *http.Request) {
 		err := handler(w, r)
 		if err != nil {
-			loggableErr := err.Respond(w, r)
+			loggableErr := err.Respond(w, r, routes)
 
 			hlog.FromRequest(r).
 				Error().
