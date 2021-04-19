@@ -146,7 +146,7 @@ func (h EssayH) GetUserDid(ctx context.Context, userH UserH) (*models.EssayUserD
 	sql, args, _ := psql.
 		Select("vote_type AS vote").
 		From("votes").
-		Where(sq.Eq{"user_id": userH.id}).
+		Where(sq.Eq{"user_id": userH.id, "essay_id": h.id}).
 		ToSql()
 
 	did := &models.EssayUserDid{}
