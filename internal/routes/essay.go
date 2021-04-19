@@ -63,17 +63,11 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 
-	refutesList, err := subH.ListReplies(r.Context(), *esH, &models.ReplyTypeRefutes.String)
-	if err != nil {
-		return &ErrInternal{Cause: err}
+	filter := r.URL.Query().Get("replyType")
+	if filter == "" {
+		filter = "general"
 	}
-
-	supportList, err := subH.ListReplies(r.Context(), *esH, &models.ReplyTypeSupports.String)
-	if err != nil {
-		return &ErrInternal{Cause: err}
-	}
-
-	generalList, err := subH.ListReplies(r.Context(), *esH, &models.ReplyTypeGeneral.String)
+	replies, err := subH.ListReplies(r.Context(), *esH, &filter)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
@@ -95,9 +89,8 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	data := struct {
 		Subdiscepto     *models.SubdisceptoView
 		Essay           *models.EssayView
-		RefutesList     []models.EssayView
-		GeneralList     []models.EssayView
-		SupportList     []models.EssayView
+		Replies     	[]models.EssayView
+		FilterReplyType string
 		Sources         []string
 		EssayUserDid    *models.EssayUserDid
 		SubdisceptoList []string
@@ -107,9 +100,8 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		EssayUserDid:    essayUserDid,
 		SubdisceptoList: subs,
 		Sources:         []string{},
-		RefutesList:     refutesList,
-		GeneralList:     generalList,
-		SupportList:     supportList,
+		Replies:     	 replies,
+		FilterReplyType: filter,
 	}
 
 	routes.tmpls.RenderHTML(w, "essay", data)

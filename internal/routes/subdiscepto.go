@@ -120,7 +120,6 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 
 	subData, err := subH.ReadView(r.Context(), userH)
 	if err != nil {
-		fmt.Println(err)
 		return &ErrInternal{Cause: err}
 	}
 
