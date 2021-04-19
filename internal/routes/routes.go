@@ -23,6 +23,7 @@ const (
 	UserHCtxKey disceptoCtxKey = iota
 	DiscpetoHCtxKey
 	SubdisceptoHCtxKey
+	EssayHCtxKey
 )
 
 type Routes struct {

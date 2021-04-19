@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -13,12 +14,31 @@ import (
 )
 
 func (routes *Routes) EssaysRouter(r chi.Router) {
-	r.Get("/{id}", routes.AppHandler(routes.GetEssay))
+	specificEssay := r.With(routes.EssayCtx)
+	specificEssay.Get("/{essayID}", routes.AppHandler(routes.GetEssay))
+	specificEssay.With(routes.EnforceCtx(UserHCtxKey)).Put("/{essayID}", routes.UpdateEssay)
+	specificEssay.With(routes.EnforceCtx(UserHCtxKey)).Delete("/{essayID}", routes.DeleteEssay)
+	specificEssay.With(routes.EnforceCtx(UserHCtxKey)).Post("/{essayID}/vote", routes.AppHandler(routes.PostVote))
+}
+func (routes *Routes) EssayCtx(next http.Handler) http.Handler {
+	return routes.AppHandler(func (w http.ResponseWriter, r *http.Request) AppError {
+		userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
+		subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
-	loggedIn := r.With(routes.EnforceCtx(UserHCtxKey))
-	loggedIn.Put("/", routes.UpdateEssay)
-	loggedIn.Delete("/{id}", routes.DeleteEssay)
-	loggedIn.Post("/{essayID}/vote", routes.AppHandler(routes.PostVote))
+		essayIDStr := chi.URLParam(r, "essayID")
+		essayID, err := strconv.Atoi(essayIDStr)
+		if err != nil {
+			return &ErrBadRequest{Cause: err}
+		}
+
+		esH, err := subH.GetEssayH(r.Context(), essayID, userH)
+		if err != nil {
+			return &ErrInternal{Cause: err}
+		}
+		ctx := context.WithValue(r.Context(), EssayHCtxKey, esH)
+		next.ServeHTTP(w, r.WithContext(ctx))
+		return nil
+	})
 }
 func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppError {
 	subdiscepto := r.URL.Query().Get("subdiscepto")
@@ -48,19 +68,11 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppErr
 func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError {
 	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	esH, _ := r.Context().Value(EssayHCtxKey).(*db.EssayH)
 
 	subData, err := subH.ReadView(r.Context())
 	if err != nil {
 		return &ErrInternal{Cause: err}
-	}
-
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		return &ErrNotFound{Cause: err, Thing: "essay"}
-	}
-	esH, err := subH.GetEssayH(r.Context(), id, userH)
-	if err != nil {
-		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 
 	refutesList, err := subH.ListReplies(r.Context(), *esH, &models.ReplyTypeRefutes.String)
@@ -204,10 +216,8 @@ func (routes *Routes) UpdateEssay(w http.ResponseWriter, r *http.Request) {
 }
 func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError {
 	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
-	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	esH, _ := r.Context().Value(EssayHCtxKey).(*db.EssayH)
 
-	essayIDStr := chi.URLParam(r, "essayID")
-	essayID, err := strconv.Atoi(essayIDStr)
 
 	var vote models.VoteType
 	switch r.FormValue("vote") {
@@ -217,15 +227,14 @@ func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError 
 		vote = models.VoteTypeDownvote
 	}
 
-	esH, err := subH.GetEssayH(r.Context(), essayID, userH)
-
 	esH.DeleteVote(r.Context(), *userH)
-	err = esH.CreateVote(r.Context(), *userH, vote)
+	err := esH.CreateVote(r.Context(), *userH, vote)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
 
 	subdiscepto := chi.URLParam(r, "subdiscepto")
-	http.Redirect(w, r, fmt.Sprintf("/s/%s/%d", subdiscepto, essayID), http.StatusSeeOther)
+	essayID := chi.URLParam(r, "essayID")
+	http.Redirect(w, r, fmt.Sprintf("/s/%s/%s", subdiscepto, essayID), http.StatusSeeOther)
 	return nil
 }
