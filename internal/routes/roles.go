@@ -12,13 +12,32 @@ import (
 
 func (routes *Routes) GlobalRolesRouter(r chi.Router) {
 	r.Use(routes.EnforceCtx(UserHCtxKey))
+	r.Get("/", routes.AppHandler(routes.GetGlobalRoles))
 	r.Post("/", routes.AppHandler(routes.createGlobalRole))
-	r.Post("/{userID}", routes.AppHandler(routes.assignGlobalRole))
 }
 func (routes *Routes) SubRoleRouter(r chi.Router) {
 	r.Use(routes.EnforceCtx(UserHCtxKey))
+	r.Get("/", routes.AppHandler(routes.GetSubRoles))
 	r.Post("/", routes.AppHandler(routes.createSubRole))
 	r.Post("/{userID}", routes.AppHandler(routes.assignSubRole))
+}
+func (routes *Routes) GetGlobalRoles(w http.ResponseWriter, r *http.Request) AppError {
+	routes.tmpls.RenderHTML(w, "roles", nil)
+	return nil
+}
+func (routes *Routes) GetSubRoles(w http.ResponseWriter, r *http.Request) AppError {
+	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	roles, err := subH.ListRoles(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	data := struct {
+		Roles []models.Role
+	}{
+		Roles: roles,
+	}
+	routes.tmpls.RenderHTML(w, "roles", data)
+	return nil
 }
 func (routes *Routes) createGlobalRole(w http.ResponseWriter, r *http.Request) AppError {
 	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)

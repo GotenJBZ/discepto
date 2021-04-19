@@ -90,10 +90,12 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 	loggedIn.Get("/newessay", routes.AppHandler(routes.GetNewEssay))
 	loggedIn.Post("/newessay", routes.AppHandler(routes.PostEssay))
 	loggedIn.Route("/roles", routes.GlobalRolesRouter)
+	loggedIn.Route("/members", routes.GlobalMembersRouter)
+	loggedIn.Route("/settings", routes.GlobalSettingsRouter)
 	loggedIn.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
 
 	// Fallback
-	r.NotFound(func (w http.ResponseWriter, r *http.Request) {
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		routes.tmpls.RenderHTML(w, "404", nil)
 	})
 	return r

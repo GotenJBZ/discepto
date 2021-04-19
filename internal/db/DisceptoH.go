@@ -29,7 +29,7 @@ func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) (*DisceptoH, e
 func (h *DisceptoH) ListUsers(ctx context.Context) ([]models.User, error) {
 	// TODO: Is the list of users public? I guess not?
 	var users []models.User
-	err := pgxscan.Select(ctx, h.sharedDB, &users, "SELECT id, name, email FROM users")
+	err := pgxscan.Select(ctx, h.sharedDB, &users, "SELECT id, name FROM users")
 	return users, err
 }
 func (h *DisceptoH) ReadPublicUser(ctx context.Context, userID int) (*models.User, error) {

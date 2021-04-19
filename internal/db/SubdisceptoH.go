@@ -193,6 +193,66 @@ func (h SubdisceptoH) Name() string {
 	return h.name
 }
 
+func (h *SubdisceptoH) ListMembers(ctx context.Context) ([]models.Member, error) {
+	// Everyone with read access has the right to see who are the moderators
+	if !h.subPerms.ReadSubdiscepto {
+		return nil, ErrPermDenied
+	}
+
+	sql, args, _ := psql.
+		Select("id", "users.name", "sub_roles.name", "sub_roles.preset").From("users").
+		Join("user_sub_roles ON users.id = user_sub_roles.user_id").
+		Join("sub_roles ON user_sub_roles.sub_perms_id = sub_roles.sub_perms_id").
+		Where(sq.Eq{"user_sub_roles.subdiscepto": h.name}).
+		ToSql()
+
+	membersByID := map[int]*models.Member{}
+	rows, err := h.sharedDB.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		member := models.Member{}
+		role := models.Role{}
+		err := rows.Scan(&member.UserID, &member.Name, &role.Name, &role.Preset)
+		if err != nil {
+			return nil, err
+		}
+		_, ok := membersByID[member.UserID]
+		if !ok {
+			membersByID[member.UserID] = &member
+		}
+		membersByID[member.UserID].Roles = append(membersByID[member.UserID].Roles, role)
+	}
+
+	members := make([]models.Member, len(membersByID))
+	i := 0
+	for _, m := range membersByID {
+		members[i] = *m
+		i++
+	}
+
+	return members, nil
+}
+
+func (h SubdisceptoH) ListRoles(ctx context.Context) ([]models.Role, error) {
+	if !h.subPerms.ManageRole {
+		return nil, ErrPermDenied
+	}
+
+	sql, args, _ := psql.Select("sub_perms_id AS id", "name", "preset").
+		From("sub_roles").
+		Where(sq.Or{sq.Eq{"subdiscepto": h.name}, sq.Eq{"preset": true}}).
+		ToSql()
+
+	var roles []models.Role
+	err := pgxscan.Select(ctx, h.sharedDB, &roles, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return roles, nil
+}
+
 func (h SubdisceptoH) createEssay(ctx context.Context, tx DBTX, essay *models.Essay) (*EssayH, error) {
 	clen := len(essay.Content)
 	if clen > LimitMaxContentLen || clen < LimitMinContentLen {
