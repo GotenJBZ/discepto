@@ -57,14 +57,14 @@
                                 </div>
                             </div>
                             <div class="level-right">
-                                    <div class="select is-small mr-2">
-                                        <select id="user-new-role">
-                                            {{ range $.Roles }}
-                                            <option value="{{.ID}}">{{ .Name }}</option>
-                                            {{ end }}
-                                        </select>
-                                    </div>
-                                    <button class="button is-primary is-small" onclick="add_role('user')">Add role</button>
+                                <div class="select is-small mr-2">
+                                    <select id="user-new-role">
+                                        {{ range $.Roles }}
+                                        <option value="{{.ID}}">{{ .Name }}</option>
+                                        {{ end }}
+                                    </select>
+                                </div>
+                                <button class="button is-primary is-small" onclick="add_role('user')">Add role</button>
                             </div>
                         </div>
                     </div>

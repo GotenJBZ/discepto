@@ -4,7 +4,7 @@
 <body class="body">
     {{ template "navbar" .}}
     <br>
-    <div class="container">
+    <div class="container is-max-widescreen">
         <div class="columns">
             <div class="column is-9 is-narrow px-5">
                 <div class="box">
@@ -54,36 +54,26 @@
 
                     <div class="ml-6">
                         <p>{{ .Essay.Content }}</p>
-                        <button onclick="send_vote('favourite')" class="button mr-3 is-white">
-                                    <span class="icon is-small has-text-danger">
-                                        <i class="fa fa-heart " aria-hidden="true"></i>
-                                    </span>
-                                </button>
-                        <button onclick="send_vote('upvote')" class="button mr-3 is-white">
-                                    <span class="icon is-small">
-                                        <i class="fa fa-arrow-up {{ if eq .EssayUserDid.Vote.String "upvote" }} has-text-primary {{ end }} " aria-hidden="true"></i>
-                                        <p class="has-text-black">&nbsp;{{ .Essay.Upvotes }}</p>
-                                    </span>
-                                </button>
-                        <button onclick="send_vote('downvote')" class="button mr-3 is-white">
-                                    <span class="icon is-small">
-                                        <i class="fa fa-arrow-down {{ if eq .EssayUserDid.Vote.String "downvote" }} has-text-primary {{ end }}" aria-hidden="true"></i>
-                                        <p class="has-text-black">&nbsp;{{ .Essay.Downvotes }}</p>
-                                    </span>
-                                </button>
+                        <div class="buttons" id="essay-btns">
+                            <button class="button mr-3 is-white">
+                                <span class="icon is-small has-text-danger">
+                                    <i class="fa fa-heart " aria-hidden="true"></i>
+                                </span>
+                            </button>
+                            <button hx-post="/s/{{.Essay.PostedIn}}/{{.Essay.ID}}/vote" hx-vals='{"vote": "upvote"}' hx-target="#essay-btns" hx-select="#essay-btns" hx-swap="outerHTML" class="button mr-3 is-white">
+                                <span class="icon is-small">
+                                    <i class="fa fa-arrow-up {{ if eq .EssayUserDid.Vote.String "upvote" }} has-text-primary {{ end }} " aria-hidden="true"></i>
+                                    <p class="has-text-black">&nbsp;{{ .Essay.Upvotes }}</p>
+                                </span>
+                            </button>
+                            <button hx-post="/s/{{.Essay.PostedIn}}/{{.Essay.ID}}/vote" hx-vals='{"vote": "downvote"}' hx-target="#essay-btns" hx-select="#essay-btns" hx-swap="outerHTML" class="button mr-3 is-white">
+                                <span class="icon is-small">
+                                    <i class="fa fa-arrow-down {{ if eq .EssayUserDid.Vote.String "downvote" }} has-text-primary {{ end }}" aria-hidden="true"></i>
+                                    <p class="has-text-black">&nbsp;{{ .Essay.Downvotes }}</p>
+                                </span>
+                            </button>
+                        </div>
                     </div>
-                    <script>
-                        function send_vote(type) {
-                            fetch('/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/vote', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/x-www-form-urlencoded',
-                                },
-                                body: 'vote=' + type
-
-                            });
-                        }
-                    </script>
                 </div>
 
                 <br>
@@ -302,25 +292,7 @@
 
                 <br>
 
-                <div class="box is-relative">
-
-                    <div class="field is-grouped is-relative ">
-                        <figure class="image is-48x48  is-hidden-desktop-only  is-hidden-tablet-only">
-                            <img class="is-rounded" src="https://bulma.io/images/placeholders/48x48.png">
-                        </figure>
-                        <div class="field pl-5">
-                            <p class="title is-4">s/{{ .Subdiscepto.Name }}</p>
-                            <p class="subtitle is-6">Inserire membri</p>
-                        </div>
-                        <a href="/s/{{ .Subdiscepto.Name }}" class="stretched-link"></a>
-                    </div>
-                    <div class="content">
-                        <p>{{ .Subdiscepto.Description }}</p>
-                        {{ if .IsMember }}
-                        <button class="button is-danger is-outlined is-fullwidth is-rounded" id="follow" onclick="join()">Leave</button>{{ else }}
-                        <button class="button is-primary is-fullwidth is-rounded" id="follow" onclick="join()">Join</button> {{ end }}
-                    </div>
-                </div>
+                {{ template "subdisceptoCard" .Subdiscepto }}
 
                 <br>
 
@@ -363,9 +335,5 @@
                 }
             </script>
 
-
-
-</body>
-
-</html>
+{{ template "footer" }}
 {{ end }}

@@ -1,0 +1,31 @@
+{{ define "subdisceptoCard" }}
+<div class="box is-relative" id="subdiscepto-card" hx-target="this" hx-swap="outerHTML">
+    <div class="field is-grouped">
+        <figure class="image is-48x48">
+            <img class="is-rounded" src="https://bulma.io/images/placeholders/48x48.png">
+        </figure>
+        <div class="field pl-5">
+            <p class="title is-4"><a href="/s/{{.Name}}">s/{{ .Name }}</a></p>
+            <p class="subtitle is-6">Members: {{ .MembersCount }}</p>
+        </div>
+    </div>
+    <p class="block">{{ .Description }}</p>
+    <div class="field is-grouped">
+        <div class="control is-expanded">
+            {{ if .IsMember }}
+            <button hx-post="/s/{{.Name}}/leave" class="button is-danger is-outlined is-fullwidth is-rounded">Leave</button>
+            {{ else }}
+            <button hx-post="/s/{{.Name}}/join" class="button is-primary is-fullwidth is-rounded">Join</button>
+            {{ end }}
+        </div>
+        {{ if true}}
+        <div class="control">
+            <a class="button is-info is-outlined is-fullwidth is-rounded" href="/s/{{ .Name }}/settings">
+                <span class="icon">
+                    <i class="fas fa-cog"></i>
+                </span>
+            </a>
+        </div>{{ end }}
+    </div>
+</div>
+{{ end }}

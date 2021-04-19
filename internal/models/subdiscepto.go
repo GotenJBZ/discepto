@@ -13,4 +13,5 @@ type SubdisceptoView struct {
 	Name         string
 	Description  string
 	MembersCount int
+	IsMember     bool
 }

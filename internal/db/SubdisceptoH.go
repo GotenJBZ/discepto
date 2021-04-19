@@ -50,11 +50,11 @@ func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH 
 	h := &SubdisceptoH{dH.sharedDB, subdiscepto, *subPerms}
 	return h, nil
 }
-func (h SubdisceptoH) ReadView(ctx context.Context) (*models.SubdisceptoView, error) {
+func (h SubdisceptoH) ReadView(ctx context.Context, userH *UserH) (*models.SubdisceptoView, error) {
 	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
-	return h.read(ctx)
+	return h.read(ctx, userH)
 }
 func (h SubdisceptoH) Delete(ctx context.Context) error {
 	if h.subPerms != models.SubPermsOwner {
@@ -332,7 +332,7 @@ func insertTags(ctx context.Context, db DBTX, essayID int, tags []string) error 
 	}
 	return nil
 }
-func (h SubdisceptoH) read(ctx context.Context) (*models.SubdisceptoView, error) {
+func (h SubdisceptoH) read(ctx context.Context, userH *UserH) (*models.SubdisceptoView, error) {
 	var sub models.SubdisceptoView
 	sql, args, _ := psql.
 		Select(
@@ -340,8 +340,9 @@ func (h SubdisceptoH) read(ctx context.Context) (*models.SubdisceptoView, error)
 			"description",
 			"COUNT(DISTINCT subdiscepto_users.user_id) AS members_count",
 		).
+		Column("bool_or(CASE subdiscepto_users.user_id WHEN ? THEN true ELSE false END) AS is_member", userH.ID()).
 		From("subdisceptos").
-		Join("subdiscepto_users ON subdisceptos.name = subdiscepto_users.subdiscepto").
+		LeftJoin("subdiscepto_users ON subdisceptos.name = subdiscepto_users.subdiscepto").
 		GroupBy("subdisceptos.name").
 		Where(sq.Eq{"name": h.name}).
 		ToSql()

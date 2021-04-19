@@ -49,7 +49,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
-	subData, err := subH.ReadView(r.Context())
+	subData, err := subH.ReadView(r.Context(), userH)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
@@ -84,29 +84,16 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	}
 
 	subs := []string{}
-	isMember := false
 	essayUserDid := &models.EssayUserDid{}
 	if userH != nil {
 		essayUserDid, err = esH.GetUserDid(r.Context(), *userH)
 		if err != nil {
 			return &ErrInternal{Cause: err}
 		}
-		subs, err = userH.ListMySubdisceptos(r.Context())
-		if err != nil {
-			return &ErrInternal{Cause: err}
-		}
-
-		for _, s := range subs {
-			if s == subH.Name() {
-				isMember = true
-				break
-			}
-		}
 	}
 
 	data := struct {
 		Subdiscepto     *models.SubdisceptoView
-		IsMember        bool
 		Essay           *models.EssayView
 		RefutesList     []models.EssayView
 		GeneralList     []models.EssayView
@@ -116,7 +103,6 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		SubdisceptoList []string
 	}{
 		Subdiscepto:     subData,
-		IsMember:        isMember,
 		Essay:           essay,
 		EssayUserDid:    essayUserDid,
 		SubdisceptoList: subs,

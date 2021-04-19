@@ -49,7 +49,11 @@ func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) A
 		return &ErrInternal{Message: "Error leaving", Cause: err}
 	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	sub, err := subH.ReadView(r.Context(), userH)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	routes.tmpls.RenderHTML(w, "subdisceptoCard", sub)
 	return nil
 }
 func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
@@ -60,7 +64,11 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 	if err != nil {
 		return &ErrInternal{Message: "Error joining", Cause: err}
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	sub, err := subH.ReadView(r.Context(), userH)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	routes.tmpls.RenderHTML(w, "subdisceptoCard", sub)
 	return nil
 }
 func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) AppError {
@@ -110,8 +118,9 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
-	subData, err := subH.ReadView(r.Context())
+	subData, err := subH.ReadView(r.Context(), userH)
 	if err != nil {
+		fmt.Println(err)
 		return &ErrInternal{Cause: err}
 	}
 

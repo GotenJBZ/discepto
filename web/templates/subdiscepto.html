@@ -3,7 +3,7 @@
 
 <body class="body">
     {{ template "navbar" .}}
-    <div class="container is-max-desktop">
+    <div class="container is-max-widescreen">
         <div class="columns is-vcentered">
             <div class="hero">
                 <div class="hero-body is-flex">
@@ -16,7 +16,7 @@
         </div>
 
         <div class="columns">
-            <div class="column is-8 is-fluid px-5">
+            <div class="column is-9 is-fluid px-5">
                 <a href="/newessay?subdiscepto={{ .Name}}">
                     <div class="box">
                         <article class="media">
@@ -82,31 +82,8 @@
                     </article>
                 </div>{{ end }}
             </div>
-            <div class="column is-4 is-fluid px-5">
-                <div class="box">
-                    <div class="field is-grouped">
-                        <figure class="image is-48x48">
-                            <img class="is-rounded" src="https://bulma.io/images/placeholders/48x48.png">
-                        </figure>
-                        <div class="field pl-5">
-                            <p class="title is-4">s/{{ .Name }}</p>
-                            <p class="subtitle is-6">Members: {{ .MembersCount }}</p>
-                        </div>
-                    </div>
-                    <p>{{ .Description }}</p>
-                    <br>
-                    <div class="field is-grouped">
-                        <div class="control is-expanded">
-                            {{ if .IsMember }}
-                            <button class="button is-danger is-outlined is-fullwidth is-rounded" id="follow" onclick="join()">Leave</button>{{ else }}
-                            <button class="button is-primary is-fullwidth is-rounded" id="follow" onclick="join()">Join</button> {{ end }}
-                        </div>
-                        {{ if true}}
-                        <div class="control is-expanded">
-                            <a class="button is-info is-outlined is-fullwidth is-rounded" href="{{ .Name }}/settings">settings</a>
-                        </div>{{ end }}
-                    </div>
-                </div>
+            <div class="column is-3 is-fluid px-5">
+                {{ template "subdisceptoCard" . }}
                 <br>
                 <div class="card events-card">
                     <nav class="panel is-primary">
@@ -149,7 +126,5 @@
         </script>
 
     </div>
-</body>
-
-</html>
+{{ template "footer" }}
 {{end}}

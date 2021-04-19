@@ -28,8 +28,9 @@ func (routes *Routes) GetGlobalMembers(w http.ResponseWriter, r *http.Request) A
 }
 
 func (routes *Routes) GetSubMembers(w http.ResponseWriter, r *http.Request) AppError {
+	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
-	sub, err := subH.ReadView(r.Context())
+	sub, err := subH.ReadView(r.Context(), userH)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
