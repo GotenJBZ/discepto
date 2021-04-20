@@ -15,6 +15,7 @@ func (routes *Routes) GlobalMembersRouter(r chi.Router) {
 func (routes *Routes) SubMembersRouter(r chi.Router) {
 	r.Get("/", routes.AppHandler(routes.GetSubMembers))
 	r.Post("/{userID}", routes.AppHandler(routes.assignSubRole))
+	r.Delete("/{userID}/{roleID}", routes.AppHandler(routes.unassignSubRole))
 }
 
 func (routes *Routes) GetGlobalMembers(w http.ResponseWriter, r *http.Request) AppError {

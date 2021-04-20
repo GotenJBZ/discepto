@@ -81,7 +81,7 @@ func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) Ap
 	data := struct {
 		Subs []models.SubdisceptoView
 	}{
-		Subs:    subs,
+		Subs: subs,
 	}
 
 	if err != nil {

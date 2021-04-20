@@ -359,6 +359,7 @@ func TestRoles(t *testing.T) {
 			DeleteEssay:       true,
 			BanUser:           true,
 			DeleteSubdiscepto: true,
+			ChangeRanking:     true,
 			ManageRole:        true,
 		},
 	}, *globalPerms)

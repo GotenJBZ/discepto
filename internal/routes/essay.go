@@ -89,7 +89,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	data := struct {
 		Subdiscepto     *models.SubdisceptoView
 		Essay           *models.EssayView
-		Replies     	[]models.EssayView
+		Replies         []models.EssayView
 		FilterReplyType string
 		Sources         []string
 		EssayUserDid    *models.EssayUserDid
@@ -100,7 +100,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		EssayUserDid:    essayUserDid,
 		SubdisceptoList: subs,
 		Sources:         []string{},
-		Replies:     	 replies,
+		Replies:         replies,
 		FilterReplyType: filter,
 	}
 
