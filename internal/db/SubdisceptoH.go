@@ -332,19 +332,26 @@ func insertTags(ctx context.Context, db DBTX, essayID int, tags []string) error 
 	}
 	return nil
 }
-func (h SubdisceptoH) read(ctx context.Context, userH *UserH) (*models.SubdisceptoView, error) {
-	var sub models.SubdisceptoView
-	sql, args, _ := psql.
-		Select(
+func selectSubdiscepto(userID *int) sq.SelectBuilder {
+	return psql.Select(
 			"name",
 			"description",
 			"COUNT(DISTINCT subdiscepto_users.user_id) AS members_count",
 		).
-		Column("bool_or(CASE subdiscepto_users.user_id WHEN ? THEN true ELSE false END) AS is_member", userH.ID()).
+		Column("bool_or(CASE subdiscepto_users.user_id WHEN ? THEN true ELSE false END) AS is_member", userID).
 		From("subdisceptos").
 		LeftJoin("subdiscepto_users ON subdisceptos.name = subdiscepto_users.subdiscepto").
-		GroupBy("subdisceptos.name").
-		Where(sq.Eq{"name": h.name}).
+		GroupBy("subdisceptos.name")
+}
+
+func (h SubdisceptoH) read(ctx context.Context, userH *UserH) (*models.SubdisceptoView, error) {
+	var sub models.SubdisceptoView
+	var userID *int
+	if userH != nil {
+		userID = &userH.id
+	}
+	sql, args, _ := selectSubdiscepto(userID).
+		Where(sq.Eq{"subdisceptos.name": h.name}).
 		ToSql()
 
 	err := pgxscan.Get(ctx, h.sharedDB, &sub, sql, args...)

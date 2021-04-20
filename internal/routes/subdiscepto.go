@@ -72,40 +72,16 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 	return nil
 }
 func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) AppError {
-	allSubs, err := routes.db.ListSubdisceptos(r.Context())
-	if err != nil {
-		return &ErrNotFound{Cause: err, Thing: "subdisceptos"}
-	}
 	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
-	mySubsName, err := userH.ListMySubdisceptos(r.Context())
+	subs, err := routes.db.ListSubdisceptos(r.Context(), userH)
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "subdisceptos"}
-	}
-
-	var otherSubs []*models.Subdiscepto
-	var mySubs []*models.Subdiscepto
-
-	var found bool
-	for _, a := range allSubs {
-		found = false
-		for _, s := range mySubsName {
-			if a.Name == s {
-				mySubs = append(mySubs, a)
-				found = true
-				break
-			}
-		}
-		if !found {
-			otherSubs = append(otherSubs, a)
-		}
 	}
 
 	data := struct {
-		OtherSubs []*models.Subdiscepto
-		MySubs    []*models.Subdiscepto
+		Subs []models.SubdisceptoView
 	}{
-		OtherSubs: otherSubs,
-		MySubs:    mySubs,
+		Subs:    subs,
 	}
 
 	if err != nil {

@@ -28,9 +28,14 @@ func (sdb *SharedDB) ListRecentEssaysIn(ctx context.Context, subs []string) ([]m
 	}
 	return essayPreviews, nil
 }
-func (sdb *SharedDB) ListSubdisceptos(ctx context.Context) ([]*models.Subdiscepto, error) {
-	var subs []*models.Subdiscepto
-	err := pgxscan.Select(ctx, sdb.db, &subs, "SELECT name, description, min_length, questions_required, nsfw FROM subdisceptos")
+func (sdb *SharedDB) ListSubdisceptos(ctx context.Context, userH *UserH) ([]models.SubdisceptoView, error) {
+	var subs []models.SubdisceptoView
+	var userID *int
+	if userH != nil {
+		userID = &userH.id
+	}
+	sql, args, _ := selectSubdiscepto(userID).ToSql()
+	err := pgxscan.Select(ctx, sdb.db, &subs, sql, args...)
 	if err != nil {
 		return nil, err
 	}
