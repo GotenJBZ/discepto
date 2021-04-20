@@ -16,7 +16,7 @@
         </div>
 
         <div class="columns">
-            <div class="column is-9 is-fluid px-5">
+            <div class="column is-8 is-fluid">
                 <a href="/newessay?subdiscepto={{ .Name}}">
                     <div class="box">
                         <article class="media">
@@ -82,9 +82,8 @@
                     </article>
                 </div>{{ end }}
             </div>
-            <div class="column is-3 is-fluid px-5">
+            <div class="column is-4 is-fluid">
                 {{ template "subdisceptoCard" . }}
-                <br>
                 <div class="card events-card">
                     <nav class="panel is-primary">
                         <p class="panel-heading ">Your Communities</p>
@@ -126,5 +125,4 @@
         </script>
 
     </div>
-{{ template "footer" }}
-{{end}}
+    {{ template "footer" }} {{end}}
