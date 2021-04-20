@@ -12,3 +12,12 @@
     background-color: #f3f3f3;
     min-height: 100%;
 }
+
+
+.htmx-settling .dis-htmx-fade-in {
+  opacity: 0;
+}
+.dis-htmx-fade-in {
+  opacity: 1;
+  transition: opacity 100ms ease-out;
+}

@@ -34,72 +34,42 @@
                 <div class="box">
 
                     {{ range $m := .Members }}
-                    <div class="media">
+                    <div class="media" id="member-{{.UserID}}" hx-target="this" hx-select="#member-{{.UserID}}" hx-swap="outerHTML">
                         <div class="level is-flex-grow-1">
                             <div class="level-left">
-                                <div class="level">
-                                    <div class="level-left">
-                                        <div class="image is-32x32 mr-2">
-                                            <img src="http://bulma.io/images/placeholders/128x128.png">
-                                        </div>
-                                        <a href="#" class="mr-2">@{{ $m.Name }}</a>
+                                <div class="level-left">
+                                    <div class="image is-32x32 mr-2">
+                                        <img src="http://bulma.io/images/placeholders/128x128.png">
                                     </div>
-                                    <div class="level-item">
-                                        <p id="user-tags" class="tags">
-                                        {{ range $m.Roles }}
-                                        <span class="tag {{ if .Preset }}is-primary{{ else }}is-info{{ end }}" id="user-owner">
-                                            {{ .Name }}
-                                            <button class="delete is-small" onclick="remove_role('user', {{ . }})"></button> 
-                                        </span>
-                                        {{ end }}
-                                        </p>
-                                    </div>
+                                    <a href="#" class="mr-2">@{{ $m.Name }}</a>
+                                </div>
+                                <div class="level-left tags">
+                                    {{ range $m.Roles }}
+                                    <span class="tag {{ if .Preset }}is-primary{{ else }}is-info{{ end }}">
+                                        {{ .Name }}
+                                        <button hx-delete="{{$prefix}}/members/{{$m.UserID}}/{{.ID}}" class="delete is-small"></button> 
+                                    </span>
+                                    {{ end }}
                                 </div>
                             </div>
                             <div class="level-right">
+                                <form hx-boost="true" method="post" action="{{$prefix}}/members/{{.UserID}}">
                                     <div class="select is-small mr-2">
-                                        <select id="user-new-role">
+                                        <select name="role">
                                             {{ range $.Roles }}
                                             <option value="{{.ID}}">{{ .Name }}</option>
                                             {{ end }}
                                         </select>
                                     </div>
-                                    <button class="button is-primary is-small" onclick="add_role('user')">Add role</button>
+                                    <button class="button is-primary is-small">Add role</button>
+                                </form>
                             </div>
                         </div>
                     </div>
                     {{ end }}
-
-                    <script>
-                        function remove_role(user, role) {
-                                                    tag = document.getElementById(user + "-" + role)
-                                                    //todo Send req.
-                                                    tag.parentNode.removeChild(tag);
-                                                }
-
-
-                                                function add_role(user) {
-                                                                            var select = document.getElementById(user + "-new-role");
-                                                                            var role = select.options[select.selectedIndex].text;
-                                                                            console.log(role)
-                                                                            if (document.getElementById(user + '-' + role) == null) {
-                                                                                                        var new_el = document.createElement('span');
-                                                                                                        new_el.id = user + '-' + role
-                                                                                                        new_el.className = "tag is-primary"
-                                                                                                        new_el.innerHTML = role + " <button class=\"delete is-small\" onclick=\"remove_role('" + user + "','" + role + "')\"></button> &nbsp;"
-                                                                                                        var div = document.getElementById(user + "-tags");
-                                                                                                        div.appendChild(new_el);
-                                                                                                        div.appendChild(document.createTextNode(" "))
-                                                                                                    }
-
-
-                                                                        }
-                    </script>
                 </div>
             </div>
         </div>
     </div>
-</body>
-
-</html>
+    {{ template "footer" }}
 {{ end }}

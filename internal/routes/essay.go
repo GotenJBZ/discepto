@@ -70,22 +70,16 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 	esH, _ := r.Context().Value(EssayHCtxKey).(*db.EssayH)
 
-	subData, err := subH.ReadView(r.Context())
+	subData, err := subH.ReadView(r.Context(), userH)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
 
-	refutesList, err := subH.ListReplies(r.Context(), *esH, &models.ReplyTypeRefutes.String)
-	if err != nil {
-		return &ErrInternal{Cause: err}
+	filter := r.URL.Query().Get("replyType")
+	if filter == "" {
+		filter = "general"
 	}
-
-	supportList, err := subH.ListReplies(r.Context(), *esH, &models.ReplyTypeSupports.String)
-	if err != nil {
-		return &ErrInternal{Cause: err}
-	}
-
-	generalList, err := subH.ListReplies(r.Context(), *esH, &models.ReplyTypeGeneral.String)
+	replies, err := subH.ListReplies(r.Context(), *esH, &filter)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
@@ -96,46 +90,30 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	}
 
 	subs := []string{}
-	isMember := false
 	essayUserDid := &models.EssayUserDid{}
 	if userH != nil {
 		essayUserDid, err = esH.GetUserDid(r.Context(), *userH)
 		if err != nil {
 			return &ErrInternal{Cause: err}
 		}
-		subs, err = userH.ListMySubdisceptos(r.Context())
-		if err != nil {
-			return &ErrInternal{Cause: err}
-		}
-
-		for _, s := range subs {
-			if s == subH.Name() {
-				isMember = true
-				break
-			}
-		}
 	}
 
 	data := struct {
 		Subdiscepto     *models.SubdisceptoView
-		IsMember        bool
 		Essay           *models.EssayView
-		RefutesList     []models.EssayView
-		GeneralList     []models.EssayView
-		SupportList     []models.EssayView
+		Replies         []models.EssayView
+		FilterReplyType string
 		Sources         []string
 		EssayUserDid    *models.EssayUserDid
 		SubdisceptoList []string
 	}{
 		Subdiscepto:     subData,
-		IsMember:        isMember,
 		Essay:           essay,
 		EssayUserDid:    essayUserDid,
 		SubdisceptoList: subs,
 		Sources:         []string{},
-		RefutesList:     refutesList,
-		GeneralList:     generalList,
-		SupportList:     supportList,
+		Replies:         replies,
+		FilterReplyType: filter,
 	}
 
 	routes.tmpls.RenderHTML(w, "essay", data)

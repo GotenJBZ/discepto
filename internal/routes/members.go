@@ -15,6 +15,7 @@ func (routes *Routes) GlobalMembersRouter(r chi.Router) {
 func (routes *Routes) SubMembersRouter(r chi.Router) {
 	r.Get("/", routes.AppHandler(routes.GetSubMembers))
 	r.Post("/{userID}", routes.AppHandler(routes.assignSubRole))
+	r.Delete("/{userID}/{roleID}", routes.AppHandler(routes.unassignSubRole))
 }
 
 func (routes *Routes) GetGlobalMembers(w http.ResponseWriter, r *http.Request) AppError {
@@ -28,8 +29,9 @@ func (routes *Routes) GetGlobalMembers(w http.ResponseWriter, r *http.Request) A
 }
 
 func (routes *Routes) GetSubMembers(w http.ResponseWriter, r *http.Request) AppError {
+	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
-	sub, err := subH.ReadView(r.Context())
+	sub, err := subH.ReadView(r.Context(), userH)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}

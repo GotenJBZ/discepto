@@ -123,12 +123,12 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd *model
 			return err
 		}
 		// Add "common" role
-		err = assignSubRole(ctx, tx, subd.Name, nil, firstUserID, "common", false)
+		err = assignSubRole(ctx, tx, subd.Name, nil, firstUserID, commonSubPermsID)
 		if err != nil {
 			return err
 		}
 
-		err = assignSubRole(ctx, tx, subd.Name, nil, firstUserID, "admin", true)
+		err = assignSubRole(ctx, tx, subd.Name, nil, firstUserID, models.SubRoleAdminPreset)
 		return err
 	})
 	if err != nil {

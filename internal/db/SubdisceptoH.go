@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/georgysavva/scany/pgxscan"
@@ -50,11 +51,11 @@ func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH 
 	h := &SubdisceptoH{dH.sharedDB, subdiscepto, *subPerms}
 	return h, nil
 }
-func (h SubdisceptoH) ReadView(ctx context.Context) (*models.SubdisceptoView, error) {
+func (h SubdisceptoH) ReadView(ctx context.Context, userH *UserH) (*models.SubdisceptoView, error) {
 	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
-	return h.read(ctx)
+	return h.read(ctx, userH)
 }
 func (h SubdisceptoH) Delete(ctx context.Context) error {
 	if h.subPerms != models.SubPermsOwner {
@@ -104,18 +105,31 @@ func (h SubdisceptoH) CreateRole(ctx context.Context, subPerms models.SubPerms, 
 
 	return err
 }
-func (h SubdisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, role string, preset bool) error {
+func (h SubdisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, subPermsID int) error {
 	if !h.subPerms.ManageRole || !byUser.perms.Read {
 		return ErrPermDenied
 	}
-	newRolePerms, err := getSubRolePerms(ctx, h.sharedDB, h.name, role, preset)
+	newRolePerms, err := getSubRolePerms(ctx, h.sharedDB, subPermsID)
 	if err != nil {
 		return err
 	}
 	if newRolePerms.And(h.subPerms) != *newRolePerms {
 		return ErrPermDenied
 	}
-	return assignSubRole(ctx, h.sharedDB, h.name, &byUser.id, toUser, role, preset)
+	return assignSubRole(ctx, h.sharedDB, h.name, &byUser.id, toUser, subPermsID)
+}
+func (h SubdisceptoH) UnassignRole(ctx context.Context, toUser int, subPermsID int) error {
+	if !h.subPerms.ManageRole {
+		return ErrPermDenied
+	}
+	newRolePerms, err := getSubRolePerms(ctx, h.sharedDB, subPermsID)
+	if err != nil {
+		return err
+	}
+	if newRolePerms.And(h.subPerms) != *newRolePerms {
+		return ErrPermDenied
+	}
+	return unassignSubRole(ctx, h.sharedDB, h.name, toUser, subPermsID)
 }
 func (h SubdisceptoH) AddMember(ctx context.Context, userH UserH) error {
 	if !h.subPerms.ReadSubdiscepto || !userH.perms.Read {
@@ -125,7 +139,11 @@ func (h SubdisceptoH) AddMember(ctx context.Context, userH UserH) error {
 	if err != nil {
 		return err
 	}
-	return assignSubRole(ctx, h.sharedDB, h.name, nil, userH.id, "common", false)
+	subPermsID, err := subPermsIDByRoleName(ctx, h.sharedDB, "common", false)
+	if err != nil {
+		return err
+	}
+	return assignSubRole(ctx, h.sharedDB, h.name, nil, userH.id, subPermsID)
 }
 func (h SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
 	// TODO: should check for specific permission to remove other users
@@ -199,22 +217,27 @@ func (h *SubdisceptoH) ListMembers(ctx context.Context) ([]models.Member, error)
 		return nil, ErrPermDenied
 	}
 
-	sql, args, _ := psql.
-		Select("id", "users.name", "sub_roles.name", "sub_roles.preset").From("users").
-		Join("user_sub_roles ON users.id = user_sub_roles.user_id").
-		Join("sub_roles ON user_sub_roles.sub_perms_id = sub_roles.sub_perms_id").
-		Where(sq.Eq{"user_sub_roles.subdiscepto": h.name}).
+	sqlquery, args, _ := psql.
+		Select("subdiscepto_users.user_id", "users.name", "sub_roles.name", "sub_roles.preset", "sub_roles.sub_perms_id").
+		From("subdiscepto_users").
+		Join("users ON subdiscepto_users.user_id = users.id").
+		LeftJoin("user_sub_roles ON subdiscepto_users.user_id = user_sub_roles.user_id").
+		LeftJoin("sub_roles ON user_sub_roles.sub_perms_id = sub_roles.sub_perms_id").
+		Where(sq.Eq{"subdiscepto_users.subdiscepto": h.name}).
+		OrderBy("subdiscepto_users.user_id").
 		ToSql()
 
 	membersByID := map[int]*models.Member{}
-	rows, err := h.sharedDB.Query(ctx, sql, args...)
+	rows, err := h.sharedDB.Query(ctx, sqlquery, args...)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
 		member := models.Member{}
-		role := models.Role{}
-		err := rows.Scan(&member.UserID, &member.Name, &role.Name, &role.Preset)
+		roleName := sql.NullString{}
+		rolePreset := sql.NullBool{}
+		roleID := sql.NullInt32{}
+		err := rows.Scan(&member.UserID, &member.Name, &roleName, &rolePreset, &roleID)
 		if err != nil {
 			return nil, err
 		}
@@ -222,7 +245,14 @@ func (h *SubdisceptoH) ListMembers(ctx context.Context) ([]models.Member, error)
 		if !ok {
 			membersByID[member.UserID] = &member
 		}
-		membersByID[member.UserID].Roles = append(membersByID[member.UserID].Roles, role)
+		if roleName.Valid {
+			role := models.Role{
+				ID:     int(roleID.Int32),
+				Name:   roleName.String,
+				Preset: rolePreset.Bool,
+			}
+			membersByID[member.UserID].Roles = append(membersByID[member.UserID].Roles, role)
+		}
 	}
 
 	members := make([]models.Member, len(membersByID))
@@ -332,18 +362,26 @@ func insertTags(ctx context.Context, db DBTX, essayID int, tags []string) error 
 	}
 	return nil
 }
-func (h SubdisceptoH) read(ctx context.Context) (*models.SubdisceptoView, error) {
-	var sub models.SubdisceptoView
-	sql, args, _ := psql.
-		Select(
-			"name",
-			"description",
-			"COUNT(DISTINCT subdiscepto_users.user_id) AS members_count",
-		).
+func selectSubdiscepto(userID *int) sq.SelectBuilder {
+	return psql.Select(
+		"name",
+		"description",
+		"COUNT(DISTINCT subdiscepto_users.user_id) AS members_count",
+	).
+		Column("bool_or(CASE subdiscepto_users.user_id WHEN ? THEN true ELSE false END) AS is_member", userID).
 		From("subdisceptos").
-		Join("subdiscepto_users ON subdisceptos.name = subdiscepto_users.subdiscepto").
-		GroupBy("subdisceptos.name").
-		Where(sq.Eq{"name": h.name}).
+		LeftJoin("subdiscepto_users ON subdisceptos.name = subdiscepto_users.subdiscepto").
+		GroupBy("subdisceptos.name")
+}
+
+func (h SubdisceptoH) read(ctx context.Context, userH *UserH) (*models.SubdisceptoView, error) {
+	var sub models.SubdisceptoView
+	var userID *int
+	if userH != nil {
+		userID = &userH.id
+	}
+	sql, args, _ := selectSubdiscepto(userID).
+		Where(sq.Eq{"subdisceptos.name": h.name}).
 		ToSql()
 
 	err := pgxscan.Get(ctx, h.sharedDB, &sub, sql, args...)

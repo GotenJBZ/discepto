@@ -49,7 +49,11 @@ func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) A
 		return &ErrInternal{Message: "Error leaving", Cause: err}
 	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	sub, err := subH.ReadView(r.Context(), userH)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	routes.tmpls.RenderHTML(w, "subdisceptoCard", sub)
 	return nil
 }
 func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
@@ -60,44 +64,24 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 	if err != nil {
 		return &ErrInternal{Message: "Error joining", Cause: err}
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	sub, err := subH.ReadView(r.Context(), userH)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	routes.tmpls.RenderHTML(w, "subdisceptoCard", sub)
 	return nil
 }
 func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) AppError {
-	allSubs, err := routes.db.ListSubdisceptos(r.Context())
-	if err != nil {
-		return &ErrNotFound{Cause: err, Thing: "subdisceptos"}
-	}
 	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
-	mySubsName, err := userH.ListMySubdisceptos(r.Context())
+	subs, err := routes.db.ListSubdisceptos(r.Context(), userH)
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "subdisceptos"}
-	}
-
-	var otherSubs []*models.Subdiscepto
-	var mySubs []*models.Subdiscepto
-
-	var found bool
-	for _, a := range allSubs {
-		found = false
-		for _, s := range mySubsName {
-			if a.Name == s {
-				mySubs = append(mySubs, a)
-				found = true
-				break
-			}
-		}
-		if !found {
-			otherSubs = append(otherSubs, a)
-		}
 	}
 
 	data := struct {
-		OtherSubs []*models.Subdiscepto
-		MySubs    []*models.Subdiscepto
+		Subs []models.SubdisceptoView
 	}{
-		OtherSubs: otherSubs,
-		MySubs:    mySubs,
+		Subs: subs,
 	}
 
 	if err != nil {
@@ -110,7 +94,7 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
-	subData, err := subH.ReadView(r.Context())
+	subData, err := subH.ReadView(r.Context(), userH)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}

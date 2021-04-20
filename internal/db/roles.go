@@ -23,6 +23,7 @@ func getGlobalUserPerms(ctx context.Context, db DBTX, userID int) (*models.Globa
 		bool_or("delete_essay"),
 		bool_or("ban_user"),
 		bool_or("delete_subdiscepto"),
+		bool_or("change_ranking"),
 		bool_or("manage_role"),
 	).
 		From("user_global_roles").
@@ -44,6 +45,7 @@ func getGlobalUserPerms(ctx context.Context, db DBTX, userID int) (*models.Globa
 		&perms.DeleteEssay,
 		&perms.BanUser,
 		&perms.DeleteSubdiscepto,
+		&perms.ChangeRanking,
 		&perms.ManageRole,
 	)
 	if err != nil {
@@ -112,12 +114,19 @@ func getGlobalRolePerms(ctx context.Context, db DBTX, role string, preset bool) 
 	return &perms, err
 }
 
-func getSubRolePerms(ctx context.Context, db DBTX, subdiscepto, role string, preset bool) (*models.SubPerms, error) {
+func getSubRolePerms(ctx context.Context, db DBTX, subPermsID int) (*models.SubPerms, error) {
 	sql, args, _ := psql.
-		Select("*").
-		From("user_sub_roles").
-		Join("sub_perms ON sub_perms.id = sub_perms_id").
-		Where(sq.Eq{"name": role, "preset": preset, "subdiscepto": subdiscepto}).
+		Select(
+			"read_subdiscepto",
+			"create_essay",
+			"delete_essay",
+			"ban_user",
+			"delete_subdiscepto",
+			"change_ranking",
+			"manage_role",
+		).
+		From("sub_perms").
+		Where(sq.Eq{"id": subPermsID}).
 		ToSql()
 
 	perms := models.SubPerms{}
@@ -142,18 +151,23 @@ WHERE name = $3 AND preset = $4
 	_, err := tx.Exec(ctx, q, byUser, assignToUser, role, preset)
 	return err
 }
-func assignSubRole(ctx context.Context, db DBTX, sub string, assignByUser *int, assignToUser int, role string, preset bool) error {
-	q := `
-INSERT INTO user_sub_roles (subdiscepto, assigned_by, user_id, sub_perms_id)
-SELECT $1, $2, $3, sub_perms_id
-FROM sub_roles
-WHERE (subdiscepto = $4 OR subdiscepto IS NULL) AND name = $5 AND preset = $6
-`
+func assignSubRole(ctx context.Context, db DBTX, sub string, assignByUser *int, assignToUser int, subPermsID int) error {
 	byUser := sql.NullInt32{}
 	if assignByUser != nil {
 		byUser.Int32 = int32(*assignByUser)
 	}
-	_, err := db.Exec(ctx, q, sub, byUser, assignToUser, sub, role, preset)
+	sql, args, _ := psql.Insert("user_sub_roles").
+		Columns("subdiscepto", "assigned_by", "user_id", "sub_perms_id").
+		Values(sub, assignByUser, assignToUser, subPermsID).
+		ToSql()
+	_, err := db.Exec(ctx, sql, args...)
+	return err
+}
+func unassignSubRole(ctx context.Context, db DBTX, sub string, userID, subPermsID int) error {
+	sql, args, _ := psql.Delete("user_sub_roles").
+		Where(sq.Eq{"subdiscepto": sub, "user_id": userID, "sub_perms_id": subPermsID}).
+		ToSql()
+	_, err := db.Exec(ctx, sql, args...)
 	return err
 }
 func createGlobalPerms(ctx context.Context, db DBTX, perms models.GlobalPerms) (int, error) {
@@ -213,6 +227,12 @@ func createSubPerms(ctx context.Context, db DBTX, perms models.SubPerms) (int, e
 		ToSql()
 
 	row := db.QueryRow(ctx, sql, args...)
+	id := 0
+	err := row.Scan(&id)
+	return id, err
+}
+func subPermsIDByRoleName(ctx context.Context, db DBTX, name string, preset bool) (int, error) {
+	row := db.QueryRow(ctx, "SELECT sub_perms_id FROM sub_roles WHERE name = $1 AND preset = $2", name, preset)
 	id := 0
 	err := row.Scan(&id)
 	return id, err

@@ -3,97 +3,25 @@
 
 <body class="body">
     {{ template "navbar" .}}
-    <div class=" column is-half is-offset-one-quarter">
+    <div class="column container is-max-widescreen">
         <section class="container">
             <div class="hero">
                 <div class="hero-body is-flex">
-                    <h1 class="title">Discover comunities</h1>
+                    <h1 class="title">Discover communities</h1>
                 </div>
             </div>
-            {{ range .OtherSubs }}
-            <div class="box">
-                <div class="columns is-mobile">
-                    <div class="column">
-                        <div class="field">
-                            <p class="title is-4">{{.Name}}</p>
-                            <p class="subtitle is-6">{{.Description}}</p>
-                        </div>
-                    </div>
-                    <div class="column is-one-quarter is-narrow">
-                        <div class="field">
-                            <button class="button is-primary is-fullwidth is-rounded" id="follow-{{.Name}}" onclick="join('{{.Name}}')">Join</button>
-                        </div>
-                    </div>
-
+            <div class="tile is-ancestor">
+                {{ range .Subs }}
+                <div class="tile is-parent is-3 is-flex">
+                    {{ template "subdisceptoCard" . }}
                 </div>
+                {{ end }}
             </div>
-            {{end}} {{ range .MySubs }}
-            <div class="box">
-                <div class="columns is-mobile">
-                    <div class="column">
-                        <div class="field">
-                            <p class="title is-4">{{.Name}}</p>
-                            <p class="subtitle is-6">{{.Description}}</p>
-                        </div>
-                    </div>
-                    <div class="column is-one-quarter is-narrow">
-                        <div class="field">
-                            <button class="button is-danger is-outlined is-fullwidth is-rounded" id="follow-{{.Name}}" onclick="join('{{.Name}}')">Leave</button>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-            {{end}}
 
 
 
 
         </section>
     </div>
-
-
-
-
-    <script>
-        function join(name) {
-            var btn = document.getElementById('follow-' + name);
-            if (btn.textContent == 'Leave') {
-                fetch('/s/' + name + '/leave', {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                btn.blur();
-                btn.classList.remove("is-danger");
-                btn.classList.remove("is-outlined");
-                btn.classList.add('is-primary');
-                btn.textContent = 'Join'
-            } else {
-                fetch('/s/' + name + '/join', {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                btn.blur();
-                btn.classList.remove('is-primary');
-                btn.classList.add("is-danger");
-                btn.classList.add("is-outlined");
-                btn.textContent = 'Leave'
-            }
-        }
-    </script>
-
-</body>
-
-</html>
-
-
-
-
-
-
-
-
-
-
-
+    {{ template "footer" }}
 {{ end }}

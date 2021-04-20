@@ -1,10 +1,12 @@
 package routes
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi"
+	"github.com/jackc/pgconn"
 	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/utils"
@@ -72,7 +74,7 @@ func (routes *Routes) createSubRole(w http.ResponseWriter, r *http.Request) AppE
 	subPerms := &models.SubPerms{}
 	utils.ParsePermsForm(r, subPerms, v)
 
-	subH.CreateRole(r.Context(), *subPerms, r.FormValue("role_name"))
+	subH.CreateRole(r.Context(), *subPerms, r.FormValue("name"))
 	w.Write([]byte("ok, thank you"))
 	return nil
 }
@@ -84,8 +86,32 @@ func (routes *Routes) assignSubRole(w http.ResponseWriter, r *http.Request) AppE
 	if err != nil {
 		return &ErrBadRequest{Cause: err}
 	}
+	subPermsID, err := strconv.Atoi(r.FormValue("role"))
+	if err != nil {
+		return &ErrBadRequest{Cause: err}
+	}
 
-	subH.AssignRole(r.Context(), *userH, toUserID, r.FormValue("role_name"), false)
-	w.Write([]byte("ok, thank you"))
-	return nil
+	err = subH.AssignRole(r.Context(), *userH, toUserID, subPermsID)
+	pgErr := &pgconn.PgError{}
+	if err != nil && !(errors.As(err, &pgErr) && pgErr.Code == "23505") {
+		return &ErrInternal{Cause: err}
+	}
+	return routes.GetSubMembers(w, r)
+}
+func (routes *Routes) unassignSubRole(w http.ResponseWriter, r *http.Request) AppError {
+	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+
+	toUserID, err := strconv.Atoi(chi.URLParam(r, "userID"))
+	if err != nil {
+		return &ErrBadRequest{Cause: err}
+	}
+	subPermsID, err := strconv.Atoi(chi.URLParam(r, "roleID"))
+	if err != nil {
+		return &ErrBadRequest{Cause: err}
+	}
+	err = subH.UnassignRole(r.Context(), toUserID, subPermsID)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	return routes.GetSubMembers(w, r)
 }

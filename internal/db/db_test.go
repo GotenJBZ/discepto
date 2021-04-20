@@ -242,7 +242,7 @@ func TestSubdiscepto(t *testing.T) {
 		_, err = disceptoH.CreateSubdiscepto(context.Background(), *userH, subdis)
 		require.Nil(err)
 
-		subs, err := db.ListSubdisceptos(context.Background())
+		subs, err := db.ListSubdisceptos(context.Background(), userH)
 		require.Nil(err)
 		require.Len(subs, 1)
 	}
@@ -359,6 +359,7 @@ func TestRoles(t *testing.T) {
 			DeleteEssay:       true,
 			BanUser:           true,
 			DeleteSubdiscepto: true,
+			ChangeRanking:     true,
 			ManageRole:        true,
 		},
 	}, *globalPerms)
