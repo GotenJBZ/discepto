@@ -21,7 +21,7 @@ func (routes *Routes) EssaysRouter(r chi.Router) {
 	specificEssay.With(routes.EnforceCtx(UserHCtxKey)).Post("/{essayID}/vote", routes.AppHandler(routes.PostVote))
 }
 func (routes *Routes) EssayCtx(next http.Handler) http.Handler {
-	return routes.AppHandler(func (w http.ResponseWriter, r *http.Request) AppError {
+	return routes.AppHandler(func(w http.ResponseWriter, r *http.Request) AppError {
 		userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 		subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
@@ -89,7 +89,11 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrNotFound{Cause: err, Thing: "essay"}
 	}
 
-	subs := []string{}
+	subs, err := userH.ListMySubdisceptos(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
 	essayUserDid := &models.EssayUserDid{}
 	if userH != nil {
 		essayUserDid, err = esH.GetUserDid(r.Context(), *userH)
@@ -195,7 +199,6 @@ func (routes *Routes) UpdateEssay(w http.ResponseWriter, r *http.Request) {
 func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError {
 	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
 	esH, _ := r.Context().Value(EssayHCtxKey).(*db.EssayH)
-
 
 	var vote models.VoteType
 	switch r.FormValue("vote") {

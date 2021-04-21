@@ -179,7 +179,7 @@ func (err *ErrInternal) Respond(w http.ResponseWriter, r *http.Request, routes *
 		Message: err.Message,
 		Status:  http.StatusInternalServerError,
 	}
-	routes.tmpls.RenderHTML(w, "500", nil)
+	routes.tmpls.RenderHTML(w, "500", err.Message)
 	return loggableErr
 }
 

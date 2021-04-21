@@ -10,9 +10,9 @@
                     <h1 class="title">Discover communities</h1>
                 </div>
             </div>
-            <div class="tile is-ancestor">
+            <div class="columns is-multiline">
                 {{ range .Subs }}
-                <div class="tile is-parent is-3 is-flex">
+                <div class="column is-4 is-flex">
                     {{ template "subdisceptoCard" . }}
                 </div>
                 {{ end }}

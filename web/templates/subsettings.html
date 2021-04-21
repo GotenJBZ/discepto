@@ -1,12 +1,8 @@
-{{ define "subsettings" }}
-{{ template "head" }}
+{{ define "subsettings" }} {{ template "head" }} {{ template "simplemde" . }}
 </head>
+
 <body>
-
     {{ template "navbar" }}
-
-
-
     <div class="section container">
         <div class="columns">
             <div class="column is-2">
@@ -26,48 +22,48 @@
                 <h1 class="title">Update your comunity</h1>
                 <div class="box content">
                     <form action="/s" method="post" id="formid">
-                            <div class="field">
-                                <label class="label ">Name</label>
-                                <div class="control has-icons-left">
-                                    <input type="text" value="OldName" class="input is-primary" required name="name">
-                                    <span class="icon is-small is-left">
+                        <div class="field">
+                            <label class="label ">Name</label>
+                            <div class="control has-icons-left">
+                                <input type="text" value="OldName" class="input is-primary" required name="name">
+                                <span class="icon is-small is-left">
                                     <i class="fa fa-home"></i>
                                 </span>
-                                </div>
                             </div>
+                        </div>
 
-                            <div class="field">
-                                <label class="label ">Description</label>
-                                <textarea id="SubDisceptoDesc"></textarea>
-                                <input name="description" type="hidden">
-                            </div>
+                        <div class="field">
+                            <label class="label ">Description</label>
+                            <textarea id="SubDisceptoDesc"></textarea>
+                            <input name="description" type="hidden">
+                        </div>
 
-                            <div class="field">
-                                <label class="label ">Topics</label>
-                                <div class="control">
-                                    <input type="text" value="old, topics" class="input is-primary" required name="topics">
-                                </div>
-                                <p class="help">Insert topics separated by commas e.g. tags1,tags2,tags3</p>
-                            </div>
-
-
-                            <div class="field"></div>
-                            <label for="" class="label">Privacy</label>
+                        <div class="field">
+                            <label class="label ">Topics</label>
                             <div class="control">
-                                <label class="radio">
+                                <input type="text" value="old, topics" class="input is-primary" required name="topics">
+                            </div>
+                            <p class="help">Insert topics separated by commas e.g. tags1,tags2,tags3</p>
+                        </div>
+
+
+                        <div class="field"></div>
+                        <label for="" class="label">Privacy</label>
+                        <div class="control">
+                            <label class="radio">
                               <input type="radio" name="privacy" value="public" checked> Public
                             </label>
-                                <label class="radio">
+                            <label class="radio">
                               <input type="radio" name="privacy" value="restricted"> Restricted
                             </label>
-                                <label class="radio">
+                            <label class="radio">
                               <input type="radio" name="privacy" value="private"> Private
                             </label>
-                            </div>
-                            <br>
-                            <div>
-                                <button class="button is-primary is-outlined" type="submit">Update</button>
-                            </div>
+                        </div>
+                        <br>
+                        <div>
+                            <button class="button is-primary is-outlined" type="submit">Update</button>
+                        </div>
                     </form>
                 </div>
             </div>

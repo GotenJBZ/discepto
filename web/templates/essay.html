@@ -176,12 +176,9 @@
 
                 <br> {{ template "subdisceptoCard" .Subdiscepto }}
 
-                <br>
-
                 <div class="card">
                     <nav class="panel is-primary">
                         <p class="panel-heading ">Your Communities</p>
-
                         {{ $length := len .SubdisceptoList }} {{ if eq $length 0 }}
                         <a href="/s" class="panel-block ">join in a comunity</a> {{ else }} {{ range .SubdisceptoList }}
                         <a href="/s/{{ . }} " class="panel-block ">s/{{ . }}</a> {{ end }} {{end}}
