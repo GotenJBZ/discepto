@@ -31,7 +31,7 @@ func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH 
 	// Inherit global perms
 	subPerms = &models.SubPerms{
 		ReadSubdiscepto:   subPerms.ReadSubdiscepto || dH.globalPerms.ReadSubdiscepto,
-		UpdateSubdiscepto:   subPerms.UpdateSubdiscepto || dH.globalPerms.UpdateSubdiscepto,
+		UpdateSubdiscepto: subPerms.UpdateSubdiscepto || dH.globalPerms.UpdateSubdiscepto,
 		CreateEssay:       subPerms.CreateEssay || dH.globalPerms.CreateEssay,
 		DeleteEssay:       subPerms.DeleteEssay || dH.globalPerms.DeleteEssay,
 		BanUser:           subPerms.BanUser || dH.globalPerms.BanUser,

@@ -101,8 +101,8 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 		// Create a "common" role, added to every user of the subdiscepto
 		subPerms := models.SubPerms{
 			ReadSubdiscepto:   true,
-			UpdateSubdiscepto:   true,
 			CreateEssay:       true,
+			UpdateSubdiscepto: false,
 			DeleteEssay:       false,
 			BanUser:           false,
 			ChangeRanking:     false,

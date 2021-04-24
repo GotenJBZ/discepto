@@ -355,6 +355,7 @@ func TestRoles(t *testing.T) {
 		ManageGlobalRole:  true,
 		SubPerms: models.SubPerms{
 			ReadSubdiscepto:   true,
+			UpdateSubdiscepto: true,
 			CreateEssay:       true,
 			DeleteEssay:       true,
 			BanUser:           true,

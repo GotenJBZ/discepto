@@ -20,7 +20,7 @@ func (routes *Routes) GetSubSettings(w http.ResponseWriter, r *http.Request) App
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
-	routes.tmpls.RenderHTML(w, "subsettings", struct{Subdiscepto *models.Subdiscepto}{sub})
+	routes.tmpls.RenderHTML(w, "subsettings", struct{ Subdiscepto *models.Subdiscepto }{sub})
 	return nil
 }
 func (routes *Routes) GetGlobalSettings(w http.ResponseWriter, r *http.Request) AppError {
