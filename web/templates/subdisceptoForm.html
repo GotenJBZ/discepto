@@ -13,7 +13,7 @@
     <div class="field">
         <label class="label">Name</label>
         <div class="control has-icons-left">
-            <input type="text" disabled placeholder="Name of the community" class="input is-primary" required name="name"
+            <input type="text" {{if .Subdiscepto}}disabled{{end}} placeholder="Name of the community" class="input is-primary" required name="name"
              {{ with .Subdiscepto }}value="{{.Name}}"{{end}}
             >
             <span class="icon is-small is-left">
