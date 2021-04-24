@@ -19,7 +19,7 @@ func getGlobalUserPerms(ctx context.Context, db DBTX, userID int) (*models.Globa
 		bool_or("delete_user"),
 		bool_or("manage_global_role"),
 		bool_or("read_subdiscepto"),
-		bool_or("edit_subdiscepto"),
+		bool_or("update_subdiscepto"),
 		bool_or("create_essay"),
 		bool_or("delete_essay"),
 		bool_or("ban_user"),
@@ -67,7 +67,7 @@ func getSubUserPerms(ctx context.Context, db DBTX, subdiscepto string, userID in
 	sql, args, _ := psql.
 		Select(
 			bool_or("read_subdiscepto"),
-			bool_or("edit_subdiscepto"),
+			bool_or("update_subdiscepto"),
 			bool_or("create_essay"),
 			bool_or("delete_essay"),
 			bool_or("ban_user"),
@@ -122,7 +122,7 @@ func getSubRolePerms(ctx context.Context, db DBTX, subPermsID int) (*models.SubP
 	sql, args, _ := psql.
 		Select(
 			"read_subdiscepto",
-			"edit_subdiscepto",
+			"update_subdiscepto",
 			"create_essay",
 			"delete_essay",
 			"ban_user",
@@ -212,7 +212,7 @@ func createSubPerms(ctx context.Context, db DBTX, perms models.SubPerms) (int, e
 		Insert("sub_perms").
 		Columns(
 			"read_subdiscepto",
-			"edit_subdiscepto",
+			"update_subdiscepto",
 			"create_essay",
 			"delete_essay",
 			"ban_user",

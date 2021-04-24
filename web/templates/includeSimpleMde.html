@@ -1,4 +1,11 @@
 {{ define "simplemde" }}
 <link rel="stylesheet" href="/static/css/easymde.min.css">
 <script src="/static/js/easymde.min.js"></script>
+    <script>
+        var simplemde = new EasyMDE({
+            element: document.querySelector(".simplemde"),
+            spellChecker: false,
+            forceSync: true
+        });
+    </script>
 {{ end }}

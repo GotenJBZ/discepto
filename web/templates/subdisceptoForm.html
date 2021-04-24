@@ -1,0 +1,96 @@
+{{ define "subdisceptoForm" }}
+<form 
+    {{ with .Subdiscepto }}
+    hx-put="/s/{{.Name}}"
+    hx-target="this"
+    hx-select="#sub-form"
+    hx-swap="outerHTML"
+    {{ else }}
+    action="/s" method="post"
+    {{ end }}
+    id="sub-form"
+>
+    <div class="field">
+        <label class="label">Name</label>
+        <div class="control has-icons-left">
+            <input type="text" disabled placeholder="Name of the community" class="input is-primary" required name="name"
+             {{ with .Subdiscepto }}value="{{.Name}}"{{end}}
+            >
+            <span class="icon is-small is-left">
+                <i class="fa fa-home"></i>
+            </span>
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Description</label>
+        <textarea class="textarea is-primary" rows="5" name="description" id="description">{{ with .Subdiscepto }}{{.Description}}{{end}}</textarea>
+    </div>
+
+    <div class="field">
+        <label class="label">Topics</label>
+        <div class="control">
+            <input type="text" placeholder="Insert topics" class="input is-primary" name="topics">
+        </div>
+        <p class="help">Insert topics separated by commas e.g. tags1,tags2,tags3</p>
+    </div>
+
+
+    <div class="field">
+        <label class="label">Privacy</label>
+        <div class="control">
+            <label class="radio">
+                <input type="radio" name="public" id="public" value="on"
+                {{ with .Subdiscepto }}{{if .Public}}checked{{end}}{{end}}
+                > 
+                Public
+            </label>
+            <label class="radio">
+                <input type="radio" name="public" id="public" value="off"
+                {{ with .Subdiscepto }}{{if not .Public}}checked{{end}}{{end}}
+                > 
+                Private
+            </label>
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Minimum length of posts</label>
+        <div class="control has-icons-left">
+            <input type="number" placeholder="Number of chars" class="input is-primary" required name="min_length"
+                 {{ with .Subdiscepto }}value="{{.MinLength}}"{{end}}
+            >
+            <span class="icon is-small is-left">
+                <i class="fa fa-home"></i>
+            </span>
+        </div>
+    </div>
+    <br>
+    <div class="is-relative">
+        <style>
+            .htmx-indicator.is-overlay {
+                pointer-events: none
+            }
+            .htmx-request .htmx-indicator.is-overlay {
+                pointer-events: inherit
+            }
+        </style>
+        <button class="submit button is-primary">
+            {{ if .Subdiscepto }}
+            Update
+            {{ else }}
+            Create
+            {{ end }}
+        </button>
+        <span class="htmx-indicator is-overlay fast-indicator">
+            <button disabled class="button htmx-indicator is-primary is-focused is-loading">
+            {{ if .Subdiscepto }}
+            Update
+            {{ else }}
+            Create
+            {{ end }}
+            </button>
+        </span>
+    </div>
+</form>
+{{ end }}

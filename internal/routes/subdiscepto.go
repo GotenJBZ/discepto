@@ -161,16 +161,20 @@ func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 func (routes *Routes) PutSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
 
-	sub := models.Subdiscepto{}
-	err := utils.ParseFormStruct(r, &sub)
+	sub := &models.Subdiscepto{}
+	err := utils.ParseFormStruct(r, sub)
 	if err != nil {
 		return &ErrBadRequest{}
 	}
 
-	err = subH.Update(r.Context(), sub)
+	err = subH.Update(r.Context(), *sub)
 	if err != nil {
 		return &ErrInternal{Message: "Error updating subdiscepto data", Cause: err}
 	}
-	http.Redirect(w, r, fmt.Sprintf("/s/%s", sub.Name), http.StatusSeeOther)
+	sub, err = subH.ReadRaw(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	routes.tmpls.RenderHTML(w, "subdisceptoForm", struct{Subdiscepto *models.Subdiscepto}{sub})
 	return nil
 }

@@ -76,8 +76,7 @@
 
                     <div class="field">
                         <label class="label">Text</label>
-                        <textarea id="DisceptoContent"></textarea>
-                        <input name="content" type="hidden">
+                        <textarea id="content" name="content"></textarea>
                     </div>
 
                     <div class="field">
@@ -252,27 +251,5 @@
         </div>
     </div>
 
-
-
-
-
-    <script>
-        var simplemde = new EasyMDE({
-            element: document.getElementById("DisceptoContent"),
-            spellChecker: false
-        });
-        var form = document.getElementById("formid");
-        var about = document.querySelector('input[name=content]');
-
-        form.onsubmit = function() {
-            about.value = simplemde.value();
-            form.submit();
-        };
-    </script>
-
-
-
-</body>
-
-</html>
+    {{ template "footer" }}
 {{ end }}

@@ -23,7 +23,7 @@ CREATE TABLE subdiscepto_users (
 CREATE TABLE sub_perms (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	read_subdiscepto boolean NOT NULL,
-	edit_subdiscepto boolean NOT NULL,
+	update_subdiscepto boolean NOT NULL,
 	delete_essay boolean NOT NULL,
 	create_essay boolean NOT NULL,
 	ban_user boolean NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE sub_roles (
 
 -- Create initial roles. Manually set an easy to remember id.
 INSERT INTO sub_perms
-(id,    read_subdiscepto, edit_subdiscepto, create_essay,  delete_essay,  ban_user,  change_ranking,  delete_subdiscepto,  manage_role)
+(id,    read_subdiscepto, update_subdiscepto, create_essay,  delete_essay,  ban_user,  change_ranking,  delete_subdiscepto,  manage_role)
 OVERRIDING SYSTEM VALUE VALUES
 (-123,  true,             true,            true,          true,          true,      true,            true,                true),
 (-100,  true,             false,            true,          true,          true,      true,            true,                false),

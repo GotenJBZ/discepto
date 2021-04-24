@@ -4,81 +4,11 @@
 <body class="body">
     {{ template "navbar" . }}
     <div class="section">
-        <div class="container is-max-desktop box">
-            <form action="/s" method="post" id="formid">
-                <section class="section">
-
-                    <div class="field">
-                        <h1 class="title is-1">Create a new community</h1>
-                    </div>
-                    <br>
-                    <div class="field">
-                        <label class="label">Name</label>
-                        <div class="control has-icons-left">
-                            <input type="text" placeholder="Name of the community" class="input is-primary" required name="name">
-                            <span class="icon is-small is-left">
-                                <i class="fa fa-home"></i>
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label class="label">Description</label>
-                        <textarea id="SubDisceptoDesc"></textarea>
-                        <input name="description" type="hidden">
-                    </div>
-
-                    <div class="field">
-                        <label class="label">Topics</label>
-                        <div class="control">
-                            <input type="text" placeholder="Insert topics" class="input is-primary" required name="topics">
-                        </div>
-                        <p class="help">Insert topics separated by commas e.g. tags1,tags2,tags3</p>
-                    </div>
-
-
-                <div class="field">
-                    <div class="control">
-                      <label class="checkbox">
-                          <input type="checkbox" name="public" checked> Public
-                      </label>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="label">Minimum length of posts</label>
-                    <div class="control has-icons-left">
-                        <input type="number" placeholder="Number of chars" class="input is-primary" required name="min_length">
-                        <span class="icon is-small is-left">
-                        <i class="fa fa-home"></i>
-                    </span>
-                    </div>
-                </div>
-                <br>
-                <div>
-                    <button class="button is-primary is-outlined" type="submit">Create</button>
-                </div>
-            </section>
-        </form>
-    </div>
-
-    <script>
-        var simplemde = new EasyMDE({
-            element: document.getElementById("SubDisceptoDesc"),
-            spellChecker: false
-        });
-        var form = document.getElementById("formid");
-        var about = document.querySelector('input[name=description]');
-
-        form.onsubmit = function() {
-            about.value = simplemde.value();
-            form.submit();
-        };
-    </script>
-
-
-
-</body>
-
-</html>
+        <div class="container is-max-desktop">
+            <h1 class="title is-1">Create a new community</h1>
+            <div class="box">
+                {{ template "subdisceptoForm" . }}
+            </div>
+        </div>
+    {{ template "footer" }}
 {{ end }}

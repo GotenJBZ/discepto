@@ -13,7 +13,7 @@ type SubPerms struct {
 
 var SubPermsOwner SubPerms = SubPerms{
 	ReadSubdiscepto:   true,
-	UpdateSubdiscepto:   true,
+	UpdateSubdiscepto: true,
 	CreateEssay:       true,
 	DeleteEssay:       true,
 	BanUser:           true,

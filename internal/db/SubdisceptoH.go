@@ -56,7 +56,7 @@ func (h SubdisceptoH) ReadView(ctx context.Context, userH *UserH) (*models.Subdi
 	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied
 	}
-	return h.read(ctx, userH)
+	return h.readView(ctx, userH)
 }
 func (h SubdisceptoH) Delete(ctx context.Context) error {
 	if h.subPerms != models.SubPermsOwner {
@@ -159,11 +159,11 @@ func (h SubdisceptoH) Update(ctx context.Context, sub models.Subdiscepto) error 
 	}
 	sql, args, _ := psql.
 		Update("subdisceptos").
-		Set("name", sub.Name).
 		Set("description", sub.Description).
 		Set("questions_required", sub.QuestionsRequired).
 		Set("nsfw", sub.Nsfw).
 		Set("public", sub.Public).
+		Set("min_length", sub.MinLength).
 		Where(sq.Eq{"name": h.name}).
 		ToSql()
 
@@ -392,7 +392,7 @@ func selectSubdiscepto(userID *int) sq.SelectBuilder {
 		GroupBy("subdisceptos.name")
 }
 
-func (h SubdisceptoH) read(ctx context.Context, userH *UserH) (*models.SubdisceptoView, error) {
+func (h SubdisceptoH) readView(ctx context.Context, userH *UserH) (*models.SubdisceptoView, error) {
 	var sub models.SubdisceptoView
 	var userID *int
 	if userH != nil {
@@ -403,6 +403,14 @@ func (h SubdisceptoH) read(ctx context.Context, userH *UserH) (*models.Subdiscep
 		ToSql()
 
 	err := pgxscan.Get(ctx, h.sharedDB, &sub, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return &sub, nil
+}
+func (h SubdisceptoH) ReadRaw(ctx context.Context) (*models.Subdiscepto, error) {
+	var sub models.Subdiscepto
+	err := pgxscan.Get(ctx, h.sharedDB, &sub, "SELECT * FROM subdisceptos WHERE name = $1", h.name)
 	if err != nil {
 		return nil, err
 	}
