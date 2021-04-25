@@ -274,10 +274,6 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 
 		recentEssays, err := routes.db.ListRecentEssaysIn(r.Context(), mySubs)
 
-		for i := 0; i < len(recentEssays); i++ {
-			recentEssays[i].Content = recentEssays[i].Content[0:150] + "..."
-		}
-
 		if err != nil {
 			return &ErrInternal{Message: "Can't list recent essays", Cause: err}
 		}

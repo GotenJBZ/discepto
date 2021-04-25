@@ -303,12 +303,16 @@ func (h SubdisceptoH) ListRoles(ctx context.Context) ([]models.Role, error) {
 
 func (h SubdisceptoH) createEssay(ctx context.Context, tx DBTX, essay *models.Essay) (*EssayH, error) {
 	clen := len(essay.Content)
-	if clen > LimitMaxContentLen || clen < LimitMinContentLen {
+	subData, err := h.ReadRaw(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if clen > LimitMaxContentLen || clen < subData.MinLength {
 		return nil, ErrBadContentLen
 	}
 	essay.PostedIn = h.name
 
-	err := insertEssay(ctx, tx, essay)
+	err = insertEssay(ctx, tx, essay)
 	if err != nil {
 		return nil, err
 	}
@@ -419,7 +423,7 @@ func (h SubdisceptoH) ReadRaw(ctx context.Context) (*models.Subdiscepto, error) 
 func (h SubdisceptoH) listEssays(ctx context.Context) ([]models.EssayView, error) {
 	var essays []models.EssayView
 
-	sql, args, _ := selectEssayWithJoins.
+	sql, args, _ := selectEssayPreviewWithJoins.
 		GroupBy("essays.id", "users.name", "essay_replies.to_id", "essay_replies.reply_type").
 		Where(sq.Eq{"posted_in": h.name}).
 		ToSql()
@@ -433,7 +437,7 @@ func (h SubdisceptoH) listReplies(ctx context.Context, e EssayH, replyType *stri
 		filterByType = sq.Eq{"reply_type": replyType}
 	}
 
-	sql, args, _ := selectEssay.
+	sql, args, _ := selectEssayPreview.
 		From("essay_replies").
 		Join("essays ON essays.id = essay_replies.from_id ").
 		LeftJoin("votes ON essays.id = votes.essay_id").

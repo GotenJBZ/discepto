@@ -17,7 +17,7 @@ import (
 
 func (sdb *SharedDB) ListRecentEssaysIn(ctx context.Context, subs []string) ([]models.EssayView, error) {
 	essayPreviews := []models.EssayView{}
-	sql, args, _ := selectEssayWithJoins.
+	sql, args, _ := selectEssayPreviewWithJoins.
 		Where(sq.Eq{"posted_in": subs}).
 		GroupBy("essays.id", "essay_replies.from_id", "users.name").
 		ToSql()

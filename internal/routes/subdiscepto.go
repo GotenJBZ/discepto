@@ -106,10 +106,6 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 		return &ErrInternal{Cause: err, Message: "Can't list essays"}
 	}
 
-	for i := 0; i < len(essays); i++ {
-		essays[i].Content = essays[i].Content[0:150] + "..."
-	}
-
 	isMember := false
 	var subs []string
 	if userH != nil {

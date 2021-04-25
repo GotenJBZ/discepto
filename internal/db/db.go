@@ -19,8 +19,7 @@ import (
 
 const (
 	LimitMaxTags       = 10
-	LimitMinContentLen = 150
-	LimitMaxContentLen = 5000 // 5K
+	LimitMaxContentLen = 10000 // 10K
 	TokenLen           = 64   // 64 bytes
 )
 
