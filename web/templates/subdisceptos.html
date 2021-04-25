@@ -2,7 +2,7 @@
 </head>
 
 <body class="body">
-    {{ template "navbar" .}}
+    {{ template "navbar" . }}
     <div class="column container is-max-widescreen">
         <section class="container">
             <div class="hero">
@@ -11,6 +11,20 @@
                 </div>
             </div>
             <div class="columns is-multiline">
+                {{ with .GlobalPerms }}
+                {{ if .CreateSubdiscepto }}
+                <div class="column is-4 is-flex">
+                        <a href="/newsubdiscepto" style="min-height: 100px; height: 100%" class="button is-medium is-fullwidth">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>
+                            New community
+                            </span>
+                        </a>
+                </div>
+                {{ end }}
+                {{ end }}
                 {{ range .Subs }}
                 <div class="column is-4 is-flex">
                     {{ template "subdisceptoCard" . }}

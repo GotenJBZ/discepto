@@ -74,6 +74,7 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 	return nil
 }
 func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) AppError {
+	disceptoH, _ := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
 	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
 	subs, err := routes.db.ListSubdisceptos(r.Context(), userH)
 	if err != nil {
@@ -81,9 +82,11 @@ func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) Ap
 	}
 
 	data := struct {
-		Subs []models.SubdisceptoView
+		GlobalPerms models.GlobalPerms
+		Subs        []models.SubdisceptoView
 	}{
-		Subs: subs,
+		GlobalPerms: disceptoH.Perms(),
+		Subs:        subs,
 	}
 
 	if err != nil {
