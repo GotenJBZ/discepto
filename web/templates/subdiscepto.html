@@ -17,7 +17,6 @@
 
         <div class="columns">
             <div class="column is-8 is-fluid">
-                <a href="/newessay?subdiscepto={{ .Name}}">
                     <div class="box">
                         <article class="media">
                             <figure class="media-left">
@@ -28,13 +27,18 @@
                             <div class="media-content">
                                 <div class="content">
                                     <p class="title is-7"></p>
-                                    <input class="input is-primary" type="text" placeholder="Write an essay" readonly>
+                                    <a href="/newessay?subdiscepto={{ .Name}}">
+                                        <input class="input is-primary" type="text" placeholder="Write an essay" 
+                                        {{ with .SubPerms }}
+                                        {{ if not .CreateEssay }}disabled{{end}}
+                                        {{ end }}
+                                        >
+                                    </a>
                                 </div>
 
                             </div>
                         </article>
                     </div>
-                </a>
                 <br> {{ range $e := .Essays }}
                 <div class="box is-relative">
                     <article class="media">
