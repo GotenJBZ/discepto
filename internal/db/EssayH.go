@@ -72,6 +72,9 @@ var selectEssayPreviewWithJoins = selectEssay.
 	LeftJoin("votes ON votes.essay_id = essays.id").
 	LeftJoin("users ON essays.attributed_to_id = users.id")
 
+func (h *EssayH) Perms() models.EssayPerms {
+	return h.essayPerms
+}
 func (h EssayH) ReadView(ctx context.Context) (*models.EssayView, error) {
 	if !h.essayPerms.Read {
 		return nil, ErrPermDenied

@@ -52,6 +52,9 @@ func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH 
 	h := &SubdisceptoH{dH.sharedDB, subdiscepto, *subPerms}
 	return h, nil
 }
+func (h *SubdisceptoH) Perms() models.SubPerms {
+	return h.subPerms
+}
 func (h SubdisceptoH) ReadView(ctx context.Context, userH *UserH) (*models.SubdisceptoView, error) {
 	if !h.subPerms.ReadSubdiscepto {
 		return nil, ErrPermDenied

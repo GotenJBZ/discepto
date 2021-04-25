@@ -26,6 +26,9 @@ func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) (*DisceptoH, e
 	return &DisceptoH{globalPerms: *globalPerms, sharedDB: sdb.db}, nil
 }
 
+func (h *DisceptoH) Perms() models.GlobalPerms {
+	return h.globalPerms
+}
 func (h *DisceptoH) ListUsers(ctx context.Context) ([]models.User, error) {
 	// TODO: Is the list of users public? I guess not?
 	var users []models.User
