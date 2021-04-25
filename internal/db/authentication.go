@@ -1,5 +1,3 @@
-// This file contains public queries which doesn't require any kind
-// of access control
 package db
 
 import (
@@ -14,46 +12,6 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
-
-func (sdb *SharedDB) ListRecentEssaysIn(ctx context.Context, subs []string) ([]models.EssayView, error) {
-	essayPreviews := []models.EssayView{}
-	sql, args, _ := selectEssayPreviewWithJoins.
-		Where(sq.Eq{"posted_in": subs}).
-		GroupBy("essays.id", "essay_replies.from_id", "users.name").
-		ToSql()
-
-	err := pgxscan.Select(ctx, sdb.db, &essayPreviews, sql, args...)
-	if err != nil {
-		return nil, err
-	}
-	return essayPreviews, nil
-}
-func (sdb *SharedDB) ListSubdisceptos(ctx context.Context, userH *UserH) ([]models.SubdisceptoView, error) {
-	var subs []models.SubdisceptoView
-	var userID *int
-	if userH != nil {
-		userID = &userH.id
-	}
-	sql, args, _ := selectSubdiscepto(userID).ToSql()
-	err := pgxscan.Select(ctx, sdb.db, &subs, sql, args...)
-	if err != nil {
-		return nil, err
-	}
-	return subs, nil
-}
-func insertUser(ctx context.Context, db DBTX, user *models.User, hash []byte) error {
-	// Insert the new user
-	sql, args, _ := psql.
-		Insert("users").
-		Columns("name", "email", "passwd_hash").
-		Values(user.Name, user.Email, hash).
-		Suffix("RETURNING id").
-		ToSql()
-
-	row := db.QueryRow(ctx, sql, args...)
-	err := row.Scan(&user.ID)
-	return err
-}
 func (sdb *SharedDB) CreateUser(ctx context.Context, user *models.User, passwd string) (uH *UserH, err error) {
 	// Check email format
 	if !utils.ValidateEmail(user.Email) {
@@ -154,21 +112,6 @@ func (sdb *SharedDB) Signout(ctx context.Context, token string) error {
 	}
 	return nil
 }
-func (sdb *SharedDB) searchByTags(ctx context.Context, tags []string) (essays []*models.Essay, err error) {
-	sql, args, _ := psql.
-		Select("thesis", "content", "reply_type").
-		Distinct().
-		From("essays").
-		LeftJoin("essay_tags ON id = essay_id").
-		Where(sq.Eq{"tag": tags}).
-		ToSql()
-
-	err = pgxscan.Select(ctx, sdb.db, &essays, sql, args...)
-	if err != nil {
-		return nil, err
-	}
-	return essays, nil
-}
 func validatePasswd(passwd string, userInputs []string) bool {
 	if len(passwd) < 8 || len(passwd) > 64 {
 		return false
@@ -196,4 +139,17 @@ func validatePasswd(passwd string, userInputs []string) bool {
 	}
 
 	return true
+}
+func insertUser(ctx context.Context, db DBTX, user *models.User, hash []byte) error {
+	// Insert the new user
+	sql, args, _ := psql.
+		Insert("users").
+		Columns("name", "email", "passwd_hash").
+		Values(user.Name, user.Email, hash).
+		Suffix("RETURNING id").
+		ToSql()
+
+	row := db.QueryRow(ctx, sql, args...)
+	err := row.Scan(&user.ID)
+	return err
 }

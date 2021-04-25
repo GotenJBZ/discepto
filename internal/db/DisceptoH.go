@@ -151,3 +151,44 @@ func (h *DisceptoH) DeleteReport(ctx context.Context, report *models.Report) err
 	}
 	return nil
 }
+func (h *DisceptoH) ListRecentEssaysIn(ctx context.Context, subs []string) ([]models.EssayView, error) {
+	essayPreviews := []models.EssayView{}
+	sql, args, _ := selectEssayWithJoins.
+		Where(sq.Eq{"posted_in": subs}).
+		GroupBy("essays.id", "essay_replies.from_id", "users.name").
+		ToSql()
+
+	err := pgxscan.Select(ctx, h.sharedDB, &essayPreviews, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return essayPreviews, nil
+}
+func (sdb *SharedDB) ListSubdisceptos(ctx context.Context, userH *UserH) ([]models.SubdisceptoView, error) {
+	var subs []models.SubdisceptoView
+	var userID *int
+	if userH != nil {
+		userID = &userH.id
+	}
+	sql, args, _ := selectSubdiscepto(userID).ToSql()
+	err := pgxscan.Select(ctx, sdb.db, &subs, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return subs, nil
+}
+func (sdb *SharedDB) searchByTags(ctx context.Context, tags []string) (essays []*models.Essay, err error) {
+	sql, args, _ := psql.
+		Select("thesis", "content", "reply_type").
+		Distinct().
+		From("essays").
+		LeftJoin("essay_tags ON id = essay_id").
+		Where(sq.Eq{"tag": tags}).
+		ToSql()
+
+	err = pgxscan.Select(ctx, sdb.db, &essays, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return essays, nil
+}

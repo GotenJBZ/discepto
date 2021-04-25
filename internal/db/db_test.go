@@ -173,7 +173,7 @@ func TestEssay(t *testing.T) {
 
 	// list
 	subs := []string{mockSubName, mockSubName2}
-	recentEssays, err := db.ListRecentEssaysIn(context.Background(), subs)
+	recentEssays, err := disceptoH.ListRecentEssaysIn(context.Background(), subs)
 	require.Nil(err)
 	require.Len(recentEssays, 2)
 
