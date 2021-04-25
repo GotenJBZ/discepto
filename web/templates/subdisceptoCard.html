@@ -16,14 +16,6 @@
             <button hx-post="/s/{{.Name}}/leave" class="button is-danger is-outlined is-fullwidth is-rounded">Leave</button> {{ else }}
             <button hx-post="/s/{{.Name}}/join" class="button is-primary is-fullwidth is-rounded">Join</button> {{ end }}
         </div>
-        {{ if false}}
-        <div class="control">
-            <a class="button is-info is-outlined is-fullwidth is-rounded" href="/s/{{ .Name }}/settings">
-                <span class="icon">
-                    <i class="fas fa-cog"></i>
-                </span>
-            </a>
-        </div>{{ end }}
     </div>
 </div>
 {{ end }}
