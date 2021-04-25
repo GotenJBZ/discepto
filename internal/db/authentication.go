@@ -12,6 +12,7 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
+
 func (sdb *SharedDB) CreateUser(ctx context.Context, user *models.User, passwd string) (uH *UserH, err error) {
 	// Check email format
 	if !utils.ValidateEmail(user.Email) {

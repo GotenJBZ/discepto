@@ -20,7 +20,7 @@ import (
 const (
 	LimitMaxTags       = 10
 	LimitMaxContentLen = 10000 // 10K
-	TokenLen           = 64   // 64 bytes
+	TokenLen           = 64    // 64 bytes
 )
 
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
