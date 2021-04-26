@@ -143,7 +143,7 @@ func (h SubdisceptoH) AddMember(ctx context.Context, userH UserH) error {
 	if err != nil {
 		return err
 	}
-	subPermsID, err := subPermsIDByRoleName(ctx, h.sharedDB, "common", false)
+	subPermsID, err := subPermsIDByRoleName(ctx, h.sharedDB, h.name, "common", false)
 	if err != nil {
 		return err
 	}

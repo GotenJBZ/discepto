@@ -238,8 +238,8 @@ func createSubPerms(ctx context.Context, db DBTX, perms models.SubPerms) (int, e
 	err := row.Scan(&id)
 	return id, err
 }
-func subPermsIDByRoleName(ctx context.Context, db DBTX, name string, preset bool) (int, error) {
-	row := db.QueryRow(ctx, "SELECT sub_perms_id FROM sub_roles WHERE name = $1 AND preset = $2", name, preset)
+func subPermsIDByRoleName(ctx context.Context, db DBTX, subdiscepto string, name string, preset bool) (int, error) {
+	row := db.QueryRow(ctx, "SELECT sub_perms_id FROM sub_roles WHERE name = $1 AND preset = $2 AND subdiscepto = $3", name, preset, subdiscepto)
 	id := 0
 	err := row.Scan(&id)
 	return id, err

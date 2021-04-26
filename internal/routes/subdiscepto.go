@@ -130,13 +130,13 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 		Essays          []models.EssayView
 		IsMember        bool
 		SubdisceptoList []string
-		SubPerms	models.SubPerms
+		SubPerms        models.SubPerms
 	}{
 		SubdisceptoView: subData,
 		Essays:          essays,
 		IsMember:        isMember,
 		SubdisceptoList: subs,
-		SubPerms: 	 subH.Perms(),
+		SubPerms:        subH.Perms(),
 	}
 	routes.tmpls.RenderHTML(w, "subdiscepto", data)
 	return nil
