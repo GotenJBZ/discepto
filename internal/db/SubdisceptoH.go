@@ -242,10 +242,10 @@ func (h *SubdisceptoH) ListMembers(ctx context.Context) ([]models.Member, error)
 		Select("subdiscepto_users.user_id", "users.name", "sub_roles.name", "sub_roles.preset", "sub_roles.sub_perms_id").
 		From("subdiscepto_users").
 		Join("users ON subdiscepto_users.user_id = users.id").
-		LeftJoin("user_sub_roles ON subdiscepto_users.user_id = user_sub_roles.user_id").
+		LeftJoin("user_sub_roles ON subdiscepto_users.user_id = user_sub_roles.user_id AND subdiscepto_users.subdiscepto = user_sub_roles.subdiscepto").
 		LeftJoin("sub_roles ON user_sub_roles.sub_perms_id = sub_roles.sub_perms_id").
 		Where(sq.Eq{"subdiscepto_users.subdiscepto": h.name}).
-		OrderBy("subdiscepto_users.user_id").
+		OrderBy("subdiscepto_users.user_id", "sub_roles.sub_perms_id").
 		ToSql()
 
 	membersByID := map[int]*models.Member{}
