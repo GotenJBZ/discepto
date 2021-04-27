@@ -41,7 +41,23 @@
                                     <div class="image is-32x32 mr-2">
                                         <img src="http://bulma.io/images/placeholders/128x128.png">
                                     </div>
-                                    <a href="#" class="mr-2">@{{ $m.Name }}</a>
+                                    <div class="level-item is-flex is-flex-direction-column">
+                                            <a href="#">@{{ $m.Name }}</a>
+                                            {{ if .LeftAt.Valid }}
+                                            <div class="dropdown is-hoverable">
+                                                <div class="dropdown-trigger">
+                                                    <span>Has left<span>
+                                                </div>
+                                                <div class="dropdown-menu">
+                                                    <div class="dropdown-content">
+                                                        <div class="dropdown-item">
+                                                            User left at {{ .LeftAt }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {{ end }}
+                                    </div>
                                 </div>
                                 <div class="level-left tags">
                                     {{ range $m.Roles }}

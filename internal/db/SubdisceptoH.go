@@ -143,11 +143,7 @@ func (h SubdisceptoH) AddMember(ctx context.Context, userH UserH) error {
 	if err != nil {
 		return err
 	}
-	subPermsID, err := subPermsIDByRoleName(ctx, h.sharedDB, h.name, "common", false)
-	if err != nil {
-		return err
-	}
-	return assignSubRole(ctx, h.sharedDB, h.name, nil, userH.id, subPermsID)
+	return nil
 }
 func (h SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
 	// TODO: should check for specific permission to remove other users
@@ -239,7 +235,7 @@ func (h *SubdisceptoH) ListMembers(ctx context.Context) ([]models.Member, error)
 	}
 
 	sqlquery, args, _ := psql.
-		Select("subdiscepto_users.user_id", "users.name", "sub_roles.name", "sub_roles.preset", "sub_roles.sub_perms_id").
+		Select("subdiscepto_users.user_id", "subdiscepto_users.left_at", "users.name", "sub_roles.name", "sub_roles.preset", "sub_roles.sub_perms_id").
 		From("subdiscepto_users").
 		Join("users ON subdiscepto_users.user_id = users.id").
 		LeftJoin("user_sub_roles ON subdiscepto_users.user_id = user_sub_roles.user_id AND subdiscepto_users.subdiscepto = user_sub_roles.subdiscepto").
@@ -258,7 +254,7 @@ func (h *SubdisceptoH) ListMembers(ctx context.Context) ([]models.Member, error)
 		roleName := sql.NullString{}
 		rolePreset := sql.NullBool{}
 		roleID := sql.NullInt32{}
-		err := rows.Scan(&member.UserID, &member.Name, &roleName, &rolePreset, &roleID)
+		err := rows.Scan(&member.UserID, &member.LeftAt, &member.Name, &roleName, &rolePreset, &roleID)
 		if err != nil {
 			return nil, err
 		}
@@ -395,7 +391,7 @@ func selectSubdiscepto(userID *int) sq.SelectBuilder {
 	).
 		Column("bool_or(CASE subdiscepto_users.user_id WHEN ? THEN true ELSE false END) AS is_member", userID).
 		From("subdisceptos").
-		LeftJoin("subdiscepto_users ON subdisceptos.name = subdiscepto_users.subdiscepto").
+		LeftJoin("subdiscepto_users ON subdisceptos.name = subdiscepto_users.subdiscepto AND subdiscepto_users.left_at IS NULL").
 		GroupBy("subdisceptos.name")
 }
 
@@ -490,7 +486,7 @@ func isSubPublic(ctx context.Context, db DBTX, subdiscepto string) bool {
 	return true
 }
 func addMember(ctx context.Context, db DBTX, subdiscepto string, userID int) error {
-	return execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
+	err := execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
 		sql, args, _ := psql.
 			Insert("subdiscepto_users").
 			Columns("subdiscepto", "user_id").
@@ -498,12 +494,35 @@ func addMember(ctx context.Context, db DBTX, subdiscepto string, userID int) err
 			ToSql()
 
 		_, err := tx.Exec(ctx, sql, args...)
-		return err
+		if err != nil {
+			return err
+		}
+
+		subPermsID, err := subPermsIDByRoleName(ctx, tx, subdiscepto, "common", false)
+		if err != nil {
+			return err
+		}
+		return assignSubRole(ctx, tx, subdiscepto, nil, userID, subPermsID)
 	})
+	if err != nil {
+		return rejoin(ctx, db, subdiscepto, userID)
+	}
+	return nil
+}
+func rejoin(ctx context.Context, db DBTX, subdiscepto string, userID int) error {
+	sql, args, _ := psql.
+		Update("subdiscepto_users").
+		Set("left_at", nil).
+		Where(sq.Eq{"user_id": userID, "subdiscepto": subdiscepto}).
+		ToSql()
+
+	_, err := db.Exec(ctx, sql, args...)
+	return err
 }
 func removeMember(ctx context.Context, db DBTX, subdiscepto string, userID int) error {
 	sql, args, _ := psql.
-		Delete("subdiscepto_users").
+		Update("subdiscepto_users").
+		Set("left_at", "now()").
 		Where(sq.Eq{"subdiscepto": subdiscepto, "user_id": userID}).
 		ToSql()
 

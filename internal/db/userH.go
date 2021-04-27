@@ -84,7 +84,7 @@ func (h UserH) ListMySubdisceptos(ctx context.Context) (subs []string, err error
 	sql, args, _ := psql.
 		Select("subdiscepto").
 		From("subdiscepto_users").
-		Where(sq.Eq{"user_id": h.id}).
+		Where(sq.Eq{"user_id": h.id, "left_at": nil}).
 		ToSql()
 
 	err = pgxscan.Select(ctx, h.sharedDB, &subs, sql, args...)

@@ -17,6 +17,7 @@ CREATE TABLE subdisceptos (
 CREATE TABLE subdiscepto_users (
 	subdiscepto varchar(50) REFERENCES subdisceptos(name) ON DELETE CASCADE,
 	user_id int REFERENCES users(id) ON DELETE CASCADE,
+	left_at timestamp,
 	PRIMARY KEY(subdiscepto, user_id)
 );
 
