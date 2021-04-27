@@ -7,73 +7,92 @@
     <div class="container is-max-widescreen">
         <div class="columns">
             <div class="column is-9 is-narrow">
+
                 <div class="box">
-                    <div class="columns is-mobile is-grouped">
-                        <div class="column is-1 is-hidden-touch">
-                            <figure class="image is-48x48 is-rounded">
-                                <img class="is-rounded" src="https://bulma.io/images/placeholders/96x96.png">
-                            </figure>
-                        </div>
-                        <div class="column is-primary">
-                            <p class="title is-4">{{ .Essay.Thesis}}</p>
-                            <p class="subtitle is-6"><a href="#">{{.Essay.AttributedToName}}</a>&nbsp; <time datetime="2018-1-1">{{ .Essay.Published }}</time></p>
-                        </div>
-                        <div class="column is-hidden-mobile is-2 has-text-right ">
-                            {{if eq .Essay.ReplyType.String "supports" }}
-                            <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .Essay.ReplyType.String "refutes"}}
-                            <span class="tag is-danger is-light is-medium">Refutes</span> {{ else }}
-                            <span class="tag is-warning is-light is-medium">General</span> {{ end }}
-                        </div>
-                        <div class="column is-1">
-                            <div class="dropdown">
-                                <div class="dropdown-trigger">
-                                    <button class="button is-white" aria-haspopup="true" aria-controls="dropdown-menu">
-                                        <span class="icon is-small">
-                                            <i class="fa fa-ellipsis-v"></i>
-                                        </span>
-                                    </button>
+                        
+                            <div class="media">
+                                <div class="media-left">
+                                    <figure class="image is-64x64">
+                                        <p>
+                                            <img class="is-rounded " src="https://bulma.io/images/placeholders/128x128.png ">
+                                        </p>
+                                    </figure>
                                 </div>
-                                <div class="dropdown-menu" id="dropdown-menu">
-                                    <div class="dropdown-content is-small">
-                                        <a href="/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/report" class="dropdown-item has-text-danger">report</a>
+                                <div class="media-content">
+                                    <p class="title is-5">
+                                        {{.Essay.Thesis}}  
+                                        
+                                    </p>
+                                    <p class="subtitle is-6">
+                                        <a href="#">{{.Essay.AttributedToName}}</a>&nbsp; <time datetime="2018-1-1">{{ .Essay.Published }}</time>
+                                    </p>
+                                    
+                                </div>
+                                <div class="media-right is-hidden-mobile">
+                                    {{if eq .Essay.ReplyType.String "supports" }}
+                                    <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .Essay.ReplyType.String "refutes"}}
+                                    <span class="tag is-danger is-light is-medium">refutes</span> {{ else }}
+                                    <span class="tag is-warning is-light is-medium">General</span> {{ end }}
+
+                                    <div class="dropdown">
+                                        <div class="dropdown-trigger">
+                                            <button class="button is-white" aria-haspopup="true" aria-controls="dropdown-menu">
+                                                <span class="icon is-small">
+                                                    <i class="fa fa-ellipsis-v"></i>
+                                                </span>
+                                            </button>
+                                        </div>
+                                        <div class="dropdown-menu" id="dropdown-menu">
+                                            <div class="dropdown-content is-small">
+                                                <a href="/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/report" class="dropdown-item has-text-danger">report</a>
+                                            </div>
+                                        </div>
                                     </div>
+        
+        
+                                    <script>
+                                        var dropdown = document.querySelector('.dropdown');
+                                        dropdown.addEventListener('click', function(event) {
+                                            event.stopPropagation();
+                                            dropdown.classList.toggle('is-active');
+                                        });
+                                    </script>
+                                </div>
+                                
+                            </div>
+                            <br>
+                            <div class='content'>
+                                <div class="media-content">
+                                    <p>
+                                        {{.Essay.Content}}
+                                    </p>
                                 </div>
                             </div>
+                            <nav class="level is-mobile">
+                                <div class="level-left ">
 
-
-                            <script>
-                                var dropdown = document.querySelector('.dropdown');
-                                dropdown.addEventListener('click', function(event) {
-                                    event.stopPropagation();
-                                    dropdown.classList.toggle('is-active');
-                                });
-                            </script>
-                        </div>
-                    </div>
-
-
-                    <div class="ml-6">
-                        <p>{{ .Essay.Content }}</p>
-                        <div class="buttons" id="essay-btns">
-                            <button class="button mr-3 is-white">
-                                <span class="icon is-small has-text-danger">
-                                    <i class="fa fa-heart " aria-hidden="true"></i>
-                                </span>
-                            </button>
-                            <button hx-post="/s/{{.Essay.PostedIn}}/{{.Essay.ID}}/vote" hx-vals='{"vote": "upvote"}' hx-target="#essay-btns" hx-select="#essay-btns" hx-swap="outerHTML" class="button mr-3 is-white">
-                                <span class="icon is-small">
-                                    <i class="fa fa-arrow-up {{ if eq .EssayUserDid.Vote.String "upvote" }} has-text-primary {{ end }} " aria-hidden="true"></i>
-                                    <p class="has-text-black">&nbsp;{{ .Essay.Upvotes }}</p>
-                                </span>
-                            </button>
-                            <button hx-post="/s/{{.Essay.PostedIn}}/{{.Essay.ID}}/vote" hx-vals='{"vote": "downvote"}' hx-target="#essay-btns" hx-select="#essay-btns" hx-swap="outerHTML" class="button mr-3 is-white">
-                                <span class="icon is-small">
-                                    <i class="fa fa-arrow-down {{ if eq .EssayUserDid.Vote.String "downvote" }} has-text-primary {{ end }}" aria-hidden="true"></i>
-                                    <p class="has-text-black">&nbsp;{{ .Essay.Downvotes }}</p>
-                                </span>
-                            </button>
-                        </div>
-                    </div>
+                                    <div class="buttons" id="essay-btns">
+                                        <button class="button mr-3 is-white">
+                                            <span class="icon is-small has-text-danger">
+                                                <i class="fa fa-heart " aria-hidden="true"></i>
+                                            </span>
+                                        </button>
+                                        <button hx-post="/s/{{.Essay.PostedIn}}/{{.Essay.ID}}/vote" hx-vals='{"vote": "upvote"}' hx-target="#essay-btns" hx-select="#essay-btns" hx-swap="outerHTML" class="button mr-3 is-white">
+                                            <span class="icon is-small">
+                                                <i class="fa fa-arrow-up {{ if eq .EssayUserDid.Vote.String "upvote" }} has-text-primary {{ end }} " aria-hidden="true"></i>
+                                                <p class="has-text-black">&nbsp;{{ .Essay.Upvotes }}</p>
+                                            </span>
+                                        </button>
+                                        <button hx-post="/s/{{.Essay.PostedIn}}/{{.Essay.ID}}/vote" hx-vals='{"vote": "downvote"}' hx-target="#essay-btns" hx-select="#essay-btns" hx-swap="outerHTML" class="button mr-3 is-white">
+                                            <span class="icon is-small">
+                                                <i class="fa fa-arrow-down {{ if eq .EssayUserDid.Vote.String "downvote" }} has-text-primary {{ end }}" aria-hidden="true"></i>
+                                                <p class="has-text-black">&nbsp;{{ .Essay.Downvotes }}</p>
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </nav>
+                        
                 </div>
 
 
@@ -165,6 +184,7 @@
 
 
             <div class="column is-3 is-fluid">
+                
                 <div class="card ">
                     <nav class="panel is-primary ">
                         <p class="panel-heading ">Sources</p>
@@ -184,5 +204,26 @@
                         <a href="/s/{{ . }} " class="panel-block ">s/{{ . }}</a> {{ end }} {{end}}
                     </nav>
                 </div>
+                <br> 
+                <div class="box is-relative is-flex-grow-1 is-flex is-flex-direction-column">
+                <div class="field is-grouped">
+                    <figure class="image is-48x48">
+                        <img class="is-rounded" src="https://bulma.io/images/placeholders/48x48.png">
+                    </figure>
+                    <div class="field pl-5">
+                        <p class="title is-4"><a href="">{{.Essay.AttributedToName}}</a></p>
+                        <p class="subtitle is-6">Followers: 20k</p>
+                    </div>
+                </div>
+                <p class="block is-flex-grow-1">Bio Lorem ipsum dolor sit amet consectetur, adipisicing elit. Obcaecati commodi similique asperiores incidunt reprehenderit molestias ea natus corporis. Maxime fugit possimus obcaecati cumque explicabo ipsum aspernatur recusandae ratione voluptates exercitationem?</p>
+                <div class="field is-grouped">
+                    <div class="control is-expanded">          
+                        <button class="button is-primary is-outlined is-fullwidth is-rounded">follow</button> 
+                        
+                    </div>  
+                    
+                </div>
             </div>
+            </div>
+
             {{ template "footer" }} {{ end }}
