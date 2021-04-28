@@ -2,265 +2,155 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/georgysavva/scany/pgxscan"
-	"github.com/jackc/pgx/v4"
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
-func getGlobalUserPerms(ctx context.Context, db DBTX, userID int) (*models.GlobalPerms, error) {
-	perms := models.GlobalPerms{}
-	sql, args, _ := psql.Select(
-		bool_or("login"),
-		bool_or("create_subdiscepto"),
-		bool_or("ban_user_globally"),
-		bool_or("delete_user"),
-		bool_or("manage_global_role"),
-		bool_or("read_subdiscepto"),
-		bool_or("update_subdiscepto"),
-		bool_or("create_essay"),
-		bool_or("delete_essay"),
-		bool_or("ban_user"),
-		bool_or("delete_subdiscepto"),
-		bool_or("change_ranking"),
-		bool_or("manage_role"),
-	).
-		From("user_global_roles").
-		Join("global_perms ON user_global_roles.global_perms_id = global_perms.id").
-		Join("sub_perms ON global_perms.sub_perms_id = sub_perms.id").
-		Where(sq.Eq{"user_id": userID}).
-		Having("COUNT(*) > 0").
+var (
+	RoleDisceptoAdmin  = models.Role{ID: -123, Name: "admin", Preset: true}
+	RoleDisceptoCommon = models.Role{ID: -100, Name: "common", Preset: true}
+)
+
+const (
+	PermCreateSubdiscepto = "create_subdiscepto"
+	PermReadSubsdiscepto  = "read_subdiscepto"
+)
+
+func listRoles(ctx context.Context, db DBTX, domain string) ([]models.Role, error) {
+	sql, args, _ := psql.Select("id", "name", "preset").
+		From("roles").
+		Where(sq.Eq{"domain": domain}).
 		ToSql()
 
-	row := db.QueryRow(ctx, sql, args...)
-	err := row.Scan(
-		&perms.Login,
-		&perms.CreateSubdiscepto,
-		&perms.BanUserGlobally,
-		&perms.DeleteUser,
-		&perms.ManageGlobalRole,
-		&perms.ReadSubdiscepto,
-		&perms.UpdateSubdiscepto,
-		&perms.CreateEssay,
-		&perms.DeleteEssay,
-		&perms.BanUser,
-		&perms.DeleteSubdiscepto,
-		&perms.ChangeRanking,
-		&perms.ManageRole,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return &perms, nil
-}
-
-// Returns the permissions corresponding to a user inside a subdiscepto.
-// The user may have multiple roles and may also have a global role,
-// granting him permissions inside every subdiscepto.
-// We simply fetch all the roles assigned to a user, get the corresponding permissions
-// id and UNION the results.
-// With the aggregate function "bool_or" we sum every premission.
-// The result is 1 row with the correct permissions.
-func getSubUserPerms(ctx context.Context, db DBTX, subdiscepto string, userID int) (perms *models.SubPerms, err error) {
-	sql, args, _ := psql.
-		Select(
-			bool_or("read_subdiscepto"),
-			bool_or("update_subdiscepto"),
-			bool_or("create_essay"),
-			bool_or("delete_essay"),
-			bool_or("ban_user"),
-			bool_or("delete_subdiscepto"),
-			bool_or("change_ranking"),
-			bool_or("manage_role"),
-		).
-		From("user_sub_roles").
-		Join("sub_perms ON sub_perms.id = user_sub_roles.sub_perms_id").
-		Where(sq.Eq{"subdiscepto": subdiscepto, "user_id": userID}).
-		Having("COUNT(*) > 0").
-		ToSql()
-
-	row := db.QueryRow(ctx, sql, args...)
-	perms = &models.SubPerms{}
-	err = row.Scan(
-		&perms.ReadSubdiscepto,
-		&perms.UpdateSubdiscepto,
-		&perms.CreateEssay,
-		&perms.DeleteEssay,
-		&perms.BanUser,
-		&perms.DeleteSubdiscepto,
-		&perms.ChangeRanking,
-		&perms.ManageRole,
-	)
-	if err == pgx.ErrNoRows {
-		return perms, nil // Return empty perms
-	} else if err != nil {
-		return nil, err
-	}
-	return perms, nil
-}
-func getGlobalRolePerms(ctx context.Context, db DBTX, role string, preset bool) (*models.GlobalPerms, error) {
-	sql, args, _ := psql.
-		Select("*").
-		From("user_global_roles").
-		Join("global_perms ON global_perms.id = global_perms_id").
-		Join("sub_perms ON global_perms.sub_perms_id = sub_perms.id").
-		Where(sq.Eq{"name": role, "preset": preset}).
-		ToSql()
-
-	perms := models.GlobalPerms{}
-	err := pgxscan.Get(ctx, db, &perms, sql, args...)
+	rows, err := db.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	return &perms, err
+	roles := []models.Role{}
+	for rows.Next() {
+		id := 0
+		name := ""
+		preset := false
+		err := rows.Scan(&id, &name, &preset)
+		if err != nil {
+			return nil, err
+		}
+		roles = append(roles, models.Role{ID: id, Name: name, Preset: preset})
+	}
+	return roles, err
 }
-
-func getSubRolePerms(ctx context.Context, db DBTX, subPermsID int) (*models.SubPerms, error) {
-	sql, args, _ := psql.
-		Select(
-			"read_subdiscepto",
-			"update_subdiscepto",
-			"create_essay",
-			"delete_essay",
-			"ban_user",
-			"delete_subdiscepto",
-			"change_ranking",
-			"manage_role",
-		).
-		From("sub_perms").
-		Where(sq.Eq{"id": subPermsID}).
+func findRoleByName(ctx context.Context, db DBTX, domain string, name string) (*models.Role, error) {
+	sql, args, _ := psql.Select("id", "name", "preset").
+		From("roles").
+		Where(sq.Eq{"domain": domain, "name": name}).
 		ToSql()
 
-	perms := models.SubPerms{}
-	err := pgxscan.Get(ctx, db, &perms, sql, args...)
+	row := db.QueryRow(ctx, sql, args...)
+	role := models.Role{}
+	err := row.Scan(&role.ID, &role.Name, &role.Preset)
+	if err != nil {
+		return nil, err
+	}
+	return &role, nil
+}
+func listRolePerms(ctx context.Context, db DBTX, roleID int) (map[string]bool, error) {
+	sql, args, _ := psql.Select("permission").
+		From("role_perms").
+		Where(sq.Eq{"role_id": roleID}).
+		ToSql()
+
+	rows, err := db.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	return &perms, err
-}
-func assignGlobalRole(ctx context.Context, tx DBTX, assignByUser *int, assignToUser int, role string, preset bool) error {
-	q := `
-INSERT INTO user_global_roles (assigned_by, user_id, global_perms_id)
-SELECT $1, $2, global_perms_id
-FROM global_roles
-WHERE name = $3 AND preset = $4
-`
-	byUser := sql.NullInt32{}
-	if assignByUser != nil {
-		byUser.Int32 = int32(*assignByUser)
+	roles := map[string]bool{}
+	for rows.Next() {
+		perm := ""
+		err := rows.Scan(&perm)
+		if err != nil {
+			return nil, err
+		}
+		roles[perm] = true
 	}
-	_, err := tx.Exec(ctx, q, byUser, assignToUser, role, preset)
-	return err
+	return roles, err
 }
-func assignSubRole(ctx context.Context, db DBTX, sub string, assignByUser *int, assignToUser int, subPermsID int) error {
-	byUser := sql.NullInt32{}
-	if assignByUser != nil {
-		byUser.Int32 = int32(*assignByUser)
-	}
-	sql, args, _ := psql.Insert("user_sub_roles").
-		Columns("subdiscepto", "assigned_by", "user_id", "sub_perms_id").
-		Values(sub, assignByUser, assignToUser, subPermsID).
+
+func getUserPerms(ctx context.Context, db DBTX, userID int, domain string) (map[string]bool, error) {
+	sql, args, _ := psql.Select("permission").
+		From("user_roles").
+		Join("role_perms ON user_roles.role_id = role_perms.role_id").
+		Join("roles ON user_roles.role_id = roles.id").
+		Where(sq.Eq{"domain": domain, "user_id": userID}).
 		ToSql()
-	_, err := db.Exec(ctx, sql, args...)
-	return err
-}
-func unassignSubRole(ctx context.Context, db DBTX, sub string, userID, subPermsID int) error {
-	sql, args, _ := psql.Delete("user_sub_roles").
-		Where(sq.Eq{"subdiscepto": sub, "user_id": userID, "sub_perms_id": subPermsID}).
-		ToSql()
-	_, err := db.Exec(ctx, sql, args...)
-	return err
-}
-func createGlobalPerms(ctx context.Context, db DBTX, perms models.GlobalPerms) (int, error) {
-	subPermsID, err := createSubPerms(ctx, db, perms.SubPerms)
+
+	rows, err := db.Query(ctx, sql, args...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	sql, args, _ := psql.
-		Insert("global_perms").
-		Columns(
-			"login",
-			"create_subdiscepto",
-			"ban_user_globally",
-			"delete_user",
-			"manage_global_role",
-			"sub_perms_id",
-		).
-		Values(
-			perms.Login,
-			perms.CreateSubdiscepto,
-			perms.BanUserGlobally,
-			perms.DeleteUser,
-			perms.ManageGlobalRole,
-			subPermsID,
-		).
-		Suffix("RETURNING id").
-		ToSql()
-
-	row := db.QueryRow(ctx, sql, args...)
-	globalPermsID := 0
-	err = row.Scan(&globalPermsID)
-	return globalPermsID, err
+	res := map[string]bool{}
+	for rows.Next() {
+		perm := ""
+		err := rows.Scan(&perm)
+		if err != nil {
+			return nil, err
+		}
+		res[perm] = true
+	}
+	return res, nil
 }
-func createSubPerms(ctx context.Context, db DBTX, perms models.SubPerms) (int, error) {
-	sql, args, _ := psql.
-		Insert("sub_perms").
-		Columns(
-			"read_subdiscepto",
-			"update_subdiscepto",
-			"create_essay",
-			"delete_essay",
-			"ban_user",
-			"change_ranking",
-			"delete_subdiscepto",
-			"manage_role",
-		).
-		Values(
-			perms.ReadSubdiscepto,
-			perms.UpdateSubdiscepto,
-			perms.CreateEssay,
-			perms.DeleteEssay,
-			perms.BanUser,
-			perms.ChangeRanking,
-			perms.DeleteSubdiscepto,
-			perms.ManageRole,
-		).
-		Suffix("RETURNING id").
-		ToSql()
 
-	row := db.QueryRow(ctx, sql, args...)
-	id := 0
-	err := row.Scan(&id)
-	return id, err
-}
-func subPermsIDByRoleName(ctx context.Context, db DBTX, subdiscepto string, name string, preset bool) (int, error) {
-	row := db.QueryRow(ctx, "SELECT sub_perms_id FROM sub_roles WHERE name = $1 AND preset = $2 AND subdiscepto = $3", name, preset, subdiscepto)
-	id := 0
-	err := row.Scan(&id)
-	return id, err
-}
-func createGlobalRole(ctx context.Context, db DBTX, globalPermsID int, name string, preset bool) error {
-	sql, args, _ := psql.
-		Insert("global_roles").
-		Columns("global_perms_id", "name", "preset").
-		Values(globalPermsID, name, preset).
-		ToSql()
-
+func assignRole(ctx context.Context, db DBTX, userID int, roleID int) error {
+	sql, args, _ := psql.Insert("user_roles").Columns("user_id", "role_id").Values(userID, roleID).ToSql()
 	_, err := db.Exec(ctx, sql, args...)
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }
-func createSubRole(ctx context.Context, db DBTX, subPermsID int, subdiscepto string, name string, preset bool) error {
-	sql, args, _ := psql.
-		Insert("sub_roles").
-		Columns("sub_perms_id", "subdiscepto", "name", "preset").
-		Values(subPermsID, subdiscepto, name, preset).
-		ToSql()
-
+func unassignRole(ctx context.Context, db DBTX, userID int, roleID int) error {
+	sql, args, _ := psql.Delete("user_roles").Where(sq.Eq{"user_id": userID, "role_id": roleID}).ToSql()
 	_, err := db.Exec(ctx, sql, args...)
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createRole(ctx context.Context, db DBTX, domain string, name string, preset bool, m map[string]bool) (int, error) {
+	rowID := -1
+	err := execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
+		sql, args, _ := psql.
+			Insert("roles").
+			Columns("domain", "name", "preset").
+			Values(domain, name, preset).
+			Suffix("RETURNING id").
+			ToSql()
+
+		row := db.QueryRow(ctx, sql, args...)
+		err := row.Scan(&rowID)
+		if err != nil {
+			return err
+		}
+
+		q := psql.
+			Insert("role_perms").
+			Columns("role_id", "permission")
+
+		for perm, v := range m {
+			if v {
+				q = q.Values(rowID, perm)
+			}
+		}
+		sql, args, _ = q.ToSql()
+		_, err = db.Exec(ctx, sql, args...)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return rowID, err
 }

@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/url"
 	"os"
 	"testing"
@@ -337,6 +338,7 @@ func TestRoles(t *testing.T) {
 	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, *mockSubdiscepto())
 	require.Nil(err)
 
+	fmt.Println("user")
 	user2 := user
 	user2.Email = "asdfasdf@fasdf.com"
 	user2H, err := db.CreateUser(context.Background(), user2, mockPasswd)
@@ -345,7 +347,7 @@ func TestRoles(t *testing.T) {
 	err = subH.AddMember(context.Background(), *user2H)
 	require.Nil(err)
 
-	globalPerms, err := getGlobalUserPerms(context.Background(), db.db, userH.id)
+	globalPerms, err := getUserPerms(context.Background(), db.db, userH.id, "discepto")
 	require.Nil(err)
 	require.Equal(models.GlobalPerms{
 		Login:             true,
@@ -363,9 +365,9 @@ func TestRoles(t *testing.T) {
 			ChangeRanking:     true,
 			ManageRole:        true,
 		},
-	}, *globalPerms)
+	}, models.GlobalPermsFromMap(globalPerms))
 
-	globalPerms2, err := getGlobalUserPerms(context.Background(), db.db, user2H.id)
+	globalPerms2, err := getUserPerms(context.Background(), db.db, user2H.id, "discepto")
 	require.Nil(err)
 	require.Equal(models.GlobalPerms{
 		Login:             true,
@@ -373,13 +375,13 @@ func TestRoles(t *testing.T) {
 		DeleteUser:        false,
 		BanUserGlobally:   false,
 		ManageGlobalRole:  false,
-	}, *globalPerms2)
+	}, models.GlobalPermsFromMap(globalPerms2))
 
-	subPerms, err := getSubUserPerms(context.Background(), db.db, subH.name, userH.id)
-	require.Equal(&models.SubPermsOwner, subPerms)
+	subPerms, err := getUserPerms(context.Background(), db.db, userH.id, fmt.Sprint("subdiscepto/", subH.Name()))
+	require.Equal(models.SubPermsOwner, models.SubPermsFromMap(subPerms))
 	require.Nil(err)
 
-	subPerms2, err := getSubUserPerms(context.Background(), db.db, subH.name, user2H.id)
+	subPerms2, err := getUserPerms(context.Background(), db.db, user2H.id, fmt.Sprint("subdiscepto/", subH.Name()))
 	require.Nil(err)
 	require.Equal(models.SubPerms{
 		ReadSubdiscepto:   true,
@@ -388,5 +390,9 @@ func TestRoles(t *testing.T) {
 		DeleteSubdiscepto: false,
 		BanUser:           false,
 		ManageRole:        false,
-	}, *subPerms2)
+	}, models.SubPermsFromMap(subPerms2))
+
+	subH.Delete(context.Background())
+	userH.Delete(context.Background())
+	user2H.Delete(context.Background())
 }

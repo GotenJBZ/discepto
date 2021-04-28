@@ -51,16 +51,16 @@ func (routes *Routes) createGlobalRole(w http.ResponseWriter, r *http.Request) A
 	return nil
 }
 func (routes *Routes) assignGlobalRole(w http.ResponseWriter, r *http.Request) AppError {
-	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
-	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
+	//userH := r.Context().Value(UserHCtxKey).(*db.UserH)
+	//disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
 
-	toUserID, err := strconv.Atoi(chi.URLParam(r, "userID"))
-	if err != nil {
-		return &ErrBadRequest{Cause: err}
-	}
+	//toUserID, err := strconv.Atoi(chi.URLParam(r, "userID"))
+	//if err != nil {
+	//	return &ErrBadRequest{Cause: err}
+	//}
 
-	disceptoH.AssignGlobalRole(r.Context(), *userH, toUserID, r.FormValue("role_name"), false)
-	w.Write([]byte("ok, thank you"))
+	////disceptoH.AssignGlobalRole(r.Context(), *userH, toUserID, r.FormValue("role_name"), false)
+	//w.Write([]byte("ok, thank you"))
 	return nil
 }
 func (routes *Routes) createSubRole(w http.ResponseWriter, r *http.Request) AppError {

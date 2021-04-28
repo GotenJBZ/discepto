@@ -34,3 +34,28 @@ func (self SubPerms) And(other SubPerms) SubPerms {
 		ManageRole:        self.ManageRole && other.ManageRole,
 	}
 }
+func SubPermsFromMap(m map[string]bool) SubPerms {
+	return SubPerms{
+		ReadSubdiscepto:   m["read_subdiscepto"],
+		UpdateSubdiscepto: m["update_subdiscepto"],
+		CreateEssay:       m["create_essay"],
+		DeleteEssay:       m["delete_essay"],
+		BanUser:           m["ban_user"],
+		DeleteSubdiscepto: m["delete_subdiscepto"],
+		ChangeRanking:     m["change_ranking"],
+		ManageRole:        m["manage_role"],
+	}
+}
+func SubPermsToMap(perms SubPerms) map[string]bool {
+	// TODO: finish
+	return map[string]bool{
+		"read_subdiscepto":   perms.ReadSubdiscepto,
+		"update_subdiscepto": perms.UpdateSubdiscepto,
+		"create_essay":       perms.CreateEssay,
+		"delete_essay":       perms.DeleteEssay,
+		"ban_user":           perms.BanUser,
+		"delete_subdiscepto": perms.DeleteSubdiscepto,
+		"change_ranking":     perms.ChangeRanking,
+		"manage_role":        perms.ManageRole,
+	}
+}

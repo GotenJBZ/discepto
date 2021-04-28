@@ -44,10 +44,10 @@ func (sdb *SharedDB) CreateUser(ctx context.Context, user *models.User, passwd s
 		}
 
 		if c == 1 {
-			err := assignGlobalRole(ctx, tx, nil, user.ID, "admin", true)
+			err := assignRole(ctx, tx, user.ID, RoleDisceptoAdmin.ID)
 			return err
 		}
-		err := assignGlobalRole(ctx, tx, nil, user.ID, "common", true)
+		err := assignRole(ctx, tx, user.ID, RoleDisceptoCommon.ID)
 		if err != nil {
 			return err
 		}
