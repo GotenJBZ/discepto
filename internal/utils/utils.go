@@ -75,3 +75,52 @@ func ParseFormStruct(r *http.Request, into interface{}) error {
 	}
 	return nil
 }
+func BoolMapToStruct(bm map[string]bool, into interface{}) {
+	v := reflect.ValueOf(into).Elem()
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
+		name := ToSnakeCase(t.Field(i).Name)
+		switch v.Field(i).Type().Kind() {
+		case reflect.Bool:
+			v.Field(i).Set(reflect.ValueOf(bm[name]))
+		case reflect.Struct:
+			BoolMapToStruct(bm, v.Field(i).Addr().Interface())
+		}
+	}
+}
+func StructAnd(s1 interface{}, s2 interface{}) interface{} {
+	vs1 := reflect.ValueOf(s1)
+	vs2 := reflect.ValueOf(s2)
+	out := reflect.New(reflect.ValueOf(s1).Type()).Elem()
+
+	if vs1.Type() != vs2.Type() {
+		panic("can't run AND on different types")
+	}
+	for i := 0; i < vs1.NumField(); i++ {
+		switch vs1.Field(i).Type().Kind() {
+		case reflect.Bool:
+			v := vs1.Field(i).Bool() && vs2.Field(i).Bool()
+			out.Field(i).Set(reflect.ValueOf(v))
+		case reflect.Struct:
+			out.Field(i).Set(reflect.ValueOf(StructAnd(vs1.Field(i), vs2.Field(i))))
+		}
+	}
+	return out.Interface()
+}
+func StructToBoolMap(s interface{}, pMap ...*map[string]bool) map[string]bool {
+	vs1 := reflect.ValueOf(s)
+	ts1 := vs1.Type()
+	m := &map[string]bool{}
+	if len(pMap) > 0 {
+		m = pMap[0]
+	}
+	for i := 0; i < vs1.NumField(); i++ {
+		switch vs1.Field(i).Type().Kind() {
+		case reflect.Bool:
+			(*m)[ToSnakeCase(ts1.Field(i).Name)] = vs1.Field(i).Bool()
+		case reflect.Struct:
+			StructToBoolMap(vs1.Field(i).Interface(), m)
+		}
+	}
+	return *m
+}

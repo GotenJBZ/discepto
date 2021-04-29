@@ -100,7 +100,7 @@ func (h SubdisceptoH) CreateRole(ctx context.Context, subPerms models.SubPerms, 
 	if !h.subPerms.ManageRole || h.subPerms.And(subPerms) != subPerms {
 		return ErrPermDenied
 	}
-	_, err := createRole(ctx, h.sharedDB, fmt.Sprint("subdiscepto/", h.name), role, false, models.SubPermsToMap(subPerms))
+	_, err := createRole(ctx, h.sharedDB, fmt.Sprint("subdiscepto/", h.name), role, false, subPerms.ToBoolMap())
 	return err
 }
 func (h SubdisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, subPermsID int) error {

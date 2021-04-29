@@ -1,6 +1,10 @@
 package utils
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestValidateEmail(t *testing.T) {
 	valid := []string{
@@ -26,58 +30,25 @@ func TestValidateEmail(t *testing.T) {
 		}
 	}
 }
-func TestCheckPerms(t *testing.T) {
-	type Entry struct {
-		provide string
-		need    string
-		expect  bool
+func TestBoolMapStruct(t *testing.T) {
+	require := require.New(t)
+	type Three struct {
+		FourtyTwo bool
 	}
-	entries := []Entry{
-		{
-			provide: "",
-			need:    "",
-			expect:  true,
-		},
-		{
-			provide: "adsfj asdfakj",
-			need:    "",
-			expect:  true,
-		},
-		{
-			provide: "delete_posts",
-			need:    "delete_posts",
-			expect:  true,
-		},
-		{
-			provide: "delete_posts ban_users",
-			need:    "ban_users delete_posts",
-			expect:  true,
-		},
-		{
-			provide: "",
-			need:    "delete_posts ban_users",
-			expect:  false,
-		},
-		{
-			provide: "adsfj asdfakj",
-			need:    "delete_posts ban_users",
-			expect:  false,
-		},
-		{
-			provide: "delete_posts,ban_users",
-			need:    "delete_posts ban_users",
-			expect:  false, // must use space, not comma
-		},
-		{
-			provide: "delete_posts",
-			need:    "ban_users delete_posts",
-			expect:  false,
+	s := struct {
+		One bool
+		Two bool
+		Three
+	}{
+		One: true,
+		Two: false,
+		Three: Three{
+			FourtyTwo: true,
 		},
 	}
-	for _, e := range entries {
-		if CheckPerms(e.provide, e.need) != e.expect {
-			t.Errorf("Expecting %t: provided '%s', needed '%s'", e.expect, e.provide, e.need)
-		}
-	}
-
+	require.Equal(map[string]bool{
+		"one":        true,
+		"two":        false,
+		"fourty_two": true,
+	}, StructToBoolMap(s))
 }
