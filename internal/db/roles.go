@@ -30,14 +30,35 @@ func listRoles(ctx context.Context, db DBTX, domain string) ([]models.Role, erro
 
 	roles := []models.Role{}
 	for rows.Next() {
-		id := 0
-		name := ""
-		preset := false
-		err := rows.Scan(&id, &name, &preset)
+		role := models.Role{}
+		err := rows.Scan(&role.ID, &role.Name, &role.Preset)
 		if err != nil {
 			return nil, err
 		}
-		roles = append(roles, models.Role{ID: id, Name: name, Preset: preset})
+		roles = append(roles, role)
+	}
+	return roles, err
+}
+func listUserRoles(ctx context.Context, db DBTX, userID int, domain string) ([]models.Role, error) {
+	sql, args, _ := psql.Select("id", "name", "preset").
+		From("roles").
+		Join("user_roles ON roles.id = user_roles.role_id").
+		Where(sq.Eq{"domain": domain, "user_id": userID}).
+		ToSql()
+
+	rows, err := db.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	roles := []models.Role{}
+	for rows.Next() {
+		role := models.Role{}
+		err := rows.Scan(&role.ID, &role.Name, &role.Preset)
+		if err != nil {
+			return nil, err
+		}
+		roles = append(roles, role)
 	}
 	return roles, err
 }

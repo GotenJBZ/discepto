@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/georgysavva/scany/pgxscan"
@@ -233,48 +232,22 @@ func (h *SubdisceptoH) ListMembers(ctx context.Context) ([]models.Member, error)
 	}
 
 	sqlquery, args, _ := psql.
-		Select("subdiscepto_users.user_id", "subdiscepto_users.left_at", "users.name", "sub_roles.name", "sub_roles.preset", "sub_roles.sub_perms_id").
+		Select("subdiscepto_users.user_id", "subdiscepto_users.left_at", "users.name").
 		From("subdiscepto_users").
 		Join("users ON subdiscepto_users.user_id = users.id").
-		LeftJoin("user_sub_roles ON subdiscepto_users.user_id = user_sub_roles.user_id AND subdiscepto_users.subdiscepto = user_sub_roles.subdiscepto").
-		LeftJoin("sub_roles ON user_sub_roles.sub_perms_id = sub_roles.sub_perms_id").
 		Where(sq.Eq{"subdiscepto_users.subdiscepto": h.name}).
-		OrderBy("subdiscepto_users.user_id", "sub_roles.sub_perms_id").
+		OrderBy("subdiscepto_users.user_id").
 		ToSql()
 
-	membersByID := map[int]*models.Member{}
-	rows, err := h.sharedDB.Query(ctx, sqlquery, args...)
+	members := []models.Member{}
+	err := pgxscan.Select(ctx, h.sharedDB, &members, sqlquery, args...)
 	if err != nil {
 		return nil, err
 	}
-	for rows.Next() {
-		member := models.Member{}
-		roleName := sql.NullString{}
-		rolePreset := sql.NullBool{}
-		roleID := sql.NullInt32{}
-		err := rows.Scan(&member.UserID, &member.LeftAt, &member.Name, &roleName, &rolePreset, &roleID)
-		if err != nil {
-			return nil, err
-		}
-		_, ok := membersByID[member.UserID]
-		if !ok {
-			membersByID[member.UserID] = &member
-		}
-		if roleName.Valid {
-			role := models.Role{
-				ID:     int(roleID.Int32),
-				Name:   roleName.String,
-				Preset: rolePreset.Bool,
-			}
-			membersByID[member.UserID].Roles = append(membersByID[member.UserID].Roles, role)
-		}
-	}
 
-	members := make([]models.Member, len(membersByID))
-	i := 0
-	for _, m := range membersByID {
-		members[i] = *m
-		i++
+	domain := fmt.Sprint("subdiscepto/", h.name)
+	for i := range members {
+		members[i].Roles, err = listUserRoles(ctx, h.sharedDB, members[i].UserID, domain)
 	}
 
 	return members, nil
@@ -284,14 +257,8 @@ func (h SubdisceptoH) ListRoles(ctx context.Context) ([]models.Role, error) {
 	if !h.subPerms.ManageRole {
 		return nil, ErrPermDenied
 	}
-
-	sql, args, _ := psql.Select("sub_perms_id AS id", "name", "preset").
-		From("sub_roles").
-		Where(sq.Or{sq.Eq{"subdiscepto": h.name}, sq.Eq{"preset": true}}).
-		ToSql()
-
-	var roles []models.Role
-	err := pgxscan.Select(ctx, h.sharedDB, &roles, sql, args...)
+	domain := fmt.Sprint("subdiscepto/", h.name)
+	roles, err := listRoles(ctx, h.sharedDB, domain)
 	if err != nil {
 		return nil, err
 	}
