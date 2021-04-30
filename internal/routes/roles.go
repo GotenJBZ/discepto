@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/jackc/pgconn"
-	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/utils"
 )
@@ -28,7 +27,7 @@ func (routes *Routes) GetGlobalRoles(w http.ResponseWriter, r *http.Request) App
 	return nil
 }
 func (routes *Routes) GetSubRoles(w http.ResponseWriter, r *http.Request) AppError {
-	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	subH := GetSubdisceptoH(r)
 	roles, err := subH.ListRoles(r.Context())
 	if err != nil {
 		return &ErrInternal{Cause: err}
@@ -42,7 +41,7 @@ func (routes *Routes) GetSubRoles(w http.ResponseWriter, r *http.Request) AppErr
 	return nil
 }
 func (routes *Routes) createGlobalRole(w http.ResponseWriter, r *http.Request) AppError {
-	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
+	disceptoH := GetDisceptoH(r)
 	globalPerms := &models.GlobalPerms{}
 	utils.ParseFormStruct(r, globalPerms)
 
@@ -51,8 +50,8 @@ func (routes *Routes) createGlobalRole(w http.ResponseWriter, r *http.Request) A
 	return nil
 }
 func (routes *Routes) assignGlobalRole(w http.ResponseWriter, r *http.Request) AppError {
-	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
-	disH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
+	userH := GetUserH(r)
+	disceptoH := GetDisceptoH(r)
 
 	toUserID, err := strconv.Atoi(chi.URLParam(r, "userID"))
 	if err != nil {
@@ -63,7 +62,7 @@ func (routes *Routes) assignGlobalRole(w http.ResponseWriter, r *http.Request) A
 		return &ErrBadRequest{Cause: err}
 	}
 
-	err = disH.AssignGlobalRole(r.Context(), *userH, toUserID, subPermsID)
+	err = disceptoH.AssignGlobalRole(r.Context(), *userH, toUserID, subPermsID)
 	pgErr := &pgconn.PgError{}
 	// skip if error is duplicate key
 	if err != nil && !(errors.As(err, &pgErr) && pgErr.Code == "23505") {
@@ -72,7 +71,7 @@ func (routes *Routes) assignGlobalRole(w http.ResponseWriter, r *http.Request) A
 	return routes.GetGlobalMembers(w, r)
 }
 func (routes *Routes) createSubRole(w http.ResponseWriter, r *http.Request) AppError {
-	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	subH := GetSubdisceptoH(r)
 	subPerms := &models.SubPerms{}
 	utils.ParseFormStruct(r, subPerms)
 
@@ -81,8 +80,8 @@ func (routes *Routes) createSubRole(w http.ResponseWriter, r *http.Request) AppE
 	return nil
 }
 func (routes *Routes) assignSubRole(w http.ResponseWriter, r *http.Request) AppError {
-	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
-	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	userH := GetUserH(r)
+	subH := GetSubdisceptoH(r)
 
 	toUserID, err := strconv.Atoi(chi.URLParam(r, "userID"))
 	if err != nil {
@@ -102,7 +101,7 @@ func (routes *Routes) assignSubRole(w http.ResponseWriter, r *http.Request) AppE
 	return routes.GetSubMembers(w, r)
 }
 func (routes *Routes) unassignSubRole(w http.ResponseWriter, r *http.Request) AppError {
-	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	subH := GetSubdisceptoH(r)
 
 	toUserID, err := strconv.Atoi(chi.URLParam(r, "userID"))
 	if err != nil {

@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
@@ -29,8 +28,8 @@ func (routes *Routes) GetGlobalMembers(w http.ResponseWriter, r *http.Request) A
 }
 
 func (routes *Routes) GetSubMembers(w http.ResponseWriter, r *http.Request) AppError {
-	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
-	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	userH := GetUserH(r)
+	subH := GetSubdisceptoH(r)
 	sub, err := subH.ReadView(r.Context(), userH)
 	if err != nil {
 		return &ErrInternal{Cause: err}

@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
@@ -15,7 +14,7 @@ func (routes *Routes) GlobalSettingsRouter(r chi.Router) {
 	r.Get("/", routes.AppHandler(routes.GetGlobalSettings))
 }
 func (routes *Routes) GetSubSettings(w http.ResponseWriter, r *http.Request) AppError {
-	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	subH := GetSubdisceptoH(r)
 	sub, err := subH.ReadRaw(r.Context())
 	if err != nil {
 		return &ErrInternal{Cause: err}

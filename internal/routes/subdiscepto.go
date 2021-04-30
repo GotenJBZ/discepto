@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/utils"
 )
@@ -28,8 +27,8 @@ func (routes *Routes) SubdisceptoRouter(r chi.Router) {
 }
 func (routes *Routes) SubdiscpetoCtx(next http.Handler) http.Handler {
 	return routes.AppHandler(func(w http.ResponseWriter, r *http.Request) AppError {
-		userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
-		disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
+		userH := GetUserH(r)
+		disceptoH := GetDisceptoH(r)
 
 		subName := chi.URLParam(r, "subdiscepto")
 		subH, err := disceptoH.GetSubdisceptoH(r.Context(), subName, userH)
@@ -43,8 +42,8 @@ func (routes *Routes) SubdiscpetoCtx(next http.Handler) http.Handler {
 	})
 }
 func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
-	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
-	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	userH := GetUserH(r)
+	subH := GetSubdisceptoH(r)
 
 	err := subH.RemoveMember(r.Context(), *userH)
 	if err != nil {
@@ -59,8 +58,8 @@ func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) A
 	return nil
 }
 func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
-	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
-	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	userH := GetUserH(r)
+	subH := GetSubdisceptoH(r)
 
 	err := subH.AddMember(r.Context(), *userH)
 	if err != nil {
@@ -74,8 +73,8 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 	return nil
 }
 func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) AppError {
-	disceptoH, _ := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
-	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
+	disceptoH := GetDisceptoH(r)
+	userH := GetUserH(r)
 	subs, err := routes.db.ListSubdisceptos(r.Context(), userH)
 	if err != nil {
 		return &ErrNotFound{Cause: err, Thing: "subdisceptos"}
@@ -96,8 +95,8 @@ func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) Ap
 	return nil
 }
 func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
-	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
-	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	userH := GetUserH(r)
+	subH := GetSubdisceptoH(r)
 
 	subData, err := subH.ReadView(r.Context(), userH)
 	if err != nil {
@@ -142,8 +141,8 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 	return nil
 }
 func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
-	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
-	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
+	userH := GetUserH(r)
+	disceptoH := GetDisceptoH(r)
 
 	sub := models.Subdiscepto{}
 	err := utils.ParseFormStruct(r, &sub)
@@ -160,7 +159,7 @@ func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 }
 
 func (routes *Routes) PutSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
-	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	subH := GetSubdisceptoH(r)
 
 	sub := &models.Subdiscepto{}
 	err := utils.ParseFormStruct(r, sub)

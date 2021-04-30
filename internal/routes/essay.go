@@ -22,8 +22,8 @@ func (routes *Routes) EssaysRouter(r chi.Router) {
 }
 func (routes *Routes) EssayCtx(next http.Handler) http.Handler {
 	return routes.AppHandler(func(w http.ResponseWriter, r *http.Request) AppError {
-		userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
-		subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+		userH := GetUserH(r)
+		subH := GetSubdisceptoH(r)
 
 		essayIDStr := chi.URLParam(r, "essayID")
 		essayID, err := strconv.Atoi(essayIDStr)
@@ -43,8 +43,8 @@ func (routes *Routes) EssayCtx(next http.Handler) http.Handler {
 func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppError {
 	subdiscepto := r.URL.Query().Get("subdiscepto")
 
-	user := r.Context().Value(UserHCtxKey).(*db.UserH)
-	subs, err := user.ListMySubdisceptos(r.Context())
+	userH := GetUserH(r)
+	subs, err := userH.ListMySubdisceptos(r.Context())
 
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
@@ -66,8 +66,8 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppErr
 	return nil
 }
 func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError {
-	userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
-	subH, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	userH := GetUserH(r)
+	subH := GetSubdisceptoH(r)
 	esH, _ := r.Context().Value(EssayHCtxKey).(*db.EssayH)
 
 	subData, err := subH.ReadView(r.Context(), userH)
@@ -124,8 +124,8 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	return nil
 }
 func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError {
-	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
-	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
+	userH := GetUserH(r)
+	disceptoH := GetDisceptoH(r)
 
 	subH, err := disceptoH.GetSubdisceptoH(r.Context(), r.FormValue("postedIn"), userH)
 	if err != nil {
@@ -197,7 +197,7 @@ func (routes *Routes) UpdateEssay(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Nope")
 }
 func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError {
-	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
+	userH := GetUserH(r)
 	esH, _ := r.Context().Value(EssayHCtxKey).(*db.EssayH)
 
 	var vote models.VoteType

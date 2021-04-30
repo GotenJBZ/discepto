@@ -21,7 +21,7 @@ type disceptoCtxKey int
 
 const (
 	UserHCtxKey disceptoCtxKey = iota
-	DiscpetoHCtxKey
+	DisceptoHCtxKey
 	SubdisceptoHCtxKey
 	EssayHCtxKey
 )
@@ -130,14 +130,14 @@ func (routes *Routes) UserCtx(next http.Handler) http.Handler {
 
 func (routes *Routes) DisceptoCtx(next http.Handler) http.Handler {
 	return routes.AppHandler(func(w http.ResponseWriter, r *http.Request) AppError {
-		userH, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
+		userH := GetUserH(r)
 
 		subH, err := routes.db.GetDisceptoH(r.Context(), userH)
 		if err != nil {
 			return &ErrInternal{Cause: err}
 		}
 
-		ctx := context.WithValue(r.Context(), DiscpetoHCtxKey, subH)
+		ctx := context.WithValue(r.Context(), DisceptoHCtxKey, subH)
 		next.ServeHTTP(w, r.WithContext(ctx))
 		return nil
 	})
@@ -152,6 +152,22 @@ func (routes *Routes) EnforceCtx(ctxValue disceptoCtxKey) func(http.Handler) htt
 			return nil
 		})
 	}
+}
+func GetUserH(r *http.Request) *db.UserH {
+	h, _ := r.Context().Value(UserHCtxKey).(*db.UserH)
+	return h
+}
+func GetSubdisceptoH(r *http.Request) *db.SubdisceptoH {
+	h, _ := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
+	return h
+}
+func GetDisceptoH(r *http.Request) *db.DisceptoH {
+	h, _ := r.Context().Value(DisceptoHCtxKey).(*db.DisceptoH)
+	return h
+}
+func GetEssayH(r *http.Request) *db.EssayH {
+	h, _ := r.Context().Value(EssayHCtxKey).(*db.EssayH)
+	return h
 }
 
 // Interface shared by every custom http error.
@@ -262,12 +278,12 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 		MySubdisceptos []string
 		RecentEssays   []models.EssayView
 	}
-	disceptoH, ok := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
-	user, ok := r.Context().Value(UserHCtxKey).(*db.UserH)
+	disceptoH := GetDisceptoH(r)
+	userH := GetUserH(r)
 
-	data := homeData{LoggedIn: ok}
+	data := homeData{LoggedIn: userH != nil}
 	if data.LoggedIn {
-		mySubs, err := user.ListMySubdisceptos(r.Context())
+		mySubs, err := userH.ListMySubdisceptos(r.Context())
 		if err != nil {
 			return &ErrInternal{Message: "Can't list joined communities", Cause: err}
 		}
@@ -285,7 +301,7 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	return nil
 }
 func (routes *Routes) GetUsers(w http.ResponseWriter, r *http.Request) AppError {
-	disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
+	disceptoH := GetDisceptoH(r)
 
 	users, err := disceptoH.ListUsers(r.Context())
 	if err != nil {
