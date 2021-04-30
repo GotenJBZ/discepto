@@ -347,6 +347,7 @@ func TestRoles(t *testing.T) {
 	err = subH.AddMember(context.Background(), *user2H)
 	require.Nil(err)
 
+	// Check "admin" global role
 	globalPerms, err := getUserPerms(context.Background(), db.db, userH.id, "discepto")
 	require.Nil(err)
 	require.Equal(models.GlobalPerms{
@@ -367,6 +368,7 @@ func TestRoles(t *testing.T) {
 		},
 	}, models.GlobalPermsFromMap(globalPerms))
 
+	// Check "common" global role
 	globalPerms2, err := getUserPerms(context.Background(), db.db, user2H.id, "discepto")
 	require.Nil(err)
 	require.Equal(models.GlobalPerms{
@@ -381,6 +383,7 @@ func TestRoles(t *testing.T) {
 	require.Equal(models.SubPermsOwner, models.SubPermsFromMap(subPerms))
 	require.Nil(err)
 
+	// Check "common" sub role
 	subPerms2, err := getUserPerms(context.Background(), db.db, user2H.id, fmt.Sprint("subdiscepto/", subH.Name()))
 	require.Nil(err)
 	require.Equal(models.SubPerms{
@@ -390,7 +393,42 @@ func TestRoles(t *testing.T) {
 		DeleteSubdiscepto: false,
 		BanUser:           false,
 		ManageRole:        false,
+		LeaveClean:        true,
 	}, models.SubPermsFromMap(subPerms2))
+
+	// Remove "common" global role, banning the user
+	roleID, err := findRoleByName(context.Background(), db.db, fmt.Sprint("subdiscepto/", subH.Name()), "common")
+	require.Nil(err)
+	subH.UnassignRole(context.Background(), user2H.id, roleID.ID)
+	subPerms2, err = getUserPerms(context.Background(), db.db, user2H.id, fmt.Sprint("subdiscepto/", subH.Name()))
+	require.Nil(err)
+	require.Equal(models.SubPerms{
+		ReadSubdiscepto:   false,
+		CreateEssay:       false,
+		DeleteEssay:       false,
+		DeleteSubdiscepto: false,
+		BanUser:           false,
+		ManageRole:        false,
+		LeaveClean:        false,
+	}, models.SubPermsFromMap(subPerms2))
+
+	// A banned user shouldn't be able to leave the subdiscepto without a trace.
+	// The membership track record must be kept, to ensure the user stays banned
+	sub2H, err := disceptoH.GetSubdisceptoH(context.Background(), subH.Name(), user2H)
+	require.Nil(err)
+	err = sub2H.RemoveMember(context.Background(), *user2H)
+	require.Nil(err)
+	members, err := sub2H.ListMembers(context.Background())
+	require.Nil(err)
+	found := false
+	for _, m := range members {
+		fmt.Println(m)
+		if m.UserID == user2H.id {
+			found = true
+			break
+		}
+	}
+	require.True(found)
 
 	subH.Delete(context.Background())
 	userH.Delete(context.Background())

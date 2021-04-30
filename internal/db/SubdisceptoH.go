@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/georgysavva/scany/pgxscan"
@@ -38,6 +39,7 @@ func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH 
 		DeleteSubdiscepto: subPerms.DeleteSubdiscepto || dH.globalPerms.DeleteSubdiscepto,
 		ChangeRanking:     subPerms.ChangeRanking || dH.globalPerms.ChangeRanking,
 		ManageRole:        subPerms.ManageRole || dH.globalPerms.ManageRole,
+		LeaveClean:        subPerms.LeaveClean || dH.globalPerms.LeaveClean,
 	}
 
 	if !subPerms.ReadSubdiscepto {
@@ -147,7 +149,12 @@ func (h SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
 	if !h.subPerms.ReadSubdiscepto || !userH.perms.Read {
 		return ErrPermDenied
 	}
-	return removeMember(ctx, h.sharedDB, h.name, userH.id)
+	if h.subPerms.LeaveClean {
+		fmt.Println(h)
+		return removeMemberClean(ctx, h.sharedDB, h.name, userH.id)
+	} else {
+		return removeMember(ctx, h.sharedDB, h.name, userH.id)
+	}
 }
 func (h SubdisceptoH) Update(ctx context.Context, sub models.Subdiscepto) error {
 	if !h.subPerms.UpdateSubdiscepto {
@@ -493,8 +500,38 @@ func rejoin(ctx context.Context, db DBTX, subdiscepto string, userID int) error 
 		Where(sq.Eq{"user_id": userID, "subdiscepto": subdiscepto}).
 		ToSql()
 
-	_, err := db.Exec(ctx, sql, args...)
+	tag, err := db.Exec(ctx, sql, args...)
+	if tag.RowsAffected() == 0 {
+		return errors.New("rejoin failed: no rows affected")
+	}
 	return err
+}
+func removeMemberClean(ctx context.Context, db DBTX, subdiscepto string, userID int) error {
+	execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
+		sql, args, _ := psql.
+			Delete("subdiscepto_users").
+			Where(sq.Eq{"subdiscepto": subdiscepto, "user_id": userID}).
+			ToSql()
+		_, err := db.Exec(ctx, sql, args...)
+		if err != nil {
+			return err
+		}
+
+		domain := fmt.Sprint("subdiscepto/", subdiscepto)
+		sql, args, _ = psql.
+			Delete("user_roles").
+			Where(`WHERE user_id = $1 AND role_id IN (
+				SELECT id FROM roles WHERE domain = $2
+			)`, userID, domain).
+			ToSql()
+		_, err = db.Exec(ctx, sql, args...)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	return nil
 }
 func removeMember(ctx context.Context, db DBTX, subdiscepto string, userID int) error {
 	sql, args, _ := psql.

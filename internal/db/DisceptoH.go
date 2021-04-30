@@ -110,6 +110,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			ChangeRanking:     false,
 			DeleteSubdiscepto: false,
 			ManageRole:        false,
+			LeaveClean:        true,
 		}
 		p := subPerms.ToBoolMap()
 		_, err = createRole(ctx, tx, fmt.Sprint("subdiscepto/", subd.Name), "common", false, p)
@@ -127,6 +128,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			ChangeRanking:     true,
 			DeleteSubdiscepto: true,
 			ManageRole:        true,
+			LeaveClean:        true,
 		}
 		adminRoleID, err := createRole(ctx, tx, fmt.Sprint("subdiscepto/", subd.Name), "admin", true, subPerms.ToBoolMap())
 		if err != nil {

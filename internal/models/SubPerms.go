@@ -11,6 +11,7 @@ type SubPerms struct {
 	DeleteSubdiscepto bool
 	ChangeRanking     bool
 	ManageRole        bool
+	LeaveClean        bool
 }
 
 var SubPermsOwner SubPerms = SubPerms{
@@ -22,6 +23,7 @@ var SubPermsOwner SubPerms = SubPerms{
 	ChangeRanking:     true,
 	DeleteSubdiscepto: true,
 	ManageRole:        true,
+	LeaveClean:        true,
 }
 
 func (self SubPerms) And(other SubPerms) SubPerms {
