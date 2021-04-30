@@ -348,7 +348,7 @@ func TestRoles(t *testing.T) {
 	require.Nil(err)
 
 	// Check "admin" global role
-	globalPerms, err := getUserPerms(context.Background(), db.db, userH.id, "discepto")
+	globalPerms, err := getUserPerms(context.Background(), db.db, "discepto", userH.id)
 	require.Nil(err)
 	require.Equal(models.GlobalPerms{
 		Login:             true,
@@ -369,7 +369,7 @@ func TestRoles(t *testing.T) {
 	}, models.GlobalPermsFromMap(globalPerms))
 
 	// Check "common" global role
-	globalPerms2, err := getUserPerms(context.Background(), db.db, user2H.id, "discepto")
+	globalPerms2, err := getUserPerms(context.Background(), db.db, "discepto", user2H.id)
 	require.Nil(err)
 	require.Equal(models.GlobalPerms{
 		Login:             true,
@@ -379,12 +379,12 @@ func TestRoles(t *testing.T) {
 		ManageGlobalRole:  false,
 	}, models.GlobalPermsFromMap(globalPerms2))
 
-	subPerms, err := getUserPerms(context.Background(), db.db, userH.id, fmt.Sprint("subdiscepto/", subH.Name()))
+	subPerms, err := getUserPerms(context.Background(), db.db, subRoleDomain(subH.name), userH.id)
 	require.Equal(models.SubPermsOwner, models.SubPermsFromMap(subPerms))
 	require.Nil(err)
 
 	// Check "common" sub role
-	subPerms2, err := getUserPerms(context.Background(), db.db, user2H.id, fmt.Sprint("subdiscepto/", subH.Name()))
+	subPerms2, err := getUserPerms(context.Background(), db.db, subRoleDomain(subH.name), user2H.id)
 	require.Nil(err)
 	require.Equal(models.SubPerms{
 		ReadSubdiscepto:   true,
@@ -397,10 +397,10 @@ func TestRoles(t *testing.T) {
 	}, models.SubPermsFromMap(subPerms2))
 
 	// Remove "common" global role, banning the user
-	roleID, err := findRoleByName(context.Background(), db.db, fmt.Sprint("subdiscepto/", subH.Name()), "common")
+	roleID, err := findRoleByName(context.Background(), db.db, subRoleDomain(subH.name), "common")
 	require.Nil(err)
 	subH.UnassignRole(context.Background(), user2H.id, roleID.ID)
-	subPerms2, err = getUserPerms(context.Background(), db.db, user2H.id, fmt.Sprint("subdiscepto/", subH.Name()))
+	subPerms2, err = getUserPerms(context.Background(), db.db, subRoleDomain(subH.name), user2H.id)
 	require.Nil(err)
 	require.Equal(models.SubPerms{
 		ReadSubdiscepto:   false,

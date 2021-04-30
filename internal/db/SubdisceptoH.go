@@ -11,6 +11,12 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
+const SubRolePrefix = "subdisceptos"
+
+func subRoleDomain(subdiscepto string) string {
+	return fmt.Sprintf("%s/%s", SubRolePrefix, subdiscepto)
+}
+
 type SubdisceptoH struct {
 	sharedDB DBTX
 	name     string
@@ -21,7 +27,7 @@ func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH 
 	subPerms := &models.SubPerms{}
 	if uH != nil {
 		// First, try getting user's permissions
-		subPermsMap, err := getUserPerms(ctx, dH.sharedDB, uH.id, fmt.Sprint("subdiscepto/", subdiscepto))
+		subPermsMap, err := getUserPerms(ctx, dH.sharedDB, subRoleDomain(subdiscepto), uH.id)
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +107,7 @@ func (h SubdisceptoH) CreateRole(ctx context.Context, subPerms models.SubPerms, 
 	if !h.subPerms.ManageRole || h.subPerms.And(subPerms) != subPerms {
 		return ErrPermDenied
 	}
-	_, err := createRole(ctx, h.sharedDB, fmt.Sprint("subdiscepto/", h.name), role, false, subPerms.ToBoolMap())
+	_, err := createRole(ctx, h.sharedDB, subRoleDomain(h.name), role, false, subPerms.ToBoolMap())
 	return err
 }
 func (h SubdisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, subPermsID int) error {
@@ -252,9 +258,8 @@ func (h *SubdisceptoH) ListMembers(ctx context.Context) ([]models.Member, error)
 		return nil, err
 	}
 
-	domain := fmt.Sprint("subdiscepto/", h.name)
 	for i := range members {
-		members[i].Roles, err = listUserRoles(ctx, h.sharedDB, members[i].UserID, domain)
+		members[i].Roles, err = listUserRoles(ctx, h.sharedDB, members[i].UserID, subRoleDomain(h.name))
 	}
 
 	return members, nil
@@ -264,8 +269,7 @@ func (h SubdisceptoH) ListRoles(ctx context.Context) ([]models.Role, error) {
 	if !h.subPerms.ManageRole {
 		return nil, ErrPermDenied
 	}
-	domain := fmt.Sprint("subdiscepto/", h.name)
-	roles, err := listRoles(ctx, h.sharedDB, domain)
+	roles, err := listRoles(ctx, h.sharedDB, subRoleDomain(h.name))
 	if err != nil {
 		return nil, err
 	}
@@ -442,7 +446,7 @@ func (h SubdisceptoH) deleteSubdiscepto(ctx context.Context) error {
 
 		sql, args, _ = psql.
 			Delete("roles").
-			Where("domain = concat('subdiscepto/', $1::text)", h.name).
+			Where("domain = $1", subRoleDomain(h.name)).
 			ToSql()
 
 		_, err = tx.Exec(ctx, sql, args...)
@@ -482,7 +486,7 @@ func addMember(ctx context.Context, db DBTX, subdiscepto string, userID int) err
 			return err
 		}
 
-		commonRole, err := findRoleByName(ctx, tx, fmt.Sprint("subdiscepto/", subdiscepto), "common")
+		commonRole, err := findRoleByName(ctx, tx, subRoleDomain(subdiscepto), "common")
 		if err != nil {
 			return err
 		}
@@ -517,12 +521,11 @@ func removeMemberClean(ctx context.Context, db DBTX, subdiscepto string, userID 
 			return err
 		}
 
-		domain := fmt.Sprint("subdiscepto/", subdiscepto)
 		sql, args, _ = psql.
 			Delete("user_roles").
 			Where(`WHERE user_id = $1 AND role_id IN (
 				SELECT id FROM roles WHERE domain = $2
-			)`, userID, domain).
+			)`, userID, subRoleDomain(subdiscepto)).
 			ToSql()
 		_, err = db.Exec(ctx, sql, args...)
 		if err != nil {

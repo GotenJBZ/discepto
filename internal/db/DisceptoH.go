@@ -18,7 +18,7 @@ type DisceptoH struct {
 func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) (*DisceptoH, error) {
 	globalPerms := models.GlobalPerms{}
 	if uH != nil {
-		perms, err := getUserPerms(ctx, sdb.db, uH.id, "discepto")
+		perms, err := getUserPerms(ctx, sdb.db, "discepto", uH.id)
 		if err != nil {
 			return nil, err
 		}
@@ -113,7 +113,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			LeaveClean:        true,
 		}
 		p := subPerms.ToBoolMap()
-		_, err = createRole(ctx, tx, fmt.Sprint("subdiscepto/", subd.Name), "common", false, p)
+		_, err = createRole(ctx, tx, subRoleDomain(subd.Name), "common", false, p)
 		if err != nil {
 			return err
 		}
@@ -130,7 +130,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			ManageRole:        true,
 			LeaveClean:        true,
 		}
-		adminRoleID, err := createRole(ctx, tx, fmt.Sprint("subdiscepto/", subd.Name), "admin", true, subPerms.ToBoolMap())
+		adminRoleID, err := createRole(ctx, tx, subRoleDomain(subd.Name), "admin", true, subPerms.ToBoolMap())
 		if err != nil {
 			return err
 		}

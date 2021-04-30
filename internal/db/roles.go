@@ -99,7 +99,7 @@ func listRolePerms(ctx context.Context, db DBTX, roleID int) (map[string]bool, e
 	return roles, err
 }
 
-func getUserPerms(ctx context.Context, db DBTX, userID int, domain string) (map[string]bool, error) {
+func getUserPerms(ctx context.Context, db DBTX, domain string, userID int) (map[string]bool, error) {
 	sql, args, _ := psql.Select("permission").
 		From("user_roles").
 		Join("role_perms ON user_roles.role_id = role_perms.role_id").
