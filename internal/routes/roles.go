@@ -51,17 +51,25 @@ func (routes *Routes) createGlobalRole(w http.ResponseWriter, r *http.Request) A
 	return nil
 }
 func (routes *Routes) assignGlobalRole(w http.ResponseWriter, r *http.Request) AppError {
-	//userH := r.Context().Value(UserHCtxKey).(*db.UserH)
-	//disceptoH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
+	userH := r.Context().Value(UserHCtxKey).(*db.UserH)
+	disH := r.Context().Value(DiscpetoHCtxKey).(*db.DisceptoH)
 
-	//toUserID, err := strconv.Atoi(chi.URLParam(r, "userID"))
-	//if err != nil {
-	//	return &ErrBadRequest{Cause: err}
-	//}
+	toUserID, err := strconv.Atoi(chi.URLParam(r, "userID"))
+	if err != nil {
+		return &ErrBadRequest{Cause: err}
+	}
+	subPermsID, err := strconv.Atoi(r.FormValue("role"))
+	if err != nil {
+		return &ErrBadRequest{Cause: err}
+	}
 
-	////disceptoH.AssignGlobalRole(r.Context(), *userH, toUserID, r.FormValue("role_name"), false)
-	//w.Write([]byte("ok, thank you"))
-	return nil
+	err = disH.AssignGlobalRole(r.Context(), *userH, toUserID, subPermsID)
+	pgErr := &pgconn.PgError{}
+	// skip if error is duplicate key
+	if err != nil && !(errors.As(err, &pgErr) && pgErr.Code == "23505") {
+		return &ErrInternal{Cause: err}
+	}
+	return routes.GetGlobalMembers(w, r)
 }
 func (routes *Routes) createSubRole(w http.ResponseWriter, r *http.Request) AppError {
 	subH := r.Context().Value(SubdisceptoHCtxKey).(*db.SubdisceptoH)
@@ -87,6 +95,7 @@ func (routes *Routes) assignSubRole(w http.ResponseWriter, r *http.Request) AppE
 
 	err = subH.AssignRole(r.Context(), *userH, toUserID, subPermsID)
 	pgErr := &pgconn.PgError{}
+	// skip if error is duplicate key
 	if err != nil && !(errors.As(err, &pgErr) && pgErr.Code == "23505") {
 		return &ErrInternal{Cause: err}
 	}
