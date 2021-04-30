@@ -92,27 +92,6 @@ Maximum length of 300 chars.
                     </div>
                     <p class="help">Insert tags separated by commas e.g. tags1,tags2,tags3</p>
                 </div>
-
-                <div class="field">
-                    <label class="label">Number of questions</label>
-                    <div class="control">
-                        <label class="radio">
-                            <input type="radio" onchange="spawn_question(0)" name="n_questions" value="0" checked> 0
-                        </label>
-                        <label class="radio">
-                            <input type="radio" onchange="spawn_question(1)" name="n_questions" value="1"> 1
-                        </label>
-                        <label class="radio">
-                            <input type="radio" onchange="spawn_question(2)" name="n_questions" value="2"> 2
-                        </label>
-                        <label class="radio">
-                            <input type="radio" onchange="spawn_question(3)" name="n_questions" value="3"> 3
-                        </label>
-                    </div>
-                </div>
-
-
-
                 <div class="field is-hidden" id="1-q">
                     <div class="field">
                         <label class="label">First Question</label>
@@ -233,18 +212,26 @@ Maximum length of 300 chars.
                         </div>
                     </div>
                 </div>
-
+                <div class="field">
+                    <div class="control">
+                        <button class="button is-text" id="b" onclick="question()">add a question</button>                        
+                    </div>
+                </div>
                 <script>
-                    function spawn_question(n) {
-                        for (let i = 1; i < 4; i++) {
-                            q = document.getElementById(i + "-q")
-                            if (i <= n) {
-                                q.classList.remove("is-hidden");
-                            } else {
-                                q.classList.add("is-hidden");
-                            }
+                    var c=1;
+                    function question(){
+                        if(c<4){
+                            q = document.getElementById(c +"-q")
+                            q.classList.remove("is-hidden");
+                            c=c+1; 
                         }
+                        if(c==4){
+                            const b = document.getElementById("b")
+                            b.disabled=true;
+                        }
+                        
                     }
+                    
                 </script>
 
 
