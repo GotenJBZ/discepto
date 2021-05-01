@@ -1,6 +1,13 @@
 {{ define "essay" }} {{ template "head" . }}
 </head>
-
+<style>
+    .tabs {
+    overflow: visible;
+        overflow-x: visible;
+        overflow-y: visible;
+    overflow-x: visible;
+}
+</style>
 <body class="body">
     {{ template "navbar" .}}
     <br>
@@ -98,7 +105,7 @@
 
                 <section id="replies">
                     <h1 class="title is-2 ">Replies</h1>
-                    <div class="tabs is-relative">
+                    <div class="tabs">
                         <ul class="tabs-menu" hx-indicator="#replies" hx-boost="true" hx-swap="outerHTML" hx-target="#replies" hx-select="#replies">
                             <li class="{{if eq .FilterReplyType " general "}}is-active{{end}}"><a href="?replyType=general">Generals</a></li>
                             <li class="{{if eq .FilterReplyType " refutes "}}is-active{{end}}"><a href="?replyType=refutes">Refutes</a></li>
