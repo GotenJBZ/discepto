@@ -127,3 +127,21 @@ func (routes *Routes) unassignSubRole(w http.ResponseWriter, r *http.Request) Ap
 	}
 	return routes.GetSubMembers(w, r)
 }
+func (routes *Routes) unassignGlobalRole(w http.ResponseWriter, r *http.Request) AppError {
+	userH := GetUserH(r)
+	disceptoH := GetDisceptoH(r)
+
+	toUserID, err := strconv.Atoi(chi.URLParam(r, "userID"))
+	if err != nil {
+		return &ErrBadRequest{Cause: err}
+	}
+	subPermsID, err := strconv.Atoi(chi.URLParam(r, "roleID"))
+	if err != nil {
+		return &ErrBadRequest{Cause: err}
+	}
+	err = disceptoH.UnassignRole(r.Context(), *userH, toUserID, subPermsID)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	return routes.GetGlobalMembers(w, r)
+}

@@ -101,7 +101,7 @@ func (h DisceptoH) CreateGlobalRole(ctx context.Context, globalPerms models.Glob
 	_, err := createRole(ctx, h.sharedDB, "discepto", role, false, globalPerms.ToBoolMap())
 	return err
 }
-func (h DisceptoH) AssignGlobalRole(ctx context.Context, byUser UserH, toUser int, roleID int) error {
+func (h *DisceptoH) AssignGlobalRole(ctx context.Context, byUser UserH, toUser int, roleID int) error {
 	if !h.globalPerms.ManageRole || !byUser.perms.Read {
 		return ErrPermDenied
 	}
@@ -114,6 +114,20 @@ func (h DisceptoH) AssignGlobalRole(ctx context.Context, byUser UserH, toUser in
 		return ErrPermDenied
 	}
 	return assignRole(ctx, h.sharedDB, toUser, roleID)
+}
+func (h *DisceptoH) UnassignRole(ctx context.Context, byUser UserH, toUser int, roleID int) error {
+	if !h.globalPerms.ManageRole || !byUser.perms.Read {
+		return ErrPermDenied
+	}
+	newRolePerms, err := listRolePerms(ctx, h.sharedDB, roleID)
+	if err != nil {
+		return err
+	}
+	globalPerms := models.GlobalPermsFromMap(newRolePerms)
+	if globalPerms.And(h.globalPerms) != globalPerms {
+		return ErrPermDenied
+	}
+	return unassignRole(ctx, h.sharedDB, toUser, roleID)
 }
 func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models.Subdiscepto) (*SubdisceptoH, error) {
 	firstUserID := uH.id

@@ -10,6 +10,7 @@ import (
 func (routes *Routes) GlobalMembersRouter(r chi.Router) {
 	r.Get("/", routes.AppHandler(routes.GetGlobalMembers))
 	r.Post("/{userID}", routes.AppHandler(routes.assignGlobalRole))
+	r.Delete("/{userID}/{roleID}", routes.AppHandler(routes.unassignGlobalRole))
 }
 func (routes *Routes) SubMembersRouter(r chi.Router) {
 	r.Get("/", routes.AppHandler(routes.GetSubMembers))
