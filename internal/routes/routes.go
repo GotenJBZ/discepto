@@ -131,12 +131,12 @@ func (routes *Routes) DisceptoCtx(next http.Handler) http.Handler {
 	return routes.AppHandler(func(w http.ResponseWriter, r *http.Request) AppError {
 		userH := GetUserH(r)
 
-		subH, err := routes.db.GetDisceptoH(r.Context(), userH)
+		disceptoH, err := routes.db.GetDisceptoH(r.Context(), userH)
 		if err != nil {
 			return &ErrInternal{Cause: err}
 		}
 
-		ctx := context.WithValue(r.Context(), DisceptoHCtxKey, subH)
+		ctx := context.WithValue(r.Context(), DisceptoHCtxKey, disceptoH)
 		next.ServeHTTP(w, r.WithContext(ctx))
 		return nil
 	})
