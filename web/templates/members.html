@@ -13,11 +13,9 @@
                     Settings
                     </p>
                     <ul class="menu-list">
-                        {{ $prefix := "" }}
-                        {{ with .Subdiscepto }} {{ $prefix = (print "/s/" .Name )}} {{ end }}
-                        <li><a href="{{ $prefix }}/settings">General</a></li>
-                        <li><a href="{{ $prefix }}/members">Members</a></li>
-                        <li><a href="{{ $prefix }}/roles">Roles</a></li>
+                        <li><a href="settings">General</a></li>
+                        <li><a href="members">Members</a></li>
+                        <li><a href="roles">Roles</a></li>
                     </ul>
 
                 </aside>
@@ -63,13 +61,13 @@
                                     {{ range $m.Roles }}
                                     <span class="tag {{ if .Preset }}is-primary{{ else }}is-info{{ end }}">
                                         {{ .Name }}
-                                        <button hx-delete="{{$prefix}}/members/{{$m.UserID}}/{{.ID}}" class="delete is-small"></button> 
+                                        <button hx-delete="members/{{$m.UserID}}/{{.ID}}" class="delete is-small"></button> 
                                     </span>
                                     {{ end }}
                                 </div>
                             </div>
                             <div class="level-right">
-                                <form hx-boost="true" method="post" action="{{$prefix}}/members/{{.UserID}}">
+                                <form hx-boost="true" method="post" action="members/{{.UserID}}">
                                     <div class="select is-small mr-2">
                                         <select name="role">
                                             {{ range $.Roles }}
