@@ -68,6 +68,7 @@ VALUES
 (-123, 'change_ranking'),
 (-123, 'ban_user'),
 (-123, 'manage_role'),
+(-123, 'leave_clean'),
 -- common
 (-100, 'login');
 

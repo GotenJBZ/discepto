@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"net/url"
 	"os"
 	"testing"
@@ -338,7 +337,6 @@ func TestRoles(t *testing.T) {
 	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, *mockSubdiscepto())
 	require.Nil(err)
 
-	fmt.Println("user")
 	user2 := user
 	user2.Email = "asdfasdf@fasdf.com"
 	user2H, err := db.CreateUser(context.Background(), user2, mockPasswd)
@@ -365,6 +363,7 @@ func TestRoles(t *testing.T) {
 			DeleteSubdiscepto: true,
 			ChangeRanking:     true,
 			ManageRole:        true,
+			LeaveClean:        true,
 		},
 	}, models.GlobalPermsFromMap(globalPerms))
 
@@ -414,7 +413,8 @@ func TestRoles(t *testing.T) {
 
 	// A banned user shouldn't be able to leave the subdiscepto without a trace.
 	// The membership track record must be kept, to ensure the user stays banned
-	sub2H, err := disceptoH.GetSubdisceptoH(context.Background(), subH.Name(), user2H)
+	dis2H, err := db.GetDisceptoH(context.Background(), user2H)
+	sub2H, err := dis2H.GetSubdisceptoH(context.Background(), subH.Name(), user2H)
 	require.Nil(err)
 	err = sub2H.RemoveMember(context.Background(), *user2H)
 	require.Nil(err)
@@ -422,7 +422,6 @@ func TestRoles(t *testing.T) {
 	require.Nil(err)
 	found := false
 	for _, m := range members {
-		fmt.Println(m)
 		if m.UserID == user2H.id {
 			found = true
 			break
