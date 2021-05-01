@@ -39,11 +39,28 @@ func (h *DisceptoH) ListRoles(ctx context.Context) ([]models.Role, error) {
 	}
 	return listRoles(ctx, h.sharedDB, "discepto")
 }
-func (h *DisceptoH) ListUsers(ctx context.Context) ([]models.User, error) {
-	// TODO: Is the list of users public? I guess not?
-	var users []models.User
-	err := pgxscan.Select(ctx, h.sharedDB, &users, "SELECT id, name FROM users")
-	return users, err
+func (h *DisceptoH) ListMembers(ctx context.Context) ([]models.Member, error) {
+	if !h.globalPerms.Login {
+		return nil, ErrPermDenied
+	}
+
+	sqlquery, args, _ := psql.
+		Select("users.id AS user_id", "users.name").
+		From("users").
+		OrderBy("users.id").
+		ToSql()
+
+	members := []models.Member{}
+	err := pgxscan.Select(ctx, h.sharedDB, &members, sqlquery, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range members {
+		members[i].Roles, err = listUserRoles(ctx, h.sharedDB, members[i].UserID, "discepto")
+	}
+
+	return members, nil
 }
 func (h *DisceptoH) ReadPublicUser(ctx context.Context, userID int) (*models.User, error) {
 	if !h.globalPerms.Login {

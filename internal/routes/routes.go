@@ -79,7 +79,6 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 
 	// Serve dynamic routes
 	r.Get("/", routes.AppHandler(routes.GetHome))
-	r.Get("/users", routes.AppHandler(routes.GetUsers))
 	r.Get("/signup", routes.GetSignup)
 	r.Post("/signup", routes.AppHandler(routes.PostSignup))
 	r.Get("/login", routes.GetLogin)
@@ -298,17 +297,6 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	}
 
 	routes.tmpls.RenderHTML(w, "home", data)
-	return nil
-}
-func (routes *Routes) GetUsers(w http.ResponseWriter, r *http.Request) AppError {
-	disceptoH := GetDisceptoH(r)
-
-	users, err := disceptoH.ListUsers(r.Context())
-	if err != nil {
-		return &ErrInternal{Cause: err}
-	}
-
-	routes.tmpls.RenderHTML(w, "users", users)
 	return nil
 }
 func (routes *Routes) signOut(w http.ResponseWriter, r *http.Request) error {

@@ -94,7 +94,7 @@ func TestUser(t *testing.T) {
 	require.Nil(err)
 	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
 	require.Nil(err)
-	users, err := disceptoH.ListUsers(context.Background())
+	users, err := disceptoH.ListMembers(context.Background())
 	require.Nil(err)
 	require.Len(users, 1)
 

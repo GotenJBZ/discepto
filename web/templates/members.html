@@ -14,7 +14,7 @@
                     </p>
                     <ul class="menu-list">
                         {{ $prefix := "" }}
-                        {{ if .Subdiscepto }} {{ $prefix = (print "/s/" .Subdiscepto.Name )}} {{ end }}
+                        {{ with .Subdiscepto }} {{ $prefix = (print "/s/" .Name )}} {{ end }}
                         <li><a href="{{ $prefix }}/settings">General</a></li>
                         <li><a href="{{ $prefix }}/members">Members</a></li>
                         <li><a href="{{ $prefix }}/roles">Roles</a></li>

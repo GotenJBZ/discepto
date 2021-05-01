@@ -18,10 +18,24 @@ func (routes *Routes) SubMembersRouter(r chi.Router) {
 }
 
 func (routes *Routes) GetGlobalMembers(w http.ResponseWriter, r *http.Request) AppError {
+	disceptoH := GetDisceptoH(r)
+	members, err := disceptoH.ListMembers(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	roles, err := disceptoH.ListRoles(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
 	data := struct {
-		Subdiscepto *models.SubdisceptoView
+		Subdiscepto *struct{}
+		Members     []models.Member
+		Roles       []models.Role
 	}{
-		nil,
+		Subdiscepto: nil,
+		Members:     members,
+		Roles:       roles,
 	}
 	routes.tmpls.RenderHTML(w, "members", data)
 	return nil
