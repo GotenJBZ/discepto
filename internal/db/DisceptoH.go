@@ -33,6 +33,12 @@ func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) (*DisceptoH, e
 func (h *DisceptoH) Perms() models.GlobalPerms {
 	return h.globalPerms
 }
+func (h *DisceptoH) ListRoles(ctx context.Context) ([]models.Role, error) {
+	if !h.globalPerms.ManageRole {
+		return nil, ErrPermDenied
+	}
+	return listRoles(ctx, h.sharedDB, "discepto")
+}
 func (h *DisceptoH) ListUsers(ctx context.Context) ([]models.User, error) {
 	// TODO: Is the list of users public? I guess not?
 	var users []models.User

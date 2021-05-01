@@ -23,7 +23,17 @@ func (routes *Routes) SubRoleRouter(r chi.Router) {
 	r.Post("/{userID}", routes.AppHandler(routes.assignSubRole))
 }
 func (routes *Routes) GetGlobalRoles(w http.ResponseWriter, r *http.Request) AppError {
-	routes.tmpls.RenderHTML(w, "roles", nil)
+	disceptoH := GetDisceptoH(r)
+	roles, err := disceptoH.ListRoles(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	data := struct {
+		Roles []models.Role
+	}{
+		Roles: roles,
+	}
+	routes.tmpls.RenderHTML(w, "roles", data)
 	return nil
 }
 func (routes *Routes) GetSubRoles(w http.ResponseWriter, r *http.Request) AppError {
