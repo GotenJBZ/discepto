@@ -91,7 +91,7 @@ func BoolMapToStruct(bm map[string]bool, into interface{}) {
 func StructAnd(s1 interface{}, s2 interface{}) interface{} {
 	vs1 := reflect.ValueOf(s1)
 	vs2 := reflect.ValueOf(s2)
-	out := reflect.New(reflect.ValueOf(s1).Type()).Elem()
+	out := reflect.New(vs1.Type()).Elem()
 
 	if vs1.Type() != vs2.Type() {
 		panic("can't run AND on different types")
@@ -102,7 +102,8 @@ func StructAnd(s1 interface{}, s2 interface{}) interface{} {
 			v := vs1.Field(i).Bool() && vs2.Field(i).Bool()
 			out.Field(i).Set(reflect.ValueOf(v))
 		case reflect.Struct:
-			out.Field(i).Set(reflect.ValueOf(StructAnd(vs1.Field(i), vs2.Field(i))))
+			res := reflect.ValueOf(StructAnd(vs1.Field(i).Interface(), vs2.Field(i).Interface()))
+			out.Field(i).Set(res)
 		}
 	}
 	return out.Interface()
