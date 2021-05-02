@@ -398,7 +398,7 @@ func (h SubdisceptoH) ReadRaw(ctx context.Context) (*models.Subdiscepto, error) 
 func (h SubdisceptoH) listEssays(ctx context.Context) ([]models.EssayView, error) {
 	var essays []models.EssayView
 
-	sql, args, _ := selectEssayPreviewWithJoins.
+	sql, args, _ := selectEssayWithJoins.
 		GroupBy("essays.id", "users.name", "essay_replies.to_id", "essay_replies.reply_type").
 		Where(sq.Eq{"posted_in": h.name}).
 		ToSql()
@@ -412,7 +412,7 @@ func (h SubdisceptoH) listReplies(ctx context.Context, e EssayH, replyType *stri
 		filterByType = sq.Eq{"reply_type": replyType}
 	}
 
-	sql, args, _ := selectEssayPreview.
+	sql, args, _ := selectEssay.
 		From("essay_replies").
 		Join("essays ON essays.id = essay_replies.from_id ").
 		LeftJoin("votes ON essays.id = votes.essay_id").

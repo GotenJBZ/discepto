@@ -5,7 +5,9 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 
+	"github.com/yuin/goldmark"
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
@@ -29,8 +31,34 @@ func (tmpls *Templates) RenderHTML(w http.ResponseWriter, tmplName string, data 
 	w.Header().Add("Content-Type", "text/html")
 	w.Write(buff.Bytes())
 }
+func markdown(args ...interface{}) template.HTML {
+	var b bytes.Buffer
+	s := args[0].(string)
+	goldmark.Convert([]byte(s), &b)
+	return template.HTML(b.String())
+}
+func markdownPreview(args ...interface{}) template.HTML {
+	var b bytes.Buffer
+	s := args[0].(string)
+	i := strings.Index(s, "\n\r")
+	maxLen := len(s)
+	if 300 < maxLen {
+		maxLen = 300
+	}
+	if i < 0 || i > maxLen {
+		i = maxLen
+	}
+	goldmark.Convert([]byte(s[0:i]), &b)
+	html := b.String()
+
+	return template.HTML(string(html))
+}
 func (tmpls *Templates) load() {
-	tmpls.templates = template.Must(template.ParseGlob("web/templates/*"))
+	tmpls.templates = template.Must(template.New("").Funcs(template.FuncMap{
+		"markdown":        markdown,
+		"markdownPreview": markdownPreview,
+	}).ParseGlob("web/templates/*"),
+	)
 }
 func GetTemplates(envConfig *models.EnvConfig) Templates {
 	tmpls := Templates{envConfig: envConfig}

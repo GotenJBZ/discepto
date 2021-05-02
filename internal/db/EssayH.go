@@ -52,26 +52,6 @@ var selectEssayWithJoins = selectEssay.
 	LeftJoin("votes ON votes.essay_id = essays.id").
 	LeftJoin("users ON essays.attributed_to_id = users.id")
 
-var selectEssayPreview = psql.
-	Select(
-		"essays.id",
-		"essays.thesis",
-		"left(essays.content, 150) AS content",
-		"essays.attributed_to_id",
-		"essays.published",
-		"essays.posted_in",
-		"SUM(CASE votes.vote_type WHEN 'upvote' THEN 1 ELSE 0 END) AS upvotes",
-		"SUM(CASE votes.vote_type WHEN 'downvote' THEN 1 ELSE 0 END) AS downvotes",
-		"essay_replies.to_id AS in_reply_to",
-		"essay_replies.reply_type AS reply_type",
-		"users.name AS attributed_to_name",
-	)
-var selectEssayPreviewWithJoins = selectEssay.
-	From("essays").
-	LeftJoin("essay_replies ON essay_replies.from_id = essays.id").
-	LeftJoin("votes ON votes.essay_id = essays.id").
-	LeftJoin("users ON essays.attributed_to_id = users.id")
-
 func (h *EssayH) Perms() models.EssayPerms {
 	return h.essayPerms
 }

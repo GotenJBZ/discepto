@@ -61,10 +61,10 @@
                                 
                             </div>
                             <br>
-                            <div class='content'>
-                                <div class="media-content">
+                            <div class="media-content">
+                                <div class="content">
                                     <p>
-                                        {{.Essay.Content}}
+                                        {{.Essay.Content | markdown}}
                                     </p>
                                 </div>
                             </div>
@@ -142,7 +142,7 @@
                                     <div class="content ">
                                         <p>
                                             <strong>{{$g.Thesis}}</strong> <small>{{$g.AttributedToName}}</small> <small>{{$g.Published}}</small>
-                                            <br> {{$g.Content}}
+                                            {{$g.Content | markdownPreview}}
                                         </p>
                                         <a href="/s/{{ $g.PostedIn }}/{{ $g.ID }}" class="stretched-link"></a>
                                     </div>

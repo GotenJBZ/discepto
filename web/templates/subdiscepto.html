@@ -69,7 +69,7 @@
                             <div class="content">
                                 <p>
                                     <strong>{{$e.Thesis}}</strong> <small>@{{$e.AttributedToName}}</small> <small>{{$e.Published}}</small>
-                                    <br> {{$e.Content}}
+                                    <br> {{$e.Content | markdownPreview}}
                                 </p>
                                 <a href="/s/{{ $e.PostedIn }}/{{ $e.ID }}" class="stretched-link"></a>
                             </div>
