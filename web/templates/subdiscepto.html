@@ -4,7 +4,7 @@
 <body class="body">
     {{ template "navbar" .}}
     <div class="container is-max-widescreen">
-        <div class="hero">
+        <div class="hero mr-2 ml-2">
             <div class="hero-body">
                 <div class="level">
                     <div class="level-left level is-mobile">
@@ -34,7 +34,7 @@
         </div>
 
         <div class="columns">
-            <div class="column is-8 is-fluid mr-2 ml-2">
+            <div class="column is-8 is-fluid">
                 <a href="/newessay?subdiscepto={{ .Name}}">
                     <div class="box">
                         <article class="media">
@@ -105,7 +105,7 @@
                     </article>
                 </div>{{ end }}
             </div>
-            <div class="column is-4 is-fluid mr-2 ml-2">
+            <div class="column is-4 is-fluid">
                 {{ template "subdisceptoCard" . }}
                 <div class="card events-card">
                     <nav class="panel is-primary">
