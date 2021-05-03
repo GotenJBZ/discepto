@@ -87,12 +87,14 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 
 	loggedIn := r.With(routes.EnforceCtx(UserHCtxKey))
 	loggedIn.Get("/signout", routes.AppHandler(routes.GetSignout))
+	loggedIn.Get("/user", routes.AppHandler(routes.GetUser))
 	loggedIn.Get("/newessay", routes.AppHandler(routes.GetNewEssay))
 	loggedIn.Post("/newessay", routes.AppHandler(routes.PostEssay))
 	loggedIn.Route("/roles", routes.GlobalRolesRouter)
 	loggedIn.Route("/members", routes.GlobalMembersRouter)
 	loggedIn.Route("/settings", routes.GlobalSettingsRouter)
 	loggedIn.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
+	loggedIn.Get("/notifications", routes.GetNotifications)
 
 	// Fallback
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -319,6 +321,21 @@ func (routes *Routes) GetSignout(w http.ResponseWriter, r *http.Request) AppErro
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil
 }
+func (routes *Routes) GetUser(w http.ResponseWriter, r *http.Request) AppError {
+	userdata := models.User{ID: 1, Name: "pp", Email: "pp@pp.com"}
+	routes.tmpls.RenderHTML(w, "user", struct {
+		User            models.User
+		Essays          []models.EssayView
+		FilterReplyType string
+		MySubdisceptos  []string
+	}{
+		User:            userdata,
+		Essays:          []models.EssayView{},
+		FilterReplyType: "general",
+		MySubdisceptos:  []string{},
+	})
+	return nil
+}
 func (routes *Routes) GetSignup(w http.ResponseWriter, r *http.Request) {
 	routes.tmpls.RenderHTML(w, "signup", nil)
 }
@@ -327,6 +344,9 @@ func (routes *Routes) GetLogin(w http.ResponseWriter, r *http.Request) {
 }
 func (routes *Routes) GetNewSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	routes.tmpls.RenderHTML(w, "newSubdiscepto", nil)
+}
+func (routes *Routes) GetNotifications(w http.ResponseWriter, r *http.Request) {
+	routes.tmpls.RenderHTML(w, "notifications", nil)
 }
 func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) AppError {
 	token, err := routes.db.Login(r.Context(), r.FormValue("email"), r.FormValue("password"))
