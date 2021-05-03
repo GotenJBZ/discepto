@@ -214,12 +214,19 @@ Maximum length of 300 chars.
                 </div>
                 <div class="field">
                     <div class="control">
-                        <button class="button is-text" id="b" onclick="question()">add a question</button>                        
+                        <button class="button is-light is-info" id="b">
+                            <span class="icon">
+                              <i class="fas fa-plus"></i>
+                            </span>
+                            <span>Add a question</span>
+                        </button>                       
                     </div>
                 </div>
                 <script>
                     var c=1;
-                    function question(){
+                    document.getElementById("b").addEventListener("click", question)
+                    function question(event){
+                        event.preventDefault()
                         if(c<4){
                             q = document.getElementById(c +"-q")
                             q.classList.remove("is-hidden");
@@ -228,13 +235,9 @@ Maximum length of 300 chars.
                         if(c==4){
                             const b = document.getElementById("b")
                             b.disabled=true;
-                        }
-                        
-                    }
-                    
+                        }           
+                    }    
                 </script>
-
-
                 <div class="field">
                     <p class="control">
                         <button class="button is-primary" type="submit">Upload</button>
