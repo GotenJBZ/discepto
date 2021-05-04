@@ -363,7 +363,7 @@ func TestRoles(t *testing.T) {
 			DeleteSubdiscepto: true,
 			ChangeRanking:     true,
 			ManageRole:        true,
-			LeaveClean:        true,
+			CommonAfterRejoin: true,
 		},
 	}, models.GlobalPermsFromMap(globalPerms))
 
@@ -392,7 +392,7 @@ func TestRoles(t *testing.T) {
 		DeleteSubdiscepto: false,
 		BanUser:           false,
 		ManageRole:        false,
-		LeaveClean:        true,
+		CommonAfterRejoin: true,
 	}, models.SubPermsFromMap(subPerms2))
 
 	// Remove "common" global role, banning the user
@@ -408,7 +408,7 @@ func TestRoles(t *testing.T) {
 		DeleteSubdiscepto: false,
 		BanUser:           false,
 		ManageRole:        false,
-		LeaveClean:        false,
+		CommonAfterRejoin: false,
 	}, models.SubPermsFromMap(subPerms2))
 
 	// A banned user shouldn't be able to leave the subdiscepto without a trace.

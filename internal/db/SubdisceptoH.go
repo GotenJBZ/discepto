@@ -45,7 +45,7 @@ func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH 
 		DeleteSubdiscepto: subPerms.DeleteSubdiscepto || dH.globalPerms.DeleteSubdiscepto,
 		ChangeRanking:     subPerms.ChangeRanking || dH.globalPerms.ChangeRanking,
 		ManageRole:        subPerms.ManageRole || dH.globalPerms.ManageRole,
-		LeaveClean:        subPerms.LeaveClean || dH.globalPerms.LeaveClean,
+		CommonAfterRejoin: subPerms.CommonAfterRejoin || dH.globalPerms.CommonAfterRejoin,
 	}
 
 	if !subPerms.ReadSubdiscepto {
@@ -146,7 +146,7 @@ func (h SubdisceptoH) AddMember(ctx context.Context, userH UserH) error {
 	}
 	err := addMember(ctx, h.sharedDB, h.name, userH.id)
 	if err != nil {
-		return err
+		return rejoin(ctx, h.sharedDB, h.name, userH.id, h.subPerms)
 	}
 	return nil
 }
@@ -155,8 +155,7 @@ func (h SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
 	if !h.subPerms.ReadSubdiscepto || !userH.perms.Read {
 		return ErrPermDenied
 	}
-	if h.subPerms.LeaveClean {
-		fmt.Println(h)
+	if h.subPerms.CommonAfterRejoin {
 		return removeMemberClean(ctx, h.sharedDB, h.name, userH.id)
 	} else {
 		return removeMember(ctx, h.sharedDB, h.name, userH.id)
@@ -492,47 +491,68 @@ func addMember(ctx context.Context, db DBTX, subdiscepto string, userID int) err
 		}
 		return assignRole(ctx, tx, userID, commonRole.ID)
 	})
-	if err != nil {
-		return rejoin(ctx, db, subdiscepto, userID)
-	}
-	return nil
+	return err
 }
-func rejoin(ctx context.Context, db DBTX, subdiscepto string, userID int) error {
+func rejoin(ctx context.Context, db DBTX, subdiscepto string, userID int, perms models.SubPerms) error {
 	sql, args, _ := psql.
 		Update("subdiscepto_users").
 		Set("left_at", nil).
 		Where(sq.Eq{"user_id": userID, "subdiscepto": subdiscepto}).
 		ToSql()
 
-	tag, err := db.Exec(ctx, sql, args...)
-	if tag.RowsAffected() == 0 {
-		return errors.New("rejoin failed: no rows affected")
-	}
-	return err
+	return execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
+		tag, err := tx.Exec(ctx, sql, args...)
+		if tag.RowsAffected() == 0 {
+			return errors.New("rejoin failed: no rows affected")
+		}
+		if err != nil {
+			return err
+		}
+
+		if perms.CommonAfterRejoin {
+			roles, err := listUserRoles(ctx, tx, userID, subRoleDomain(subdiscepto))
+			if err != nil {
+				return err
+			}
+			rolesMap := map[string]models.Role{}
+			for _, r := range roles {
+				rolesMap[r.Name] = r
+			}
+			if _, ok := rolesMap["common-after-rejoin"]; ok {
+				err = unassignRole(ctx, tx, userID, rolesMap["common-after-rejoin"].ID)
+				if err != nil {
+					return err
+				}
+			}
+			if _, ok := rolesMap["common"]; !ok {
+				commonRole, err := findRoleByName(ctx, tx, subRoleDomain(subdiscepto), "common")
+				if err != nil {
+					return err
+				}
+				return assignRole(ctx, tx, userID, commonRole.ID)
+			}
+		}
+		return nil
+	})
 }
 func removeMemberClean(ctx context.Context, db DBTX, subdiscepto string, userID int) error {
 	execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
-		sql, args, _ := psql.
-			Delete("subdiscepto_users").
-			Where(sq.Eq{"subdiscepto": subdiscepto, "user_id": userID}).
-			ToSql()
-		_, err := db.Exec(ctx, sql, args...)
+		removeMember(ctx, tx, subdiscepto, userID)
+		roles, err := listUserRoles(ctx, tx, userID, subRoleDomain(subdiscepto))
 		if err != nil {
 			return err
 		}
-
-		sql, args, _ = psql.
-			Delete("user_roles").
-			Where(`WHERE user_id = $1 AND role_id IN (
-				SELECT id FROM roles WHERE domain = $2
-			)`, userID, subRoleDomain(subdiscepto)).
-			ToSql()
-		_, err = db.Exec(ctx, sql, args...)
+		for _, role := range roles {
+			err := unassignRole(ctx, tx, userID, role.ID)
+			if err != nil {
+				return err
+			}
+		}
+		commonAfterRejoinRole, err := findRoleByName(ctx, tx, subRoleDomain(subdiscepto), "common-after-rejoin")
 		if err != nil {
 			return err
 		}
-
-		return nil
+		return assignRole(ctx, tx, userID, commonAfterRejoinRole.ID)
 	})
 	return nil
 }

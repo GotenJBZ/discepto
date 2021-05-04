@@ -147,10 +147,20 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			ChangeRanking:     false,
 			DeleteSubdiscepto: false,
 			ManageRole:        false,
-			LeaveClean:        true,
+			CommonAfterRejoin: true,
 		}
 		p := subPerms.ToBoolMap()
 		_, err = createRole(ctx, tx, subRoleDomain(subd.Name), "common", false, p)
+		if err != nil {
+			return err
+		}
+
+		// Create a "common-after-rejoin" role, added to every user while away from the subdiscepto
+		subPerms = models.SubPerms{
+			CommonAfterRejoin: true,
+		}
+		p = subPerms.ToBoolMap()
+		_, err = createRole(ctx, tx, subRoleDomain(subd.Name), "common-after-rejoin", false, p)
 		if err != nil {
 			return err
 		}
@@ -165,7 +175,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			ChangeRanking:     true,
 			DeleteSubdiscepto: true,
 			ManageRole:        true,
-			LeaveClean:        true,
+			CommonAfterRejoin: true,
 		}
 		adminRoleID, err := createRole(ctx, tx, subRoleDomain(subd.Name), "admin", true, subPerms.ToBoolMap())
 		if err != nil {
