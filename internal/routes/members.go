@@ -8,49 +8,35 @@ import (
 )
 
 func (routes *Routes) GlobalMembersRouter(r chi.Router) {
-	r.Get("/", routes.AppHandler(routes.GetGlobalMembers))
-	r.Post("/{userID}", routes.AppHandler(routes.assignGlobalRole))
+	r.Use(RoleManagerCtx(GetRoleManagerDiscepto))
+	routes.membersRouter(r)
 }
 func (routes *Routes) SubMembersRouter(r chi.Router) {
-	r.Get("/", routes.AppHandler(routes.GetSubMembers))
-	r.Post("/{userID}", routes.AppHandler(routes.assignSubRole))
-	r.Delete("/{userID}/{roleID}", routes.AppHandler(routes.unassignSubRole))
+	r.Use(RoleManagerCtx(GetRoleManagerSubdiscepto))
+	routes.membersRouter(r)
+}
+func (routes *Routes) membersRouter(r chi.Router) {
+	r.Get("/", routes.AppHandler(routes.renderMembers))
+	r.Post("/{userID}", routes.AppHandler(routes.assignRole))
+	r.Delete("/{userID}/{roleID}", routes.AppHandler(routes.unassignRole))
 }
 
-func (routes *Routes) GetGlobalMembers(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) renderMembers(w http.ResponseWriter, r *http.Request) AppError {
+	roleManager := GetRoleManager(r)
+	roles, err := roleManager.ListRoles(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	members, err := roleManager.ListMembers(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
 	data := struct {
-		Subdiscepto *models.SubdisceptoView
+		Members []models.Member
+		Roles   []models.Role
 	}{
-		nil,
-	}
-	routes.tmpls.RenderHTML(w, "members", data)
-	return nil
-}
-
-func (routes *Routes) GetSubMembers(w http.ResponseWriter, r *http.Request) AppError {
-	userH := GetUserH(r)
-	subH := GetSubdisceptoH(r)
-	sub, err := subH.ReadView(r.Context(), userH)
-	if err != nil {
-		return &ErrInternal{Cause: err}
-	}
-	members, err := subH.ListMembers(r.Context())
-	if err != nil {
-		return &ErrInternal{Cause: err}
-	}
-	roles, err := subH.ListRoles(r.Context())
-	if err != nil {
-		return &ErrInternal{Cause: err}
-	}
-
-	data := struct {
-		Subdiscepto *models.SubdisceptoView
-		Members     []models.Member
-		Roles       []models.Role
-	}{
-		Subdiscepto: sub,
-		Members:     members,
-		Roles:       roles,
+		Members: members,
+		Roles:   roles,
 	}
 	routes.tmpls.RenderHTML(w, "members", data)
 	return nil

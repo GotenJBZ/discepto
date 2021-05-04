@@ -45,7 +45,9 @@ func (sdb *SharedDB) CreateUser(ctx context.Context, user *models.User, passwd s
 
 		if c == 1 {
 			err := assignRole(ctx, tx, user.ID, RoleDisceptoAdmin.ID)
-			return err
+			if err != nil {
+				return err
+			}
 		}
 		err := assignRole(ctx, tx, user.ID, RoleDisceptoCommon.ID)
 		if err != nil {

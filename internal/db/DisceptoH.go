@@ -33,11 +33,34 @@ func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) (*DisceptoH, e
 func (h *DisceptoH) Perms() models.GlobalPerms {
 	return h.globalPerms
 }
-func (h *DisceptoH) ListUsers(ctx context.Context) ([]models.User, error) {
-	// TODO: Is the list of users public? I guess not?
-	var users []models.User
-	err := pgxscan.Select(ctx, h.sharedDB, &users, "SELECT id, name FROM users")
-	return users, err
+func (h *DisceptoH) ListRoles(ctx context.Context) ([]models.Role, error) {
+	if !h.globalPerms.ManageRole {
+		return nil, ErrPermDenied
+	}
+	return listRoles(ctx, h.sharedDB, "discepto")
+}
+func (h *DisceptoH) ListMembers(ctx context.Context) ([]models.Member, error) {
+	if !h.globalPerms.Login {
+		return nil, ErrPermDenied
+	}
+
+	sqlquery, args, _ := psql.
+		Select("users.id AS user_id", "users.name").
+		From("users").
+		OrderBy("users.id").
+		ToSql()
+
+	members := []models.Member{}
+	err := pgxscan.Select(ctx, h.sharedDB, &members, sqlquery, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range members {
+		members[i].Roles, err = listUserRoles(ctx, h.sharedDB, members[i].UserID, "discepto")
+	}
+
+	return members, nil
 }
 func (h *DisceptoH) ReadPublicUser(ctx context.Context, userID int) (*models.User, error) {
 	if !h.globalPerms.Login {
@@ -78,7 +101,7 @@ func (h DisceptoH) CreateGlobalRole(ctx context.Context, globalPerms models.Glob
 	_, err := createRole(ctx, h.sharedDB, "discepto", role, false, globalPerms.ToBoolMap())
 	return err
 }
-func (h DisceptoH) AssignGlobalRole(ctx context.Context, byUser UserH, toUser int, roleID int) error {
+func (h *DisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, roleID int) error {
 	if !h.globalPerms.ManageRole || !byUser.perms.Read {
 		return ErrPermDenied
 	}
@@ -91,6 +114,20 @@ func (h DisceptoH) AssignGlobalRole(ctx context.Context, byUser UserH, toUser in
 		return ErrPermDenied
 	}
 	return assignRole(ctx, h.sharedDB, toUser, roleID)
+}
+func (h *DisceptoH) UnassignRole(ctx context.Context, toUser int, roleID int) error {
+	if !h.globalPerms.ManageRole {
+		return ErrPermDenied
+	}
+	newRolePerms, err := listRolePerms(ctx, h.sharedDB, roleID)
+	if err != nil {
+		return err
+	}
+	globalPerms := models.GlobalPermsFromMap(newRolePerms)
+	if globalPerms.And(h.globalPerms) != globalPerms {
+		return ErrPermDenied
+	}
+	return unassignRole(ctx, h.sharedDB, toUser, roleID)
 }
 func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models.Subdiscepto) (*SubdisceptoH, error) {
 	firstUserID := uH.id
@@ -110,10 +147,20 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			ChangeRanking:     false,
 			DeleteSubdiscepto: false,
 			ManageRole:        false,
-			LeaveClean:        true,
+			CommonAfterRejoin: true,
 		}
 		p := subPerms.ToBoolMap()
 		_, err = createRole(ctx, tx, subRoleDomain(subd.Name), "common", false, p)
+		if err != nil {
+			return err
+		}
+
+		// Create a "common-after-rejoin" role, added to every user while away from the subdiscepto
+		subPerms = models.SubPerms{
+			CommonAfterRejoin: true,
+		}
+		p = subPerms.ToBoolMap()
+		_, err = createRole(ctx, tx, subRoleDomain(subd.Name), "common-after-rejoin", false, p)
 		if err != nil {
 			return err
 		}
@@ -128,7 +175,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			ChangeRanking:     true,
 			DeleteSubdiscepto: true,
 			ManageRole:        true,
-			LeaveClean:        true,
+			CommonAfterRejoin: true,
 		}
 		adminRoleID, err := createRole(ctx, tx, subRoleDomain(subd.Name), "admin", true, subPerms.ToBoolMap())
 		if err != nil {

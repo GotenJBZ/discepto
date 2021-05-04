@@ -13,11 +13,9 @@
                     Settings
                     </p>
                     <ul class="menu-list">
-                        {{ $prefix := "" }}
-                        {{ if .Subdiscepto }} {{ $prefix = (print "/s/" .Subdiscepto.Name )}} {{ end }}
-                        <li><a href="{{ $prefix }}/settings">General</a></li>
-                        <li><a href="{{ $prefix }}/members">Members</a></li>
-                        <li><a href="{{ $prefix }}/roles">Roles</a></li>
+                        <li><a href="settings">General</a></li>
+                        <li><a href="members">Members</a></li>
+                        <li><a href="roles">Roles</a></li>
                     </ul>
 
                 </aside>
@@ -37,7 +35,7 @@
                     <div class="media" id="member-{{.UserID}}" hx-target="this" hx-select="#member-{{.UserID}}" hx-swap="outerHTML">
                         <div class="level is-flex-grow-1">
                             <div class="level-left">
-                                <div class="level-left">
+                                <div class="level-item">
                                     <div class="image is-32x32 mr-2">
                                         <img src="http://bulma.io/images/placeholders/128x128.png">
                                     </div>
@@ -59,17 +57,18 @@
                                             {{ end }}
                                     </div>
                                 </div>
-                                <div class="level-left tags">
+                                <div class="level-item tags">
                                     {{ range $m.Roles }}
                                     <span class="tag {{ if .Preset }}is-primary{{ else }}is-info{{ end }}">
                                         {{ .Name }}
-                                        <button hx-delete="{{$prefix}}/members/{{$m.UserID}}/{{.ID}}" class="delete is-small"></button> 
+                                        <button hx-delete="members/{{$m.UserID}}/{{.ID}}" class="delete is-small"></button> 
                                     </span>
                                     {{ end }}
                                 </div>
                             </div>
                             <div class="level-right">
-                                <form hx-boost="true" method="post" action="{{$prefix}}/members/{{.UserID}}">
+                                <div class="level-item">
+                                <form hx-boost="true" method="post" action="members/{{.UserID}}">
                                     <div class="select is-small mr-2">
                                         <select name="role">
                                             {{ range $.Roles }}
@@ -79,6 +78,7 @@
                                     </div>
                                     <button class="button is-primary is-small">Add role</button>
                                 </form>
+                            </div>
                             </div>
                         </div>
                     </div>
