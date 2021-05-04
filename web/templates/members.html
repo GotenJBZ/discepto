@@ -35,7 +35,7 @@
                     <div class="media" id="member-{{.UserID}}" hx-target="this" hx-select="#member-{{.UserID}}" hx-swap="outerHTML">
                         <div class="level is-flex-grow-1">
                             <div class="level-left">
-                                <div class="level-left">
+                                <div class="level-item">
                                     <div class="image is-32x32 mr-2">
                                         <img src="http://bulma.io/images/placeholders/128x128.png">
                                     </div>
@@ -57,7 +57,7 @@
                                             {{ end }}
                                     </div>
                                 </div>
-                                <div class="level-left tags">
+                                <div class="level-item tags">
                                     {{ range $m.Roles }}
                                     <span class="tag {{ if .Preset }}is-primary{{ else }}is-info{{ end }}">
                                         {{ .Name }}
@@ -67,6 +67,7 @@
                                 </div>
                             </div>
                             <div class="level-right">
+                                <div class="level-item">
                                 <form hx-boost="true" method="post" action="members/{{.UserID}}">
                                     <div class="select is-small mr-2">
                                         <select name="role">
@@ -77,6 +78,7 @@
                                     </div>
                                     <button class="button is-primary is-small">Add role</button>
                                 </form>
+                            </div>
                             </div>
                         </div>
                     </div>
