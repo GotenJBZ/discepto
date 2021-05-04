@@ -17,25 +17,24 @@
 
         <div class="columns">
             <div class="column is-8 is-fluid">
-                <a href="/newessay?subdiscepto={{ .Name}}">
-                    <div class="box">
-                        <article class="media">
-                            <figure class="media-left">
-                                <p class="image is-64x64">
-                                    <img class="is-rounded" src="https://bulma.io/images/placeholders/128x128.png">
-                                </p>
-                            </figure>
-                            <div class="media-content">
-                                <div class="content">
-                                    <p class="title is-7"></p>
-                                    <input class="input is-primary" type="text" placeholder="Write an essay" readonly>
-                                </div>
-
+                <div class="box block" id="newessay-btn">
+                    <article class="media">
+                        <figure class="media-left">
+                            <p class="image is-64x64">
+                                <img class="is-rounded" src="https://bulma.io/images/placeholders/128x128.png">
+                            </p>
+                        </figure>
+                        <div class="media-content">
+                            <div class="content">
+                                <p class="title is-7"></p>
+                                <a href="/newessay?subdiscepto={{ .Name}}">
+                                    <input class="input is-primary" type="text" placeholder="Write an essay">
+                                </a>
                             </div>
-                        </article>
-                    </div>
-                </a>
-                <br> 
+
+                        </div>
+                    </article>
+                </div>
                 <section id="replies">
                     
                     <div class="tabs is-relative">
