@@ -216,6 +216,7 @@ func (h *DisceptoH) ListRecentEssaysIn(ctx context.Context, subs []string) ([]mo
 	sql, args, _ := selectEssayWithJoins.
 		Where(sq.Eq{"posted_in": subs}).
 		GroupBy("essays.id", "essay_replies.from_id", "users.name").
+		OrderBy("essays.id DESC").
 		ToSql()
 
 	err := pgxscan.Select(ctx, h.sharedDB, &essayPreviews, sql, args...)

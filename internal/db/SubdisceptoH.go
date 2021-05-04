@@ -400,6 +400,7 @@ func (h SubdisceptoH) listEssays(ctx context.Context) ([]models.EssayView, error
 	sql, args, _ := selectEssayWithJoins.
 		GroupBy("essays.id", "users.name", "essay_replies.to_id", "essay_replies.reply_type").
 		Where(sq.Eq{"posted_in": h.name}).
+		OrderBy("essays.id DESC").
 		ToSql()
 
 	err := pgxscan.Select(ctx, h.sharedDB, &essays, sql, args...)
@@ -423,6 +424,7 @@ func (h SubdisceptoH) listReplies(ctx context.Context, e EssayH, replyType *stri
 			},
 		).
 		GroupBy("essays.id", "essay_replies.from_id", "users.name").
+		OrderBy("essays.id DESC").
 		ToSql()
 
 	err = pgxscan.Select(ctx, h.sharedDB, &essays, sql, args...)
