@@ -27,7 +27,7 @@
                         <div class="media-content">
                             <div class="content">
                                 <p class="title is-7"></p>
-                                <a href="/newessay?subdiscepto={{ .Name}}">
+                                <a href="/newessay">
                                     <input class="input is-primary" type="text" placeholder="Write an essay">
                                 </a>
                             </div>
@@ -39,9 +39,9 @@
                     
                     <div class="tabs is-relative">
                         <ul class="tabs-menu">
-                            <li class="{{if eq .FilterReplyType " general "}}is-active{{end}}"><a href="?replyType=general">Top</a></li>
-                            <li class="{{if eq .FilterReplyType " refutes "}}is-active{{end}}"><a href="?replyType=refutes">New</a></li>
-                            <li class="{{if eq .FilterReplyType " supports "}}is-active{{end}}"><a href="?replyType=supports">Hot</a></li>
+                            <li class="{{if eq .FilterReplyType "general"}}is-active{{end}}"><a href="?replyType=general">Top</a></li>
+                            <li class="{{if eq .FilterReplyType "refutes"}}is-active{{end}}"><a href="?replyType=refutes">New</a></li>
+                            <li class="{{if eq .FilterReplyType "supports"}}is-active{{end}}"><a href="?replyType=supports">Hot</a></li>
                         </ul>               
                     </div>
                 </section>
@@ -61,7 +61,6 @@
                                     <br> 
                                     Lorem ipsum dolor sit amet consectetur adipisicing elit. Beatae dolorum placeat dolore facilis quidem possimus non, ducimus voluptatibus ab, ratione nobis eligendi vero. Voluptas aliquam perferendis assumenda, illum deserunt veniam.
                                 </p>
-                                <a href="/s/{{ .PostedIn }}/{{ .ID }}" class="stretched-link"></a>
                             </div>
 
                             <nav class="level is-mobile">
@@ -105,7 +104,6 @@
                                     <br> 
                                     Lorem ipsum dolor sit amet consectetur adipisicing elit. Beatae dolorum placeat dolore facilis quidem possimus non, ducimus voluptatibus ab, ratione nobis eligendi vero. Voluptas aliquam perferendis assumenda, illum deserunt veniam.
                                 </p>
-                                <a href="/s/{{ .PostedIn }}/{{ .ID }}" class="stretched-link"></a>
                             </div>
 
                             <nav class="level is-mobile">
@@ -149,7 +147,6 @@
                                     <br> 
                                     Lorem ipsum dolor sit amet consectetur adipisicing elit. Beatae dolorum placeat dolore facilis quidem possimus non, ducimus voluptatibus ab, ratione nobis eligendi vero. Voluptas aliquam perferendis assumenda, illum deserunt veniam.
                                 </p>
-                                <a href="/s/{{ .PostedIn }}/{{ .ID }}" class="stretched-link"></a>
                             </div>
 
                             <nav class="level is-mobile">
