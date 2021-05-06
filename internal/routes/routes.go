@@ -93,6 +93,7 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 	loggedIn.Route("/roles", routes.GlobalRolesRouter)
 	loggedIn.Route("/members", routes.GlobalMembersRouter)
 	loggedIn.Route("/settings", routes.GlobalSettingsRouter)
+	loggedIn.Get("/search", routes.AppHandler(routes.GetSearch))
 	loggedIn.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
 	loggedIn.Get("/notifications", routes.GetNotifications)
 
