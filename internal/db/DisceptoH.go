@@ -7,6 +7,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4"
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
@@ -238,16 +239,75 @@ func (sdb *SharedDB) ListSubdisceptos(ctx context.Context, userH *UserH) ([]mode
 	}
 	return subs, nil
 }
-func (sdb *SharedDB) searchByTags(ctx context.Context, tags []string) (essays []*models.Essay, err error) {
-	sql, args, _ := psql.
-		Select("thesis", "content", "reply_type").
-		Distinct().
-		From("essays").
-		LeftJoin("essay_tags ON id = essay_id").
-		Where(sq.Eq{"tag": tags}).
+func (h *DisceptoH) SearchByTags(ctx context.Context, tags []string) ([]models.EssayView, error) {
+	sql, args, _ := selectEssayWithJoins.
+		Join("essay_tags ON essays.id = essay_tags.essay_id").
+		Join("subdisceptos ON subdisceptos.name = essays.posted_in").
+		GroupBy("essays.id", "essay_replies.from_id", "users.name").
+		Where(sq.Eq{"subdisceptos.public": true, "essay_tags.tag": tags}).
+		OrderBy("essays.id DESC").
 		ToSql()
 
-	err = pgxscan.Select(ctx, sdb.db, &essays, sql, args...)
+	fmt.Println(sql)
+	rows, err := h.sharedDB.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	essays, err := scanEssays(ctx, rows, tags)
+	if err != nil {
+		return nil, err
+	}
+
+	return essays, nil
+}
+func scanEssays(ctx context.Context, rows pgx.Rows, tags []string) ([]models.EssayView, error) {
+	essayMap := map[int]*models.EssayView{}
+	for rows.Next() {
+		tmp := &models.EssayRow{}
+		err := pgxscan.ScanRow(tmp, rows)
+		if err != nil {
+			return nil, err
+		}
+		if essay, ok := essayMap[tmp.ID]; ok {
+			essay.Tags = append(essay.Tags, tmp.Tag)
+		} else {
+			essayMap[tmp.ID] = &models.EssayView{
+				ID:               tmp.ID,
+				Thesis:           tmp.Thesis,
+				Content:          tmp.Content,
+				Published:        tmp.Published,
+				PostedIn:         tmp.PostedIn,
+				AttributedToID:   tmp.AttributedToID,
+				AttributedToName: tmp.AttributedToName,
+				Upvotes:          tmp.Upvotes,
+				Downvotes:        tmp.Downvotes,
+				Tags:             []string{tmp.Tag},
+				Replying: models.Replying{
+					InReplyTo: tmp.InReplyTo,
+					ReplyType: tmp.ReplyType,
+				},
+			}
+		}
+	}
+	n := rows.CommandTag().RowsAffected()
+	essays := make([]models.EssayView, 0, n)
+	for _, v := range essayMap {
+		essays = append(essays, *v)
+	}
+
+	return essays, nil
+}
+func (h *DisceptoH) SearchByThesis(ctx context.Context, title string) ([]models.EssayView, error) {
+	sql, args, _ := selectEssayWithJoins.
+		Join("subdisceptos ON subdisceptos.name = essays.posted_in").
+		Where("subdisceptos.public = true AND essays.thesis ILIKE $1", fmt.Sprintf(`%%%s%%`, title)).
+		GroupBy("essays.id", "essay_replies.from_id", "users.name").
+		OrderBy("essays.id DESC").
+		ToSql()
+
+	essays := []models.EssayView{}
+
+	err := pgxscan.Select(ctx, h.sharedDB, &essays, sql, args...)
 	if err != nil {
 		return nil, err
 	}

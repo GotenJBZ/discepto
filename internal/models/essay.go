@@ -45,6 +45,20 @@ type EssayView struct {
 	AttributedToName string
 	Upvotes          int
 	Downvotes        int
+	Tags             []string
+	Replying
+}
+type EssayRow struct {
+	ID               int
+	Thesis           string
+	Content          string
+	Published        time.Time
+	PostedIn         string
+	AttributedToID   int `db:"attributed_to_id"`
+	AttributedToName string
+	Upvotes          int
+	Downvotes        int
+	Tag              string
 	Replying
 }
 
