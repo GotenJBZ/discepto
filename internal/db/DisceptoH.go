@@ -175,7 +175,8 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			ChangeRanking:     true,
 			DeleteSubdiscepto: true,
 			ManageRole:        true,
-			CommonAfterRejoin: true,
+			ViewReport:        true,
+			DeleteReport:      true,
 		}
 		adminRoleID, err := createRole(ctx, tx, subRoleDomain(subd.Name), "admin", true, subPerms.ToBoolMap())
 		if err != nil {

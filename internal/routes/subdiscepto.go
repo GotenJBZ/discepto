@@ -24,6 +24,7 @@ func (routes *Routes) SubdisceptoRouter(r chi.Router) {
 	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Route("/{subdiscepto}/members", routes.SubMembersRouter)
 	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Post("/{subdiscepto}/leave", routes.AppHandler(routes.LeaveSubdiscepto))
 	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Post("/{subdiscepto}/join", routes.AppHandler(routes.JoinSubdiscepto))
+	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Route("/{subdiscepto}/reports", routes.SubReportsRouter)
 }
 func (routes *Routes) SubdiscpetoCtx(next http.Handler) http.Handler {
 	return routes.AppHandler(func(w http.ResponseWriter, r *http.Request) AppError {

@@ -71,17 +71,20 @@ func (h EssayH) ReadView(ctx context.Context) (*models.EssayView, error) {
 	}
 	return &essay, nil
 }
+func (h EssayH) ID() int {
+	return h.id
+}
 func (h EssayH) CreateReport(ctx context.Context, rep models.Report, userH UserH) error {
 	if !h.essayPerms.Read {
 		return ErrPermDenied
 	}
-	if rep.EssayID != &h.id || rep.FromUserID != userH.id {
+	if rep.EssayID != h.id || rep.FromUserID != userH.id {
 		return ErrPermDenied
 	}
 	sql, args, _ := psql.
 		Insert("reports").
-		Columns("flag", "essay_id", "from_user_id", "description").
-		Values(rep.Flag, h.id, userH.id, rep.Description).
+		Columns("essay_id", "from_user_id", "description").
+		Values(h.id, userH.id, rep.Description).
 		Suffix("RETURNING id").
 		ToSql()
 
