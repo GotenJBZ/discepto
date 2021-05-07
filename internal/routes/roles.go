@@ -3,7 +3,6 @@ package routes
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -48,13 +47,12 @@ func RoleManagerCtx(extract RoleManagerExtract) func(next http.Handler) http.Han
 }
 
 type RoleManager interface {
-	AssignRole(ctx context.Context, userH db.UserH, userID int, roleID int) error
-	UnassignRole(ctx context.Context, userID int, roleID int) error
+	AssignRole(ctx context.Context, byUser db.UserH, toUser int, roleH db.RoleH) error
+	UnassignRole(ctx context.Context, toUser int, roleH db.RoleH) error
 	ListMembers(ctx context.Context) ([]models.Member, error)
 	ListRoles(ctx context.Context) ([]models.Role, error)
-	SetRolePerms(ctx context.Context, roleName string, perms map[string]bool) error
-	ListRolePerms(ctx context.Context, roleName string) (map[string]bool, error)
 	ListAvailablePerms() map[string]bool
+	GetRoleH(ctx context.Context, roleName string) (*db.RoleH, error)
 }
 
 func (routes *Routes) assignRole(w http.ResponseWriter, r *http.Request) AppError {
@@ -64,11 +62,11 @@ func (routes *Routes) assignRole(w http.ResponseWriter, r *http.Request) AppErro
 	if err != nil {
 		return &ErrBadRequest{Cause: err}
 	}
-	roleID, err := strconv.Atoi(r.FormValue("role"))
+	roleH, err := roleManager.GetRoleH(r.Context(), r.FormValue("roleName"))
 	if err != nil {
-		return &ErrBadRequest{Cause: err}
+		return &ErrInternal{Cause: err}
 	}
-	err = roleManager.AssignRole(r.Context(), *userH, userID, roleID)
+	err = roleManager.AssignRole(r.Context(), *userH, userID, *roleH)
 	pgErr := &pgconn.PgError{}
 	if err != nil && !(errors.As(err, &pgErr) && pgErr.Code == "23505") {
 		return &ErrInternal{Cause: err}
@@ -78,16 +76,15 @@ func (routes *Routes) assignRole(w http.ResponseWriter, r *http.Request) AppErro
 
 func (routes *Routes) unassignRole(w http.ResponseWriter, r *http.Request) AppError {
 	roleManager := GetRoleManager(r)
-	fmt.Println(roleManager)
 	userID, err := strconv.Atoi(chi.URLParam(r, "userID"))
 	if err != nil {
 		return &ErrBadRequest{Cause: err}
 	}
-	roleID, err := strconv.Atoi(chi.URLParam(r, "roleID"))
+	roleH, err := roleManager.GetRoleH(r.Context(), chi.URLParam(r, "roleName"))
 	if err != nil {
-		return &ErrBadRequest{Cause: err}
+		return &ErrInternal{Cause: err}
 	}
-	err = roleManager.UnassignRole(r.Context(), userID, roleID)
+	err = roleManager.UnassignRole(r.Context(), userID, *roleH)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
@@ -97,7 +94,11 @@ func (routes *Routes) unassignRole(w http.ResponseWriter, r *http.Request) AppEr
 func (routes *Routes) getRolePerms(w http.ResponseWriter, r *http.Request) AppError {
 	roleManager := GetRoleManager(r)
 	roleName := chi.URLParam(r, "roleName")
-	activePerms, err := roleManager.ListRolePerms(r.Context(), roleName)
+	roleH, err := roleManager.GetRoleH(r.Context(), roleName)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	activePerms, err := roleH.ListActivePerms(r.Context())
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
@@ -115,7 +116,6 @@ func (routes *Routes) getRolePerms(w http.ResponseWriter, r *http.Request) AppEr
 }
 func (routes *Routes) putRolePerms(w http.ResponseWriter, r *http.Request) AppError {
 	roleManager := GetRoleManager(r)
-	roleName := chi.URLParam(r, "roleName")
 
 	r.ParseForm()
 	perms := map[string]bool{}
@@ -124,7 +124,11 @@ func (routes *Routes) putRolePerms(w http.ResponseWriter, r *http.Request) AppEr
 			perms[k] = true
 		}
 	}
-	err := roleManager.SetRolePerms(r.Context(), roleName, perms)
+	roleH, err := roleManager.GetRoleH(r.Context(), chi.URLParam(r, "roleName"))
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	err = roleH.UpdatePerms(r.Context(), perms)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}

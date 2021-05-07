@@ -18,7 +18,7 @@ func (routes *Routes) SubMembersRouter(r chi.Router) {
 func (routes *Routes) membersRouter(r chi.Router) {
 	r.Get("/", routes.AppHandler(routes.renderMembers))
 	r.Post("/{userID}", routes.AppHandler(routes.assignRole))
-	r.Delete("/{userID}/{roleID}", routes.AppHandler(routes.unassignRole))
+	r.Delete("/{userID}/{roleName}", routes.AppHandler(routes.unassignRole))
 }
 
 func (routes *Routes) renderMembers(w http.ResponseWriter, r *http.Request) AppError {

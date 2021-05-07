@@ -61,7 +61,7 @@
                                     {{ range $m.Roles }}
                                     <span class="tag {{ if .Preset }}is-primary{{ else }}is-info{{ end }}">
                                         {{ .Name }}
-                                        <button hx-delete="members/{{$m.UserID}}/{{.ID}}" class="delete is-small"></button> 
+                                        <button hx-delete="members/{{$m.UserID}}/{{.Name}}" class="delete is-small"></button> 
                                     </span>
                                     {{ end }}
                                 </div>
@@ -70,9 +70,9 @@
                                 <div class="level-item">
                                 <form hx-boost="true" method="post" action="members/{{.UserID}}">
                                     <div class="select is-small mr-2">
-                                        <select name="role">
+                                        <select name="roleName">
                                             {{ range $.Roles }}
-                                            <option value="{{.ID}}">{{ .Name }}</option>
+                                            <option>{{ .Name }}</option>
                                             {{ end }}
                                         </select>
                                     </div>

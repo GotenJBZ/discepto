@@ -65,8 +65,8 @@ func (tmpls *Templates) load() {
 	tmpls.templates = template.Must(template.New("").Funcs(template.FuncMap{
 		"markdown":        markdown,
 		"markdownPreview": markdownPreview,
-		"now":    now,
-		"formatTime":    formatTime,
+		"now":             now,
+		"formatTime":      formatTime,
 	}).ParseGlob("web/templates/*"),
 	)
 }

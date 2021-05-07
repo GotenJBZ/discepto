@@ -10,4 +10,5 @@ type Role struct {
 	ID     int
 	Name   string
 	Preset bool
+	Domain string
 }

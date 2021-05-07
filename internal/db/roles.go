@@ -74,6 +74,7 @@ func findRoleByName(ctx context.Context, db DBTX, domain string, name string) (*
 	if err != nil {
 		return nil, err
 	}
+	role.Domain = domain
 	return &role, nil
 }
 func listRolePerms(ctx context.Context, db DBTX, roleID int) (map[string]bool, error) {
