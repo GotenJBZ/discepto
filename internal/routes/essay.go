@@ -19,6 +19,7 @@ func (routes *Routes) EssaysRouter(r chi.Router) {
 	specificEssay.With(routes.EnforceCtx(UserHCtxKey)).Put("/{essayID}", routes.UpdateEssay)
 	specificEssay.With(routes.EnforceCtx(UserHCtxKey)).Delete("/{essayID}", routes.DeleteEssay)
 	specificEssay.With(routes.EnforceCtx(UserHCtxKey)).Post("/{essayID}/vote", routes.AppHandler(routes.PostVote))
+	specificEssay.With(routes.EnforceCtx(UserHCtxKey)).Post("/{essayID}/report", routes.AppHandler(routes.PostReport))
 }
 func (routes *Routes) EssayCtx(next http.Handler) http.Handler {
 	return routes.AppHandler(func(w http.ResponseWriter, r *http.Request) AppError {
@@ -188,6 +189,18 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/s/%s", essay.PostedIn), http.StatusSeeOther)
+	return nil
+}
+func (routes *Routes) PostReport(w http.ResponseWriter, r *http.Request) AppError {
+	essayH := GetEssayH(r)
+	userH := GetUserH(r)
+	report := models.Report{}
+	report.EssayID = essayH.ID()
+	report.FromUserID = userH.ID()
+	err := essayH.CreateReport(r.Context(), report, *userH)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
 	return nil
 }
 func (routes *Routes) DeleteEssay(w http.ResponseWriter, r *http.Request) {

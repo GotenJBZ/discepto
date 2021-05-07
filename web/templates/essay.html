@@ -41,7 +41,7 @@
                                     <span class="tag is-danger is-light is-medium">Refutes</span> {{ else }}
                                     <span class="tag is-warning is-light is-medium">General</span> {{ end }}
 
-                                    <div class="dropdown">
+                                    <div id="essay-dropdown" class="dropdown">
                                         <div class="dropdown-trigger">
                                             <button class="button is-white" aria-haspopup="true" aria-controls="dropdown-menu">
                                                 <span class="icon is-small">
@@ -51,14 +51,14 @@
                                         </div>
                                         <div class="dropdown-menu" id="dropdown-menu">
                                             <div class="dropdown-content is-small">
-                                                <a href="/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/report" class="dropdown-item has-text-danger">report</a>
+                                                <div hx-post="/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/report" class="dropdown-item has-text-danger">report</div>
                                             </div>
                                         </div>
                                     </div>
         
         
                                     <script>
-                                        var dropdown = document.querySelector('.dropdown');
+                                        var dropdown = document.querySelector('#essay-dropdown');
                                         dropdown.addEventListener('click', function(event) {
                                             event.stopPropagation();
                                             dropdown.classList.toggle('is-active');

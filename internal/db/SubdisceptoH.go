@@ -46,6 +46,8 @@ func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH 
 		ChangeRanking:     subPerms.ChangeRanking || dH.globalPerms.ChangeRanking,
 		ManageRole:        subPerms.ManageRole || dH.globalPerms.ManageRole,
 		CommonAfterRejoin: subPerms.CommonAfterRejoin || dH.globalPerms.CommonAfterRejoin,
+		ViewReport:        subPerms.ViewReport || dH.globalPerms.ViewReport,
+		DeleteReport:      subPerms.DeleteReport || dH.globalPerms.DeleteReport,
 	}
 
 	if !subPerms.ReadSubdiscepto {
@@ -70,6 +72,7 @@ func (h SubdisceptoH) ReadView(ctx context.Context, userH *UserH) (*models.Subdi
 	return h.readView(ctx, userH)
 }
 func (h SubdisceptoH) Delete(ctx context.Context) error {
+	fmt.Println(h.subPerms)
 	if h.subPerms != models.SubPermsOwner {
 		return ErrPermDenied
 	}
@@ -160,6 +163,51 @@ func (h SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
 	} else {
 		return removeMember(ctx, h.sharedDB, h.name, userH.id)
 	}
+}
+func (h SubdisceptoH) ListReports(ctx context.Context) ([]models.ReportView, error) {
+	if !h.subPerms.ViewReport {
+		return nil, ErrPermDenied
+	}
+	sql, args, _ := psql.Select(
+		"reports.id",
+		"reports.description",
+		"essay_view.thesis AS \"essay_view.thesis\"",
+		"essay_view.content AS \"essay_view.content\"",
+		"essay_view.id AS \"essay_view.id\"",
+		"essay_view.posted_in AS \"essay_view.posted_in\"",
+		"essay_view.upvotes AS \"essay_view.upvotes\"",
+		"essay_view.downvotes AS \"essay_view.downvotes\"",
+		"essay_view.attributed_to_name AS \"essay_view.attributed_to_name\"",
+	).
+		FromSelect(selectEssayWithJoins.
+			GroupBy("essays.id", "users.name", "essay_replies.to_id", "essay_replies.reply_type").
+			Where(sq.Eq{"essays.posted_in": h.name}),
+			"essay_view",
+		).
+		Join("reports ON essay_view.id = reports.essay_id").
+		ToSql()
+
+	reports := []models.ReportView{}
+	err := pgxscan.Select(ctx, h.sharedDB, &reports, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return reports, nil
+}
+func (h SubdisceptoH) DeleteReport(ctx context.Context, id int) error {
+	if !h.subPerms.DeleteReport {
+		return ErrPermDenied
+	}
+	sql, args, _ := psql.
+		Delete("reports").
+		Where(sq.Eq{"id": id}).
+		ToSql()
+
+	_, err := h.sharedDB.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 func (h SubdisceptoH) Update(ctx context.Context, sub models.Subdiscepto) error {
 	if !h.subPerms.UpdateSubdiscepto {

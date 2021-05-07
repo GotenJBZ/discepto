@@ -364,6 +364,8 @@ func TestRoles(t *testing.T) {
 			ChangeRanking:     true,
 			ManageRole:        true,
 			CommonAfterRejoin: true,
+			ViewReport:        true,
+			DeleteReport:      true,
 		},
 	}, models.GlobalPermsFromMap(globalPerms))
 

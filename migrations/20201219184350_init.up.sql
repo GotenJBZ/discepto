@@ -69,6 +69,8 @@ VALUES
 (-123, 'ban_user'),
 (-123, 'manage_role'),
 (-123, 'common_after_rejoin'),
+(-123, 'view_report'),
+(-123, 'delete_report'),
 -- common
 (-100, 'login');
 
@@ -132,9 +134,8 @@ CREATE TYPE flag_type as ENUM ('offensive', 'fake', 'spam', 'inaccurate');
 
 CREATE TABLE reports (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-	flag flag_type NOT NULL,
 	description varchar(500),
-	essay_id int REFERENCES essays(id),
+	essay_id int REFERENCES essays(id) NOT NULL,
 	from_user_id int REFERENCES users(id) NOT NULL
 );
 

@@ -1,0 +1,53 @@
+{{ define "reports" }}
+{{ template "head" }}
+</head>
+
+<body>
+    {{ template "navbar" }}
+
+    <div class="container is-max-widescreen">
+        <div class="columns mr-0 ml-0 mt-4">
+            <div id="menu" class="column is-2">
+                <aside class="menu">
+                    <p class="menu-label">
+                    Settings
+                    </p>
+                    <ul class="menu-list">
+                        <li><a href="settings">General</a></li>
+                        <li><a href="members">Members</a></li>
+                        <li><a href="roles">Roles</a></li>
+                    </ul>
+
+                </aside>
+            </div>
+            <div class="column is-10">
+                <div class="level">
+                    <div class="level-left">
+                        <h1 class="title">Members list</h1>
+                    </div>
+                    <div class="level-right">
+                        <input class="input is-primary" type="text" placeholder="search members">
+                    </div>
+                </div>
+                <div class="box">
+                    {{ range .Reports }}
+                    <div class="block">
+                        <p class="title is-2">{{ .EssayView.Thesis }}</p>
+                        <p class="title is-3">@{{ .EssayView.AttributedToName }}</p>
+                        <p>{{ .EssayView.Content }}</p>
+                        <p>{{ .Description }}</p>
+                        <p>Upvotes: {{ .EssayView.Upvotes }} | Downvotes: {{ .EssayView.Downvotes }}</p>
+                    </div>
+                    <a href="{{.EssayView.ID}}">
+                        <button class="button is-info">View essay</button>
+                    </a>
+                    {{ if $.SubPerms.DeleteReport }}
+                    <button hx-delete="/s/{{.EssayView.PostedIn}}/reports/{{.ID}}" class="button is-danger is-outlined">Remove</button>
+                    {{ end }}
+                    {{ end }}
+                </div>
+            </div>
+        </div>
+    </div>
+    {{ template "footer" }}
+{{ end }}
