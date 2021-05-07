@@ -181,11 +181,9 @@ func (h SubdisceptoH) ListReports(ctx context.Context) ([]models.ReportView, err
 	).
 		FromSelect(selectEssayWithJoins.
 			GroupBy("essays.id", "users.name", "essay_replies.to_id", "essay_replies.reply_type").
-			Where(sq.And{
-				sq.Eq{"essays.posted_in": h.name},
-				sq.Expr("essays.id IN (SELECT essay_id FROM reports)"),
-			},
-			), "essay_view").
+			Where(sq.Eq{"essays.posted_in": h.name}),
+			"essay_view",
+		).
 		Join("reports ON essay_view.id = reports.essay_id").
 		ToSql()
 
