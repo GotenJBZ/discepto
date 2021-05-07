@@ -24,6 +24,8 @@ func (routes *Routes) SubRoleRouter(r chi.Router) {
 func (routes *Routes) roleRouter(r chi.Router) {
 	r.Use(routes.EnforceCtx(UserHCtxKey))
 	r.Get("/", routes.AppHandler(routes.listRoles))
+	r.Get("/{roleName}", routes.AppHandler(routes.getRolePerms))
+	r.Put("/{roleName}", routes.AppHandler(routes.putRolePerms))
 }
 
 func GetRoleManagerDiscepto(r *http.Request) RoleManager {
@@ -50,6 +52,9 @@ type RoleManager interface {
 	UnassignRole(ctx context.Context, userID int, roleID int) error
 	ListMembers(ctx context.Context) ([]models.Member, error)
 	ListRoles(ctx context.Context) ([]models.Role, error)
+	SetRolePerms(ctx context.Context, roleName string, perms map[string]bool) error
+	ListRolePerms(ctx context.Context, roleName string) (map[string]bool, error)
+	ListAvailablePerms() map[string]bool
 }
 
 func (routes *Routes) assignRole(w http.ResponseWriter, r *http.Request) AppError {
@@ -87,6 +92,43 @@ func (routes *Routes) unassignRole(w http.ResponseWriter, r *http.Request) AppEr
 		return &ErrInternal{Cause: err}
 	}
 	return routes.renderMembers(w, r)
+}
+
+func (routes *Routes) getRolePerms(w http.ResponseWriter, r *http.Request) AppError {
+	roleManager := GetRoleManager(r)
+	roleName := chi.URLParam(r, "roleName")
+	activePerms, err := roleManager.ListRolePerms(r.Context(), roleName)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	availablePerms := roleManager.ListAvailablePerms()
+	routes.tmpls.RenderHTML(w, "permissions", struct {
+		RoleName       string
+		AvailablePerms map[string]bool
+		ActivePerms    map[string]bool
+	}{
+		RoleName:       roleName,
+		AvailablePerms: availablePerms,
+		ActivePerms:    activePerms,
+	})
+	return nil
+}
+func (routes *Routes) putRolePerms(w http.ResponseWriter, r *http.Request) AppError {
+	roleManager := GetRoleManager(r)
+	roleName := chi.URLParam(r, "roleName")
+
+	r.ParseForm()
+	perms := map[string]bool{}
+	for k, v := range r.Form {
+		if v[0] == "on" {
+			perms[k] = true
+		}
+	}
+	err := roleManager.SetRolePerms(r.Context(), roleName, perms)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	return routes.getRolePerms(w, r)
 }
 
 // Should use better number

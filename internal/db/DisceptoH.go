@@ -129,6 +129,34 @@ func (h *DisceptoH) UnassignRole(ctx context.Context, toUser int, roleID int) er
 	}
 	return unassignRole(ctx, h.sharedDB, toUser, roleID)
 }
+func (h *DisceptoH) SetRolePerms(ctx context.Context, roleName string, perms map[string]bool) error {
+	if !h.globalPerms.ManageRole {
+		return ErrPermDenied
+	}
+	role, err := findRoleByName(ctx, h.sharedDB, "discepto", roleName)
+	if err != nil {
+		return err
+	}
+	p, err := listRolePerms(ctx, h.sharedDB, role.ID)
+	if err != nil {
+		return err
+	}
+	globalPerms := models.GlobalPermsFromMap(p)
+	if globalPerms.And(h.globalPerms) != globalPerms {
+		return ErrPermDenied
+	}
+	return setPermissions(ctx, h.sharedDB, role.ID, perms)
+}
+func (h *DisceptoH) ListRolePerms(ctx context.Context, roleName string) (map[string]bool, error) {
+	role, err := findRoleByName(ctx, h.sharedDB, "discepto", roleName)
+	if err != nil {
+		return nil, err
+	}
+	return listRolePerms(ctx, h.sharedDB, role.ID)
+}
+func (h *DisceptoH) ListAvailablePerms() map[string]bool {
+	return models.GlobalPerms{}.ToBoolMap()
+}
 func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models.Subdiscepto) (*SubdisceptoH, error) {
 	firstUserID := uH.id
 	err := execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {

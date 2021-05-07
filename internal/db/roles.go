@@ -151,27 +151,40 @@ func createRole(ctx context.Context, db DBTX, domain string, name string, preset
 			Suffix("RETURNING id").
 			ToSql()
 
-		row := db.QueryRow(ctx, sql, args...)
+		row := tx.QueryRow(ctx, sql, args...)
 		err := row.Scan(&rowID)
 		if err != nil {
 			return err
 		}
-
-		q := psql.
-			Insert("role_perms").
-			Columns("role_id", "permission")
-
-		for perm, v := range m {
-			if v {
-				q = q.Values(rowID, perm)
-			}
-		}
-		sql, args, _ = q.ToSql()
-		_, err = db.Exec(ctx, sql, args...)
+		err = setPermissions(ctx, tx, rowID, m)
 		if err != nil {
 			return err
 		}
+
 		return nil
 	})
 	return rowID, err
+}
+func setPermissions(ctx context.Context, db DBTX, roleID int, perms map[string]bool) error {
+	sql, args, _ := psql.
+		Delete("role_perms").
+		Where(sq.Eq{"role_id": roleID}).
+		ToSql()
+
+	_, err := db.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+	q := psql.
+		Insert("role_perms").
+		Columns("role_id", "permission")
+
+	for perm, v := range perms {
+		if v {
+			q = q.Values(roleID, perm)
+		}
+	}
+	sql, args, _ = q.ToSql()
+	_, err = db.Exec(ctx, sql, args...)
+	return err
 }

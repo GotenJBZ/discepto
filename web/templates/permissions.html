@@ -1,0 +1,68 @@
+{{ define "permissions" }} {{ template "head" }}
+</head>
+
+<body>
+    {{ template "navbar" }}
+    <div class="container is-max-widescreen">
+        <div class="columns ml-0 mr-0 mt-4">
+            <div class="column is-12">
+                <h1 class="title">Role permissions</h1>
+                <h2 class="subtitle">Viewing role: {{ .RoleName }}</h2>
+                <div class="box content">
+                    <form id="perms-form" method="post" hx-put="{{ .RoleName }}" hx-select="#perms-form" hx-boost="true">
+                    <p>Loaded at: {{now | formatTime}}</p>
+                    {{ range $k, $v := .AvailablePerms }}
+                        <div class="field is-horizontal">
+                          <div class="field-label">
+                              <label class="label">{{ $k }}</label>
+                          </div>
+                          <div class="field-body is-flex-grow-1">
+                            <div class="field is-narrow">
+                              <div class="control">
+                                <label class="radio">
+                                    <input type="radio" name="{{ $k }}" value="on" 
+                                    {{ if (index $.ActivePerms $k) }}
+                                            checked
+                                    {{ end }}
+                                    >
+                                  On
+                                </label>
+                                <label class="radio">
+                                    <input type="radio" name="{{ $k }}" value="off"
+                                    {{ if not (index $.ActivePerms $k) }}
+                                            checked
+                                    {{ end }}
+                                    >
+                                  Off
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                    {{ end }}
+                    <div class="is-relative">
+                        <style>
+                            .htmx-indicator.is-overlay {
+                                pointer-events: none
+                            }
+                            .htmx-request .htmx-indicator.is-overlay {
+                                pointer-events: inherit
+                            }
+                        </style>
+                        <button class="submit button is-primary">
+                            Update
+                        </button>
+                        <span class="htmx-indicator is-overlay fast-indicator">
+                            <button disabled class="button htmx-indicator is-primary is-focused is-loading">
+                            Update
+                            </button>
+                        </span>
+                    </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    {{ template "footer" }}
+{{ end }}

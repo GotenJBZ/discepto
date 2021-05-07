@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/yuin/goldmark"
 	"gitlab.com/ranfdev/discepto/internal/models"
@@ -53,10 +54,19 @@ func markdownPreview(args ...interface{}) template.HTML {
 
 	return template.HTML(string(html))
 }
+func formatTime(args ...interface{}) template.HTML {
+	t := args[0].(time.Time)
+	return template.HTML(t.Format("Jan 2 15:04:05"))
+}
+func now(args ...interface{}) time.Time {
+	return time.Now()
+}
 func (tmpls *Templates) load() {
 	tmpls.templates = template.Must(template.New("").Funcs(template.FuncMap{
 		"markdown":        markdown,
 		"markdownPreview": markdownPreview,
+		"now":    now,
+		"formatTime":    formatTime,
 	}).ParseGlob("web/templates/*"),
 	)
 }

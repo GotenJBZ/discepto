@@ -140,6 +140,34 @@ func (h SubdisceptoH) UnassignRole(ctx context.Context, toUser int, subPermsID i
 
 	return unassignRole(ctx, h.sharedDB, toUser, subPermsID)
 }
+func (h *SubdisceptoH) SetRolePerms(ctx context.Context, roleName string, perms map[string]bool) error {
+	if !h.subPerms.ManageRole {
+		return ErrPermDenied
+	}
+	role, err := findRoleByName(ctx, h.sharedDB, subRoleDomain(h.name), roleName)
+	if err != nil {
+		return err
+	}
+	p, err := listRolePerms(ctx, h.sharedDB, role.ID)
+	if err != nil {
+		return err
+	}
+	subPerms := models.SubPermsFromMap(p)
+	if subPerms.And(h.subPerms) != subPerms {
+		return ErrPermDenied
+	}
+	return setPermissions(ctx, h.sharedDB, role.ID, perms)
+}
+func (h *SubdisceptoH) ListRolePerms(ctx context.Context, roleName string) (map[string]bool, error) {
+	role, err := findRoleByName(ctx, h.sharedDB, subRoleDomain(h.name), roleName)
+	if err != nil {
+		return nil, err
+	}
+	return listRolePerms(ctx, h.sharedDB, role.ID)
+}
+func (h *SubdisceptoH) ListAvailablePerms() map[string]bool {
+	return models.SubPerms{}.ToBoolMap()
+}
 func (h SubdisceptoH) AddMember(ctx context.Context, userH UserH) error {
 	if !h.subPerms.ReadSubdiscepto || !userH.perms.Read {
 		return ErrPermDenied
