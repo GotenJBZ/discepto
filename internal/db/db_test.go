@@ -398,9 +398,10 @@ func TestRoles(t *testing.T) {
 	}, models.SubPermsFromMap(subPerms2))
 
 	// Remove "common" global role, banning the user
-	roleID, err := findRoleByName(context.Background(), db.db, subRoleDomain(subH.name), "common")
+	roleH, err := subH.GetRoleH(context.Background(), "common")
 	require.Nil(err)
-	subH.UnassignRole(context.Background(), user2H.id, roleID.ID)
+	err = subH.UnassignRole(context.Background(), user2H.id, *roleH)
+	require.Nil(err)
 	subPerms2, err = getUserPerms(context.Background(), db.db, subRoleDomain(subH.name), user2H.id)
 	require.Nil(err)
 	require.Equal(models.SubPerms{

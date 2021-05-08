@@ -25,121 +25,37 @@
             <div class="column is-10">
                 <h1 class="title">Roles</h1>
                 <div class="box">
+                    <div class="media">
+                        <form class="is-flex-grow-1" method="post">
+                            <div class="field has-addons">
+                                <div class="control is-expanded">
+                                    <input class="input" required type="text" name="roleName" placeholder="Name of the new role">
+                                </div>
+                                <div class="control">
+                                    <button class="button is-info">
+                                        Create
+                                    </button>
+                                </div>
+                            </div>
+                        <form>
+                    </div>
                     {{ range .Roles }}
                     <div class="media level is-mobile">
                         <div class="level-left">
                             <span class="tag is-medium {{ if .Preset }}is-primary{{ else }}is-info{{ end }}">{{ .Name }}</span>
                         </div>
                         <div class="level-right">
-                            <button class="button is-small" onclick="spawn_modal({{ .Name }})">View permissions</button>
+                            <a class="button is-info is-outlined is-small" href="roles/{{ .Name }}">View/Edit</a>
                         </div>
                     </div>
                     {{ end }}
-
                 </div>
             </div>
-            {{ range .Roles }}
-                    <div class="modal" id="role-{{ .Name }}">
-                        <div class="modal-background">
-                        </div>
-                        <div class="modal-card">
-                            <header class="modal-card-head">
-                                <p class="modal-card-title">{{ .Name }} permissions</p>
-                                <button class="delete close-modal" aria-label="close"></button>
-                            </header>
-                            <fieldset class="field" {{ if .Preset }}disabled{{ end }}>
-                                <section class="modal-card-body">
-                                    {{ if .Preset }}
-                                    <article class="message">
-                                        <div class="message-body is-warning">
-                                            This is a preset role, it is not editable
-                                        </div>
-                                    </article>
-                                    {{ end }}
-
-                                    <div class="control">
-                                        <label class="label">View comunity</label>
-                                        <label class="radio">
-                                            <input type="radio" name="v_comunity">
-                                            yes
-                                        </label>
-                                        <label class="radio">
-                                            <input type="radio" name="v_comunity">
-                                            no
-                                        </label>
-                                    </div>
-                                    <br>
-                                    <div class="control">
-                                        <label class="label">Manage community</label>
-                                        <label class="radio">
-                                            <input type="radio" name="m_comunity">
-                                            yes
-                                        </label>
-                                        <label class="radio">
-                                            <input type="radio" name="m_comunity">
-                                            no
-                                        </label>
-                                    </div>
-                                    <br>
-                                    <div class="control">
-                                        <label class="label">Manage Roles</label>
-                                        <label class="radio">
-                                            <input type="radio" name="m_roles">
-                                            yes
-                                        </label>
-                                        <label class="radio">
-                                            <input type="radio" name="m_roles">
-                                            no
-                                        </label>
-                                    </div>
-                                    <br>
-                                    <div class="control">
-                                        <label class="label">Manage essays</label>
-                                        <label class="radio">
-                                            <input type="radio" name="m_essays">
-                                            yes
-                                        </label>
-                                        <label class="radio">
-                                            <input type="radio" name="m_essays">
-                                            no
-                                        </label>
-                                    </div>
-
-
-
-                                </section>
-                                <footer class="modal-card-foot">
-                                    <button class="button is-success">Save changes</button>
-                                </footer>
-                            </fieldset>
-                        </div>
-                    </div>
-            {{ end }}
 
         </div>
     </div>
 
     </div>
-    <script>
-        function spawn_modal(role) {
-                    var modal = document.getElementById('role-' + role);
-                    var html = document.querySelector('html');
-                    modal.classList.add('is-active');
-                    html.classList.add('is-clipped');
-
-                    modal.querySelector('.close-modal').addEventListener('click', function(e) {
-                                e.preventDefault();
-                                modal.classList.remove('is-active');
-                                html.classList.remove('is-clipped');
-                            });
-
-                    modal.querySelector('.modal-background').addEventListener('click', function(e) {
-                                e.preventDefault();
-                                modal.classList.remove('is-active');
-                                html.classList.remove('is-clipped');
-                            });
-                };
-    </script>
 </body>
 
 </html>

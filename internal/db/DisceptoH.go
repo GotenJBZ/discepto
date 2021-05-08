@@ -102,11 +102,14 @@ func (h DisceptoH) CreateGlobalRole(ctx context.Context, globalPerms models.Glob
 	_, err := createRole(ctx, h.sharedDB, "discepto", role, false, globalPerms.ToBoolMap())
 	return err
 }
-func (h *DisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, roleID int) error {
-	if !h.globalPerms.ManageRole || !byUser.perms.Read {
+func (h *DisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, roleH RoleH) error {
+	if !h.globalPerms.ManageRole ||
+		!byUser.perms.Read ||
+		!roleH.rolePerms.ManageRole ||
+		!(roleH.domain == "discepto") {
 		return ErrPermDenied
 	}
-	newRolePerms, err := listRolePerms(ctx, h.sharedDB, roleID)
+	newRolePerms, err := roleH.ListActivePerms(ctx)
 	if err != nil {
 		return err
 	}
@@ -114,13 +117,13 @@ func (h *DisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, ro
 	if globalPerms.And(h.globalPerms) != globalPerms {
 		return ErrPermDenied
 	}
-	return assignRole(ctx, h.sharedDB, toUser, roleID)
+	return assignRole(ctx, h.sharedDB, toUser, roleH.id)
 }
-func (h *DisceptoH) UnassignRole(ctx context.Context, toUser int, roleID int) error {
-	if !h.globalPerms.ManageRole {
+func (h *DisceptoH) UnassignRole(ctx context.Context, toUser int, roleH RoleH) error {
+	if !h.globalPerms.ManageRole || !roleH.rolePerms.ManageRole || !(roleH.domain == "discepto") {
 		return ErrPermDenied
 	}
-	newRolePerms, err := listRolePerms(ctx, h.sharedDB, roleID)
+	newRolePerms, err := roleH.ListActivePerms(ctx)
 	if err != nil {
 		return err
 	}
@@ -128,7 +131,10 @@ func (h *DisceptoH) UnassignRole(ctx context.Context, toUser int, roleID int) er
 	if globalPerms.And(h.globalPerms) != globalPerms {
 		return ErrPermDenied
 	}
-	return unassignRole(ctx, h.sharedDB, toUser, roleID)
+	return unassignRole(ctx, h.sharedDB, toUser, roleH.id)
+}
+func (h *DisceptoH) ListAvailablePerms() map[string]bool {
+	return models.GlobalPerms{}.ToBoolMap()
 }
 func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models.Subdiscepto) (*SubdisceptoH, error) {
 	firstUserID := uH.id

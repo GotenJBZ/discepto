@@ -106,18 +106,11 @@ func (h SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH 
 		return err
 	})
 }
-func (h SubdisceptoH) CreateRole(ctx context.Context, subPerms models.SubPerms, role string) error {
-	if !h.subPerms.ManageRole || h.subPerms.And(subPerms) != subPerms {
+func (h SubdisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, roleH RoleH) error {
+	if !h.subPerms.ManageRole || !byUser.perms.Read || !roleH.rolePerms.ManageRole || !(roleH.domain == subRoleDomain(h.name)) {
 		return ErrPermDenied
 	}
-	_, err := createRole(ctx, h.sharedDB, subRoleDomain(h.name), role, false, subPerms.ToBoolMap())
-	return err
-}
-func (h SubdisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, subPermsID int) error {
-	if !h.subPerms.ManageRole || !byUser.perms.Read {
-		return ErrPermDenied
-	}
-	newRolePerms, err := listRolePerms(ctx, h.sharedDB, subPermsID)
+	newRolePerms, err := roleH.ListActivePerms(ctx)
 	if err != nil {
 		return err
 	}
@@ -125,14 +118,14 @@ func (h SubdisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, 
 	if subPerms.And(h.subPerms) != subPerms {
 		return ErrPermDenied
 	}
-	return assignRole(ctx, h.sharedDB, toUser, subPermsID)
+	return assignRole(ctx, h.sharedDB, toUser, roleH.id)
 }
-func (h SubdisceptoH) UnassignRole(ctx context.Context, toUser int, subPermsID int) error {
-	if !h.subPerms.ManageRole {
+func (h SubdisceptoH) UnassignRole(ctx context.Context, toUser int, roleH RoleH) error {
+	if !h.subPerms.ManageRole || !roleH.rolePerms.ManageRole || !(roleH.domain == subRoleDomain(h.name)) {
 		return ErrPermDenied
 	}
 
-	newRolePerms, err := listRolePerms(ctx, h.sharedDB, subPermsID)
+	newRolePerms, err := roleH.ListActivePerms(ctx)
 	if err != nil {
 		return err
 	}
@@ -141,7 +134,10 @@ func (h SubdisceptoH) UnassignRole(ctx context.Context, toUser int, subPermsID i
 		return ErrPermDenied
 	}
 
-	return unassignRole(ctx, h.sharedDB, toUser, subPermsID)
+	return unassignRole(ctx, h.sharedDB, toUser, roleH.id)
+}
+func (h *SubdisceptoH) ListAvailablePerms() map[string]bool {
+	return models.SubPerms{}.ToBoolMap()
 }
 func (h SubdisceptoH) AddMember(ctx context.Context, userH UserH) error {
 	if !h.subPerms.ReadSubdiscepto || !userH.perms.Read {
