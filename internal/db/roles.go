@@ -189,3 +189,14 @@ func setPermissions(ctx context.Context, db DBTX, roleID int, perms map[string]b
 	_, err = db.Exec(ctx, sql, args...)
 	return err
 }
+
+type HigherRole map[string]bool
+
+func isLowerRole(oldRole HigherRole, newRole map[string]bool) bool {
+	for k := range newRole {
+		if _, ok := oldRole[k]; !ok {
+			return false
+		}
+	}
+	return true
+}

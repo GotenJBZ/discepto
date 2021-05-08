@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 )
 
 type RolePerms struct {
@@ -13,7 +12,6 @@ type RoleH struct {
 	name            string
 	domain          string
 	rolePerms       RolePerms
-	changeablePerms map[string]bool
 	sharedDB        DBTX
 }
 
@@ -25,14 +23,19 @@ func (h *DisceptoH) GetRoleH(ctx context.Context, roleName string) (*RoleH, erro
 	if err != nil {
 		return nil, err
 	}
+	perms, err := listRolePerms(ctx, h.sharedDB, role.ID)
+	if err != nil {
+		return nil, err
+	}
+	permManageRole := isLowerRole(HigherRole(h.globalPerms.ToBoolMap()), perms)
+
 	return &RoleH{
 		id:              role.ID,
 		name:            role.Name,
 		domain:          role.Domain,
 		sharedDB:        h.sharedDB,
-		changeablePerms: h.globalPerms.ToBoolMap(),
 		rolePerms: RolePerms{
-			ManageRole: !role.Preset,
+			ManageRole: !role.Preset && permManageRole,
 		},
 	}, nil
 }
@@ -41,18 +44,22 @@ func (h *SubdisceptoH) GetRoleH(ctx context.Context, roleName string) (*RoleH, e
 		return nil, ErrPermDenied
 	}
 	role, err := findRoleByName(ctx, h.sharedDB, subRoleDomain(h.name), roleName)
-	fmt.Println(err, roleName)
 	if err != nil {
 		return nil, err
 	}
+	perms, err := listRolePerms(ctx, h.sharedDB, role.ID)
+	if err != nil {
+		return nil, err
+	}
+	permManageRole := isLowerRole(HigherRole(h.subPerms.ToBoolMap()), perms)
+
 	return &RoleH{
-		id:              role.ID,
-		name:            role.Name,
-		domain:          role.Domain,
-		sharedDB:        h.sharedDB,
-		changeablePerms: h.subPerms.ToBoolMap(),
+		id:       role.ID,
+		name:     role.Name,
+		domain:   role.Domain,
+		sharedDB: h.sharedDB,
 		rolePerms: RolePerms{
-			ManageRole: !role.Preset,
+			ManageRole: !role.Preset && permManageRole,
 		},
 	}, nil
 }
@@ -62,15 +69,6 @@ func (h *RoleH) ListActivePerms(ctx context.Context) (map[string]bool, error) {
 func (h *RoleH) UpdatePerms(ctx context.Context, perms map[string]bool) error {
 	if !h.rolePerms.ManageRole {
 		return ErrPermDenied
-	}
-	for k, v := range perms {
-		if !v {
-			delete(perms, k)
-			continue
-		}
-		if _, ok := h.changeablePerms[k]; !ok {
-			return ErrPermDenied
-		}
 	}
 	return setPermissions(ctx, h.sharedDB, h.id, perms)
 }
