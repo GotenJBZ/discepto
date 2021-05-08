@@ -6,6 +6,8 @@ import (
 
 type RolePerms struct {
 	ManageRole bool
+	UpdateRole bool
+	DeleteRole bool
 }
 type RoleH struct {
 	id        int
@@ -15,6 +17,24 @@ type RoleH struct {
 	sharedDB  DBTX
 }
 
+func (h *DisceptoH) CreateRole(ctx context.Context, roleName string) (*RoleH, error) {
+	preset := false
+	id, err := createRole(ctx, h.sharedDB, "discepto", roleName, preset, map[string]bool{})
+	if err != nil {
+		return nil, err
+	}
+	return &RoleH{
+		id:       id,
+		name:     roleName,
+		domain:   "discepto",
+		sharedDB: h.sharedDB,
+		rolePerms: RolePerms{
+			ManageRole: true,
+			UpdateRole: true,
+			DeleteRole: true,
+		},
+	}, nil
+}
 func (h *DisceptoH) GetRoleH(ctx context.Context, roleName string) (*RoleH, error) {
 	if !h.globalPerms.ManageGlobalRole {
 		return nil, ErrPermDenied
@@ -35,7 +55,28 @@ func (h *DisceptoH) GetRoleH(ctx context.Context, roleName string) (*RoleH, erro
 		domain:   role.Domain,
 		sharedDB: h.sharedDB,
 		rolePerms: RolePerms{
-			ManageRole: !role.Preset && permManageRole,
+			ManageRole: permManageRole,
+			UpdateRole: !role.Preset,
+			DeleteRole: !role.Preset,
+		},
+	}, nil
+}
+func (h *SubdisceptoH) CreateRole(ctx context.Context, roleName string) (*RoleH, error) {
+	preset := false
+	domain := subRoleDomain(h.name)
+	id, err := createRole(ctx, h.sharedDB, domain, roleName, preset, map[string]bool{})
+	if err != nil {
+		return nil, err
+	}
+	return &RoleH{
+		id:       id,
+		name:     roleName,
+		domain:   domain,
+		sharedDB: h.sharedDB,
+		rolePerms: RolePerms{
+			ManageRole: true,
+			UpdateRole: !preset,
+			DeleteRole: !preset,
 		},
 	}, nil
 }
@@ -59,7 +100,9 @@ func (h *SubdisceptoH) GetRoleH(ctx context.Context, roleName string) (*RoleH, e
 		domain:   role.Domain,
 		sharedDB: h.sharedDB,
 		rolePerms: RolePerms{
-			ManageRole: !role.Preset && permManageRole,
+			ManageRole: permManageRole,
+			UpdateRole: !role.Preset,
+			DeleteRole: !role.Preset,
 		},
 	}, nil
 }
@@ -67,13 +110,16 @@ func (h *RoleH) ListActivePerms(ctx context.Context) (map[string]bool, error) {
 	return listRolePerms(ctx, h.sharedDB, h.id)
 }
 func (h *RoleH) UpdatePerms(ctx context.Context, perms map[string]bool) error {
-	if !h.rolePerms.ManageRole {
+	if !h.rolePerms.UpdateRole {
 		return ErrPermDenied
 	}
 	return setPermissions(ctx, h.sharedDB, h.id, perms)
 }
+func (h *RoleH) Perms() RolePerms {
+	return h.rolePerms
+}
 func (h *RoleH) DeleteRole(ctx context.Context) error {
-	if !h.rolePerms.ManageRole {
+	if !h.rolePerms.DeleteRole {
 		return ErrPermDenied
 	}
 	return deleteRole(ctx, h.sharedDB, h.id)

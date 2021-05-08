@@ -3,6 +3,7 @@ package routes
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"path"
 	"strconv"
@@ -25,6 +26,7 @@ func (routes *Routes) roleRouter(r chi.Router) {
 	r.Use(routes.EnforceCtx(UserHCtxKey))
 	r.Get("/", routes.AppHandler(routes.listRoles))
 	r.Get("/{roleName}", routes.AppHandler(routes.getRolePerms))
+	r.Post("/", routes.AppHandler(routes.postNewRole))
 	r.Put("/{roleName}", routes.AppHandler(routes.putRolePerms))
 	r.Delete("/{roleName}", routes.AppHandler(routes.deleteRole))
 }
@@ -55,6 +57,7 @@ type RoleManager interface {
 	ListRoles(ctx context.Context) ([]models.Role, error)
 	ListAvailablePerms() map[string]bool
 	GetRoleH(ctx context.Context, roleName string) (*db.RoleH, error)
+	CreateRole(ctx context.Context, roleName string) (*db.RoleH, error)
 }
 
 func (routes *Routes) assignRole(w http.ResponseWriter, r *http.Request) AppError {
@@ -109,10 +112,12 @@ func (routes *Routes) getRolePerms(w http.ResponseWriter, r *http.Request) AppEr
 		RoleName       string
 		AvailablePerms map[string]bool
 		ActivePerms    map[string]bool
+		RolePerms      db.RolePerms
 	}{
 		RoleName:       roleName,
 		AvailablePerms: availablePerms,
 		ActivePerms:    activePerms,
+		RolePerms:      roleH.Perms(),
 	})
 	return nil
 }
@@ -173,5 +178,21 @@ func (routes *Routes) deleteRole(w http.ResponseWriter, r *http.Request) AppErro
 	path := path.Dir(r.URL.Path)
 	w.Header().Add("HX-Redirect", path)
 	http.Redirect(w, r, path, http.StatusAccepted)
+	return nil
+}
+func (routes *Routes) postNewRole(w http.ResponseWriter, r *http.Request) AppError {
+	roleManager := GetRoleManager(r)
+	roleName := r.FormValue("roleName")
+	if roleName == "" {
+		return &ErrBadRequest{Cause: errors.New("Fill required inputs")}
+	}
+	_, err := roleManager.CreateRole(r.Context(), roleName)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	path := path.Join(r.URL.Path, roleName)
+	fmt.Println(path)
+	w.Header().Add("HX-Redirect", path)
+	http.Redirect(w, r, path, http.StatusSeeOther)
 	return nil
 }

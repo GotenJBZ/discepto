@@ -14,9 +14,11 @@
                         </div>
                     </div>
                     <div class="level-right">
+                        {{ if .RolePerms.DeleteRole }}
                         <button hx-delete="{{ .RoleName }}" class="button is-danger is-outlined">
                             Delete role
                         </button>
+                        {{ end }}
                     </div>
                 </div>
                 <div class="box content">
@@ -51,6 +53,7 @@
                           </div>
                         </div>
                     {{ end }}
+                    {{ if .RolePerms.UpdateRole }}
                     <div class="is-relative">
                         <style>
                             .htmx-indicator.is-overlay {
@@ -71,6 +74,9 @@
                     </div>
                     </form>
                 </div>
+                {{ else }}
+                <p>This is a preset role and can't be edited</p>
+                {{ end }}
             </div>
         </div>
     </div>

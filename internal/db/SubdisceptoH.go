@@ -103,13 +103,6 @@ func (h SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH 
 		return err
 	})
 }
-func (h SubdisceptoH) CreateRole(ctx context.Context, subPerms models.SubPerms, role string) error {
-	if !h.subPerms.ManageRole || h.subPerms.And(subPerms) != subPerms {
-		return ErrPermDenied
-	}
-	_, err := createRole(ctx, h.sharedDB, subRoleDomain(h.name), role, false, subPerms.ToBoolMap())
-	return err
-}
 func (h SubdisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, roleH RoleH) error {
 	if !h.subPerms.ManageRole || !byUser.perms.Read || !roleH.rolePerms.ManageRole || !(roleH.domain == subRoleDomain(h.name)) {
 		return ErrPermDenied
