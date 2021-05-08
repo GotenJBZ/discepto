@@ -112,6 +112,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		Sources         []string
 		EssayUserDid    *models.EssayUserDid
 		SubdisceptoList []string
+		Perms           models.EssayPerms
 	}{
 		Subdiscepto:     subData,
 		Essay:           essay,
@@ -120,6 +121,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		Sources:         []string{},
 		Replies:         replies,
 		FilterReplyType: filter,
+		Perms:           esH.Perms(),
 	}
 
 	routes.tmpls.RenderHTML(w, "essay", data)
@@ -210,7 +212,7 @@ func (routes *Routes) DeleteEssay(w http.ResponseWriter, r *http.Request) AppErr
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
-	w.Header().Add("HX-Redirect",path.Dir(r.URL.Path))
+	w.Header().Add("HX-Redirect", path.Dir(r.URL.Path))
 	http.Redirect(w, r, path.Dir(r.URL.Path), http.StatusAccepted)
 	return nil
 }
