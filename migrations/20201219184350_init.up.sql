@@ -136,7 +136,8 @@ CREATE TABLE reports (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	description varchar(500),
 	essay_id int REFERENCES essays(id) NOT NULL,
-	from_user_id int REFERENCES users(id) NOT NULL
+	from_user_id int REFERENCES users(id) NOT NULL,
+	UNIQUE(essay_id, from_user_id)
 );
 
 CREATE TYPE vote_type as ENUM ('upvote', 'downvote');
