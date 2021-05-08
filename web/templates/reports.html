@@ -16,6 +16,7 @@
                         <li><a href="settings">General</a></li>
                         <li><a href="members">Members</a></li>
                         <li><a href="roles">Roles</a></li>
+                        <li><a href="reports">Reports</a></li>
                     </ul>
 
                 </aside>
@@ -29,23 +30,67 @@
                         <input class="input is-primary" type="text" placeholder="search members">
                     </div>
                 </div>
-                <div class="box">
                     {{ range .Reports }}
-                    <div class="block">
-                        <p class="title is-2">{{ .EssayView.Thesis }}</p>
-                        <p class="title is-3">@{{ .EssayView.AttributedToName }}</p>
-                        <p>{{ .EssayView.Content }}</p>
-                        <p>{{ .Description }}</p>
-                        <p>Upvotes: {{ .EssayView.Upvotes }} | Downvotes: {{ .EssayView.Downvotes }}</p>
-                    </div>
-                    <a href="{{.EssayView.ID}}">
-                        <button class="button is-info">View essay</button>
-                    </a>
-                    {{ if $.SubPerms.DeleteReport }}
-                    <button hx-delete="/s/{{.EssayView.PostedIn}}/reports/{{.ID}}" class="button is-danger is-outlined">Remove</button>
-                    {{ end }}
-                    {{ end }}
+                    <div class="box is-relative">
+                        <div class="media">
+                            <div class="media-left">
+                                <figure class="image is-64x64 ">
+                                    <p>
+                                        <img class="is-rounded " src="https://bulma.io/images/placeholders/128x128.png ">
+                                    </p> 
+                                </figure>
+                            </div>
+
+                            <div class="media-content">
+                                <p>
+                                    <strong>{{ .EssayView.Thesis }}</strong> <br> <small>@{{ .EssayView.AttributedToName }}</small>                                  
+                                </p>
+                                
+                            </div>
+
+                            <div class="media-right">
+                                <a href="{{.EssayView.ID}}">
+                                    <button class="button is-info">View essay</button>
+                                </a>
+                                {{ if $.SubPerms.DeleteReport }}
+                                <button hx-delete="/s/{{.EssayView.PostedIn}}/reports/{{.ID}}" class="button is-danger is-outlined">Remove</button>
+                                {{ end }}
+                            </div> 
+                        </div>
+                        <br>
+                        <div class="content">
+                            <div class="media-content">
+                                <p>
+                                    {{ .EssayView.Content }}
+                                </p>
+                                <p>{{ .Description }}</p>
+                            </div>
+                            
+                        </div>
+                        <nav class="level is-mobile">
+                            <div class="level-left ">
+
+                                <div class="buttons" id="essay-btns">
+                                    
+                                    <button class="button mr-3 is-white">
+                                        <span class="icon is-small has-text-primary">
+                                            <i class="fa fa-arrow-up" aria-hidden="true"></i>
+                                            <p class="has-text-black">&nbsp;{{ .EssayView.Upvotes }}</p>
+                                        </span>
+                                    </button>
+                                    <button class="button mr-3 is-white">
+                                        <span class="icon is-small has-text-primary">
+                                            <i class="fa fa-arrow-down" aria-hidden="true"></i>
+                                            <p class="has-text-black">&nbsp;{{ .EssayView.Downvotes }}</p>
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </nav>       
                 </div>
+                
+                {{ end }}
+                
             </div>
         </div>
     </div>

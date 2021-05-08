@@ -14,6 +14,7 @@ func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) AppError
 	userH := GetUserH(r)
 	searchBy := r.URL.Query().Get("searchBy")
 	query := r.URL.Query().Get("q")
+	filterType := r.URL.Query().Get("filterType")
 
 	var essays []models.EssayView
 	var err error
@@ -38,10 +39,12 @@ func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) AppError
 		Essays         []models.EssayView
 		MySubdisceptos []string
 		Query          string
+		FilterType     string
 	}{
 		MySubdisceptos: mySubs,
 		Essays:         essays,
 		Query:          query,
+		FilterType:     filterType,
 	})
 	return nil
 }
