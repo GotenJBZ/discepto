@@ -200,3 +200,12 @@ func isLowerRole(oldRole HigherRole, newRole map[string]bool) bool {
 	}
 	return true
 }
+func deleteRole(ctx context.Context, db DBTX, roleID int) error {
+	sql, args, _ := psql.Delete("roles").Where(sq.Eq{"id": roleID}).ToSql()
+
+	_, err := db.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+	return nil
+}

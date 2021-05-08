@@ -6,8 +6,19 @@
     <div class="container is-max-widescreen">
         <div class="columns ml-0 mr-0 mt-4">
             <div class="column is-12">
-                <h1 class="title">Role permissions</h1>
-                <h2 class="subtitle">Viewing role: {{ .RoleName }}</h2>
+                <div class="level">
+                    <div class="level-left">
+                        <div>
+                            <h1 class="title">Role permissions</h1>
+                            <h2 class="subtitle">Viewing role: {{ .RoleName }}</h2>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <button hx-delete="{{ .RoleName }}" class="button is-danger is-outlined">
+                            Delete role
+                        </button>
+                    </div>
+                </div>
                 <div class="box content">
                     <form id="perms-form" method="post" hx-put="{{ .RoleName }}" hx-select="#perms-form" hx-boost="true">
                     <p>Loaded at: {{now | formatTime}}</p>

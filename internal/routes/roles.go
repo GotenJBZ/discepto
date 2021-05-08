@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"path"
 	"strconv"
 
 	"github.com/go-chi/chi"
@@ -25,6 +26,7 @@ func (routes *Routes) roleRouter(r chi.Router) {
 	r.Get("/", routes.AppHandler(routes.listRoles))
 	r.Get("/{roleName}", routes.AppHandler(routes.getRolePerms))
 	r.Put("/{roleName}", routes.AppHandler(routes.putRolePerms))
+	r.Delete("/{roleName}", routes.AppHandler(routes.deleteRole))
 }
 
 func GetRoleManagerDiscepto(r *http.Request) RoleManager {
@@ -155,5 +157,21 @@ func (routes *Routes) listRoles(w http.ResponseWriter, r *http.Request) AppError
 		Roles:       roles,
 	}
 	routes.tmpls.RenderHTML(w, "roles", data)
+	return nil
+}
+func (routes *Routes) deleteRole(w http.ResponseWriter, r *http.Request) AppError {
+	roleManager := GetRoleManager(r)
+	roleName := chi.URLParam(r, "roleName")
+	roleH, err := roleManager.GetRoleH(r.Context(), roleName)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	err = roleH.DeleteRole(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	path := path.Dir(r.URL.Path)
+	w.Header().Add("HX-Redirect", path)
+	http.Redirect(w, r, path, http.StatusAccepted)
 	return nil
 }

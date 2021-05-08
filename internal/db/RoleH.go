@@ -8,11 +8,11 @@ type RolePerms struct {
 	ManageRole bool
 }
 type RoleH struct {
-	id              int
-	name            string
-	domain          string
-	rolePerms       RolePerms
-	sharedDB        DBTX
+	id        int
+	name      string
+	domain    string
+	rolePerms RolePerms
+	sharedDB  DBTX
 }
 
 func (h *DisceptoH) GetRoleH(ctx context.Context, roleName string) (*RoleH, error) {
@@ -30,10 +30,10 @@ func (h *DisceptoH) GetRoleH(ctx context.Context, roleName string) (*RoleH, erro
 	permManageRole := isLowerRole(HigherRole(h.globalPerms.ToBoolMap()), perms)
 
 	return &RoleH{
-		id:              role.ID,
-		name:            role.Name,
-		domain:          role.Domain,
-		sharedDB:        h.sharedDB,
+		id:       role.ID,
+		name:     role.Name,
+		domain:   role.Domain,
+		sharedDB: h.sharedDB,
 		rolePerms: RolePerms{
 			ManageRole: !role.Preset && permManageRole,
 		},
@@ -71,4 +71,10 @@ func (h *RoleH) UpdatePerms(ctx context.Context, perms map[string]bool) error {
 		return ErrPermDenied
 	}
 	return setPermissions(ctx, h.sharedDB, h.id, perms)
+}
+func (h *RoleH) DeleteRole(ctx context.Context) error {
+	if !h.rolePerms.ManageRole {
+		return ErrPermDenied
+	}
+	return deleteRole(ctx, h.sharedDB, h.id)
 }
