@@ -52,6 +52,7 @@
                                         <div class="dropdown-menu" id="dropdown-menu">
                                             <div class="dropdown-content is-small">
                                                 <div hx-post="/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/report" class="dropdown-item has-text-danger">report</div>
+                                                <div hx-delete="/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}" class="dropdown-item has-text-danger">delete</div>
                                             </div>
                                         </div>
                                     </div>

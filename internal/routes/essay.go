@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 
@@ -17,7 +18,7 @@ func (routes *Routes) EssaysRouter(r chi.Router) {
 	specificEssay := r.With(routes.EssayCtx)
 	specificEssay.Get("/{essayID}", routes.AppHandler(routes.GetEssay))
 	specificEssay.With(routes.EnforceCtx(UserHCtxKey)).Put("/{essayID}", routes.UpdateEssay)
-	specificEssay.With(routes.EnforceCtx(UserHCtxKey)).Delete("/{essayID}", routes.DeleteEssay)
+	specificEssay.With(routes.EnforceCtx(UserHCtxKey)).Delete("/{essayID}", routes.AppHandler(routes.DeleteEssay))
 	specificEssay.With(routes.EnforceCtx(UserHCtxKey)).Post("/{essayID}/vote", routes.AppHandler(routes.PostVote))
 	specificEssay.With(routes.EnforceCtx(UserHCtxKey)).Post("/{essayID}/report", routes.AppHandler(routes.PostReport))
 }
@@ -203,15 +204,22 @@ func (routes *Routes) PostReport(w http.ResponseWriter, r *http.Request) AppErro
 	}
 	return nil
 }
-func (routes *Routes) DeleteEssay(w http.ResponseWriter, r *http.Request) {
-
+func (routes *Routes) DeleteEssay(w http.ResponseWriter, r *http.Request) AppError {
+	essayH := GetEssayH(r)
+	err := essayH.DeleteEssay(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	w.Header().Add("HX-Redirect",path.Dir(r.URL.Path))
+	http.Redirect(w, r, path.Dir(r.URL.Path), http.StatusAccepted)
+	return nil
 }
 func (routes *Routes) UpdateEssay(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Nope")
 }
 func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError {
 	userH := GetUserH(r)
-	esH, _ := r.Context().Value(EssayHCtxKey).(*db.EssayH)
+	esH := GetEssayH(r)
 
 	var vote models.VoteType
 	switch r.FormValue("vote") {
