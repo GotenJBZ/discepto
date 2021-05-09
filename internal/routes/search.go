@@ -40,11 +40,13 @@ func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) AppError
 		MySubdisceptos []string
 		Query          string
 		FilterType     string
+		SearchBy       string
 	}{
 		MySubdisceptos: mySubs,
 		Essays:         essays,
 		Query:          query,
 		FilterType:     filterType,
+		SearchBy:	searchBy,
 	})
 	return nil
 }
