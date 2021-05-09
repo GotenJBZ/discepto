@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/httprate"
 	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
@@ -28,6 +29,11 @@ const (
 	DisceptoHCtxKey
 	SubdisceptoHCtxKey
 	EssayHCtxKey
+)
+
+const (
+	LimitGlobalCount, LimitGlobalDuration = 180, 1 * time.Minute
+	LimitPostCount, LimitPostDuration     = 30, 1 * time.Minute
 )
 
 type Routes struct {
@@ -68,6 +74,20 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(15 * time.Second))
+
+	if !config.Debug {
+		r.Use(httprate.LimitByIP(LimitGlobalCount, LimitGlobalDuration))
+		r.Use(func(next http.Handler) http.Handler {
+			limiter := httprate.Limit(LimitPostCount, LimitPostDuration, httprate.KeyByIP)
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == "POST" {
+					limiter(next)
+				} else {
+					next.ServeHTTP(w, r)
+				}
+			})
+		})
+	}
 
 	// Try retrieving basic user data for every request
 	r.Use(routes.UserCtx)
@@ -181,6 +201,9 @@ func GetDisceptoH(r *http.Request) *db.DisceptoH {
 func GetEssayH(r *http.Request) *db.EssayH {
 	h, _ := r.Context().Value(EssayHCtxKey).(*db.EssayH)
 	return h
+}
+
+func LimitPost() {
 }
 
 // Interface shared by every custom http error.
