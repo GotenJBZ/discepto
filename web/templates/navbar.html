@@ -24,7 +24,11 @@
                 <div class="navbar-item ">
                     <div class="dropdown is-right is-hoverable">
                         <div class="dropdown-trigger">
-                          <button class="button is-white" aria-haspopup="true" aria-controls="dropdown-menu4">
+                          <button hx-get="/notifications"
+                                  hx-target="#notifs-dropdown"
+                                  hx-select="#notifs-dropdown-content"
+                                  hx-trigger="load"
+                            class="button is-white" aria-haspopup="true" aria-controls="dropdown-menu4">
                             
                             <span class="icon is-small">
                               <i class="far fa-bell" aria-hidden="true"></i>
@@ -32,99 +36,10 @@
                           </button>
                         </div>
                         
-                        <div class="dropdown-menu" id="dropdown-menu3" role="menu">
-                            <div class="dropdown-content">
-                                <a href="notifications" class="dropdown-item"> 
-                                  <article class="media">
-                                    <div class="media-left">
-                                      <figure class="image is-32x32">
-                                        <img class="is-rounded" style="max-height: 100%" src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
-                                      </figure>
-                                    </div>
-                                    <div class="media-content">
-                                    <p class="subtitle is-6">@user has upvoted your post!</p>
-                                    </div>
-                                    <div class="media-right">
-                                      <span class="icon">
-                                        <i class="fas fa-arrow-up"></i>
-                                      </span>
-                                    </div>
-                                </article>
-                                </a>
-                              <hr class="dropdown-divider">
-                              <a href="#" class="dropdown-item"> 
-                                <article class="media">
-                                  <div class="media-left">
-                                    <figure  class="image is-32x32">
-                                      <img class="is-rounded" style="max-height: 100%" src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
-                                    </figure>                                  
-                                  </div>
-                                  <div class="media-content">
-                                  <p class="subtitle is-6">@user has upvoted your post!</p>
-                                  </div>
-                                  <div class="media-right">
-                                    <span class="icon">
-                                      <i class="fas fa-arrow-up"></i>
-                                    </span>
-                                  </div>
-                              </article>
-                              </a>
-                              <hr class="dropdown-divider">
-                              <a href="#" class="dropdown-item"> 
-                                <article class="media">
-                                  <div class="media-left">
-                                    <figure  class="image is-32x32">
-                                      <img class="is-rounded" style="max-height: 100%" src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
-                                    </figure>                                  
-                                  </div>
-                                  <div class="media-content">
-                                  <p class="subtitle is-6">@user has upvoted your post!</p>
-                                  </div>
-                                  <div class="media-right">
-                                    <span class="icon">
-                                      <i class="fas fa-arrow-up"></i>
-                                    </span>
-                                  </div>
-                              </article>
-                              </a>
-                              <hr class="dropdown-divider">                             
-                              <a href="#" class="dropdown-item"> 
-                                <article class="media">
-                                  <div class="media-left">
-                                    <figure  class="image is-32x32">
-                                      <img class="is-rounded" style="max-height: 100%" src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
-                                    </figure>                                  
-                                  </div>
-                                  <div class="media-content">
-                                  <p class="subtitle is-6">@user has upvoted your post!</p>
-                                  </div>
-                                  <div class="media-right">
-                                    <span class="icon">
-                                      <i class="fas fa-arrow-up"></i>
-                                    </span>
-                                  </div>
-                              </article>
-                              </a>
-                              <hr class="dropdown-divider">
-                              <a href="#" class="dropdown-item"> 
-                                <article class="media">
-                                  <div class="media-left">
-                                    <figure  class="image is-32x32">
-                                      <img class="is-rounded" style="max-height: 100%" src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
-                                    </figure>                                  
-                                  </div>
-                                  <div class="media-content">
-                                  <p class="subtitle is-6">@user has upvoted your post!</p>
-                                  </div>
-                                  <div class="media-right">
-                                    <span class="icon">
-                                      <i class="fas fa-arrow-up"></i>
-                                    </span>
-                                  </div>
-                              </article>
-                              </a>
-                            </div>
+                        <div class="dropdown-menu" id="notifs-dropdown" role="menu">
+                          <div class="dropdown-content">
                           </div>
+                        </div>
                       </div>
                 </div>
                 <div class="navbar-item">
@@ -179,5 +94,4 @@
         </div>
     </nav>
 </header>
-<script src="/static/js/navbar.js"></script>
 {{ end }}

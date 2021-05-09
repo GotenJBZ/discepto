@@ -114,7 +114,8 @@ CREATE TABLE notifications (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	user_id int NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	notif_type varchar(30) NOT NULL,
-	description varchar(500) NOT NULL,
+	title varchar(50) NOT NULL,
+	text varchar(500) NOT NULL,
 	action_url varchar(255) NOT NULL
 );
 

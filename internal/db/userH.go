@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
@@ -93,12 +94,12 @@ func (h UserH) ListMySubdisceptos(ctx context.Context) (subs []string, err error
 	}
 	return subs, nil
 }
-func (h UserH) ListNotifications(ctx context.Context) ([]models.Notification, error) {
+func (h UserH) ListNotifications(ctx context.Context) ([]models.NotifView, error) {
 	if !h.perms.Read {
 		return nil, ErrPermDenied
 	}
-	notifs := []models.Notification{}
-	sql, args, _ := psql.Select("notif_type", "description", "action_url").
+	notifs := []models.NotifView{}
+	sql, args, _ := psql.Select("id", "notif_type", "title", "text", "action_url").
 		From("notifications").
 		Where(sq.Eq{"user_id": h.id}).
 		ToSql()
@@ -109,11 +110,26 @@ func (h UserH) ListNotifications(ctx context.Context) ([]models.Notification, er
 	}
 	return notifs, nil
 }
-func sendNotification(ctx context.Context, db DBTX, userH UserH, notif models.Notification) error {
+func (h UserH) DeleteNotif(ctx context.Context, notifID int) error {
+	if !h.perms.Read {
+		return ErrPermDenied
+	}
+	sql, args, _ := psql.Delete("notifications").
+		Where(sq.Eq{"user_id": h.id, "id": notifID}).
+		ToSql()
+
+	_, err := h.sharedDB.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func sendNotification(ctx context.Context, db DBTX, notif models.Notification) error {
+	fmt.Println("sent", notif)
 	sql, args, _ := psql.
 		Insert("notifications").
-		Columns("user_id", "notif_type", "description", "action_url").
-		Values(userH.id, notif.NotifType, notif.Description, notif.ActionURL.String()).
+		Columns("user_id", "notif_type", "title", "text", "action_url").
+		Values(notif.UserID, notif.NotifType, notif.Title, notif.Text, notif.ActionURL.String()).
 		ToSql()
 	_, err := db.Exec(ctx, sql, args...)
 	return err

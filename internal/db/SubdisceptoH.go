@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 
 	"github.com/georgysavva/scany/pgxscan"
 
@@ -96,7 +97,7 @@ func (h SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH 
 	e.InReplyTo.Int32 = int32(pH.id)
 	e.InReplyTo.Valid = true
 	var essay *EssayH
-	return essay, execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
+	err := execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
 		var err error
 		essay, err = h.createEssay(ctx, tx, e)
 		if err != nil {
@@ -105,6 +106,39 @@ func (h SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH 
 		err = createReply(ctx, tx, e.ID, int(e.InReplyTo.Int32), e.ReplyType.String)
 		return err
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	parentEssayH, err := h.GetEssayH(ctx, int(e.InReplyTo.Int32), nil)
+	if err != nil {
+		return nil, err
+	}
+	parentEssay, err := parentEssayH.ReadView(ctx)
+	if err != nil {
+		return nil, err
+	}
+	url, err := url.Parse(fmt.Sprintf("/s/%s/%d", e.PostedIn, e.ID))
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := readPublicUser(ctx, h.sharedDB, parentEssay.AttributedToID)
+	if err != nil {
+		return nil, err
+	}
+	err = sendNotification(ctx, h.sharedDB, models.Notification{
+		UserID:    user.ID,
+		Title:     fmt.Sprintf(user.Name),
+		Text:      fmt.Sprintf("replied to your essay"),
+		NotifType: models.NotifTypeReply,
+		ActionURL: *url,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return essay, nil
 }
 func (h SubdisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, roleH RoleH) error {
 	if !h.subPerms.ManageRole || !byUser.perms.Read || !roleH.rolePerms.ManageRole || !(roleH.domain == subRoleDomain(h.name)) {

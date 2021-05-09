@@ -67,22 +67,7 @@ func (h *DisceptoH) ReadPublicUser(ctx context.Context, userID int) (*models.Use
 	if !h.globalPerms.Login {
 		return nil, ErrPermDenied
 	}
-	user := &models.User{}
-	sql, args, _ := psql.
-		Select("users.name", "users.id").
-		From("users").
-		Where(sq.Eq{"id": userID}).
-		ToSql()
-
-	err := pgxscan.Get(
-		ctx,
-		h.sharedDB, user,
-		sql, args...)
-
-	if err != nil {
-		return nil, err
-	}
-	return user, nil
+	return readPublicUser(ctx, h.sharedDB, userID)
 }
 
 func (h *DisceptoH) CreateSubdiscepto(ctx context.Context, uH UserH, subd models.Subdiscepto) (*SubdisceptoH, error) {
@@ -319,4 +304,22 @@ func (h *DisceptoH) SearchByThesis(ctx context.Context, title string) ([]models.
 		return nil, err
 	}
 	return essays, nil
+}
+func readPublicUser(ctx context.Context, db DBTX, userID int) (*models.User, error) {
+	user := &models.User{}
+	sql, args, _ := psql.
+		Select("users.name", "users.id").
+		From("users").
+		Where(sq.Eq{"id": userID}).
+		ToSql()
+
+	err := pgxscan.Get(
+		ctx,
+		db, user,
+		sql, args...)
+
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }

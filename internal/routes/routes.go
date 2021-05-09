@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -95,7 +96,8 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 	loggedIn.Route("/settings", routes.GlobalSettingsRouter)
 	loggedIn.Get("/search", routes.AppHandler(routes.GetSearch))
 	loggedIn.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
-	loggedIn.Get("/notifications", routes.GetNotifications)
+	loggedIn.Get("/notifications", routes.AppHandler(routes.GetNotifications))
+	loggedIn.Post("/notifications/{notifID}", routes.AppHandler(routes.ViewDeleteNotif))
 
 	// Fallback
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -346,8 +348,29 @@ func (routes *Routes) GetLogin(w http.ResponseWriter, r *http.Request) {
 func (routes *Routes) GetNewSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	routes.tmpls.RenderHTML(w, "newSubdiscepto", nil)
 }
-func (routes *Routes) GetNotifications(w http.ResponseWriter, r *http.Request) {
-	routes.tmpls.RenderHTML(w, "notifications", nil)
+func (routes *Routes) GetNotifications(w http.ResponseWriter, r *http.Request) AppError {
+	userH := GetUserH(r)
+	notifs, err := userH.ListNotifications(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	routes.tmpls.RenderHTML(w, "notifications", notifs)
+	return nil
+}
+func (routes *Routes) ViewDeleteNotif(w http.ResponseWriter, r *http.Request) AppError {
+	userH := GetUserH(r)
+	notifID, err := strconv.Atoi(chi.URLParam(r, "notifID"))
+	if err != nil {
+		return &ErrBadRequest{Cause: err}
+	}
+	err = userH.DeleteNotif(r.Context(), notifID)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	actionURL := r.URL.Query().Get("action_url")
+	w.Header().Add("HX-Redirect", actionURL)
+	http.Redirect(w, r, actionURL, http.StatusAccepted)
+	return nil
 }
 func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) AppError {
 	token, err := routes.db.Login(r.Context(), r.FormValue("email"), r.FormValue("password"))
