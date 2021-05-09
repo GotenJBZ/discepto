@@ -7,11 +7,8 @@
         <div class="columns  mr-2 ml-2 mt-4">
             <div class="column is-8 is-fluid">
                 <h1 class="title">Search Page</h1>
-                <form>
-                    <div class="field is-grouped">
-                        <div class="control ">
-                            <input class="input is-primary" name="q" id="q" type="text" placeholder="Search" value="{{.Query}}">
-                        </div>
+                <form hx-boost="true" hx-target="#search-results" hx-select="#search-results" hx-push-url="true" action="/search">
+                    <div class="field has-addons">
                         <div class="control">
                             <div class="select">
                                 <select name="searchBy">
@@ -20,13 +17,21 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="control is-expanded">
+                            <input class="input" name="q" id="q" type="text" placeholder="Search" value="{{.Query}}">
+                        </div>
+                        
                         <div class="control">
-                            <button class="button is-primary">Submit</button>
+                            <button class="button is-primary">
+                                <span class="icon">
+                                    <i class="fas fa-search"></i>
+                                  </span>
+                            </button>
                         </div>
                     </div>
-
-
-                </form><br> {{ range .Essays }}
+                </form><br> 
+                <div id="search-results">
+                {{ range .Essays }}
                 <div class="box is-relative">
 
                     <div class="media">
@@ -83,6 +88,7 @@
                         </div>
                     </nav>
                 </div>{{ end }}
+            </div>
             </div>
             <div class="column is-4 is-fluid">
                 <div class="card events-card ">
