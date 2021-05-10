@@ -138,9 +138,14 @@ func (h EssayH) CreateVote(ctx context.Context, uH UserH, vote models.VoteType) 
 		if err != nil {
 			return err
 		}
+
+		user, err := uH.Read(ctx)
+		if err != nil {
+			return err
+		}
 		return sendNotification(ctx, h.sharedDB, models.Notification{
 			UserID:    essay.AttributedToID,
-			Title:     essay.AttributedToName,
+			Title:     user.Name,
 			Text:      "Upvoted your essay",
 			NotifType: models.NotifTypeUpvote,
 			ActionURL: *url,

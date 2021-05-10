@@ -128,13 +128,13 @@ func (h SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH 
 		return nil, err
 	}
 
-	user, err := readPublicUser(ctx, h.sharedDB, parentEssay.AttributedToID)
+	user, err := readPublicUser(ctx, h.sharedDB, e.AttributedToID)
 	if err != nil {
 		return nil, err
 	}
 	err = sendNotification(ctx, h.sharedDB, models.Notification{
 		UserID:    user.ID,
-		Title:     fmt.Sprintf(user.Name),
+		Title:     user.Name,
 		Text:      fmt.Sprintf("replied to your essay"),
 		NotifType: models.NotifTypeReply,
 		ActionURL: *url,
