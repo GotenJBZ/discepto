@@ -64,6 +64,9 @@
 				<h1 class="title">Your notifications</h1>
 			</div>
 		</div>
+		{{ if not . }}
+		<p>No notifications available</p>
+		{{ end }}
 		{{ range .}}
 		<div class="box">	
 			<a href="{{.ActionURL}}"
