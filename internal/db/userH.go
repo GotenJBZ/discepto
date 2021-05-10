@@ -101,6 +101,7 @@ func (h UserH) ListNotifications(ctx context.Context) ([]models.NotifView, error
 	sql, args, _ := psql.Select("id", "notif_type", "title", "text", "action_url").
 		From("notifications").
 		Where(sq.Eq{"user_id": h.id}).
+		OrderBy("id DESC").
 		ToSql()
 
 	err := pgxscan.Select(ctx, h.sharedDB, &notifs, sql, args...)
