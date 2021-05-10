@@ -66,6 +66,9 @@
 		</div>
 		{{ range .}}
 		<div class="box">	
+			<a href="{{.ActionURL}}"
+						 hx-post="/notifications/{{.ID}}?action_url={{.ActionURL}}"
+			>
 			<div class="media">
 				<div class="media-left">
 					<figure class="image is-48x48">
@@ -88,6 +91,7 @@
 					</span>
 				</div>
 			</div>
+			</a>
 
 		</div>
 		{{ end }}
