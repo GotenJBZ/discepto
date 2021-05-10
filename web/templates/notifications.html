@@ -46,13 +46,13 @@
 			    </div>
 			</article>
 			</a>
-			<hr class="dropdown-divider">
 			{{ end }}
-			<div class="level">
-				<div class="level-item">
-					<a href="/notifications">View all</a>
-				</div>
-			</div>
+			{{ if .  }}
+			<hr class="dropdown-divider">
+			<a class="dropdown-item" href="/notifications">View all</a>
+			{{ else }}
+			<p class="dropdown-item">No notifications</p>
+			{{ end }}
 			</div>
 		</div>
 	</div>
