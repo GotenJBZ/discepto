@@ -5,7 +5,8 @@ import "net/url"
 type NotifType string
 
 const (
-	NotifTypeReply = "reply"
+	NotifTypeReply  = "reply"
+	NotifTypeUpvote = "upvote"
 )
 
 type Notification struct {

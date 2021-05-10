@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 
 	"github.com/georgysavva/scany/pgxscan"
 
@@ -118,7 +120,33 @@ func (h EssayH) CreateVote(ctx context.Context, uH UserH, vote models.VoteType) 
 		ToSql()
 
 	_, err := h.sharedDB.Exec(ctx, sql, args...)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Send notification
+	if vote == models.VoteTypeUpvote {
+		essay, err := h.ReadView(ctx)
+		if err != nil {
+			return err
+		}
+		if uH.id == essay.AttributedToID {
+			// Don't notify self
+			return nil
+		}
+		url, err := url.Parse(fmt.Sprintf("/s/%s/%d", essay.PostedIn, h.id))
+		if err != nil {
+			return err
+		}
+		return sendNotification(ctx, h.sharedDB, models.Notification{
+			UserID:    essay.AttributedToID,
+			Title:     essay.AttributedToName,
+			Text:      "Upvoted your essay",
+			NotifType: models.NotifTypeUpvote,
+			ActionURL: *url,
+		})
+	}
+	return nil
 }
 func (h EssayH) DeleteEssay(ctx context.Context) error {
 	if !h.essayPerms.DeleteEssay {
