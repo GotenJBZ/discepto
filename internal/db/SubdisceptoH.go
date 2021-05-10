@@ -133,7 +133,7 @@ func (h SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH 
 		return nil, err
 	}
 	err = sendNotification(ctx, h.sharedDB, models.Notification{
-		UserID:    user.ID,
+		UserID:    parentEssay.AttributedToID,
 		Title:     user.Name,
 		Text:      fmt.Sprintf("replied to your essay"),
 		NotifType: models.NotifTypeReply,
