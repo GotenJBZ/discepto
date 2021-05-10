@@ -136,52 +136,9 @@
                         </article>
                     </div>
                     <div class="tab-content dis-htmx-fade-in">
-                        {{ range $g := .Replies }}
-                        <div class="box is-relative">
-                            <article class="media">
-                                <figure class="media-left is-hidden-touch">
-                                    <p class="image is-64x64 ">
-                                        <img class="is-rounded " src="https://bulma.io/images/placeholders/128x128.png ">
-                                    </p>
-                                </figure>
-
-                                <div class="media-content">
-                                    <div class="content ">
-                                        <p>
-                                            <strong>{{$g.Thesis}}</strong> <small>{{$g.AttributedToName}}</small> <small>{{$g.Published}}</small>
-                                            {{$g.Content | markdownPreview}}
-                                        </p>
-                                        <a href="/s/{{ $g.PostedIn }}/{{ $g.ID }}" class="stretched-link"></a>
-                                    </div>
-
-                                    <nav class="level is-mobile">
-                                        <div class="level-left ">
-                                            <a class="level-item " aria-label="reply ">
-                                                <span class="icon is-small has-text-danger ">
-                                                    <i class="fa fa-heart " aria-hidden="true "></i>
-                                                </span>
-                                            </a>
-                                            <a class="level-item " aria-label="reply ">
-                                                <span class="icon is-small has-text-primary ">
-                                                    <i class="fa fa-arrow-up " aria-hidden="true "></i>
-                                                </span>
-                                            </a>
-                                            <a class="level-item " aria-label="retweet ">
-                                                <span class="icon is-small has-text-primary ">
-                                                    <i class="fa fa-arrow-down " aria-hidden="true "></i>
-                                                </span>
-                                            </a>
-                                        </div>
-                                    </nav>
-                                </div>
-                                <div class="media-right is-hidden-mobile">
-                                    {{if eq .ReplyType.String "supports" }}
-                                    <span class="tag is-success is-light is-medium">Supports</span> {{ else if eq .ReplyType.String "refutes"}}
-                                    <span class="tag is-danger is-light is-medium">Refutes</span> {{ else }}
-                                    <span class="tag is-warning is-light is-medium">General</span> {{ end }}
-                                </div>
-                            </article>
-                        </div>{{ end }}
+                        {{ range .Replies }}
+                        {{ template "essayCard" . }} 
+                        {{ end }}
                     </div>
 
                 </section>
