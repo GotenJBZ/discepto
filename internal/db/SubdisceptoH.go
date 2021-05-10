@@ -110,6 +110,7 @@ func (h SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH 
 		return nil, err
 	}
 
+	// Prepare and send notification
 	parentEssayH, err := h.GetEssayH(ctx, int(e.InReplyTo.Int32), nil)
 	if err != nil {
 		return nil, err
@@ -117,6 +118,10 @@ func (h SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH 
 	parentEssay, err := parentEssayH.ReadView(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if parentEssay.AttributedToID == e.AttributedToID {
+		// Don't notify to self
+		return essay, nil
 	}
 	url, err := url.Parse(fmt.Sprintf("/s/%s/%d", e.PostedIn, e.ID))
 	if err != nil {

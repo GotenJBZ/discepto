@@ -125,7 +125,6 @@ func (h UserH) DeleteNotif(ctx context.Context, notifID int) error {
 	return nil
 }
 func sendNotification(ctx context.Context, db DBTX, notif models.Notification) error {
-	fmt.Println("sent", notif)
 	sql, args, _ := psql.
 		Insert("notifications").
 		Columns("user_id", "notif_type", "title", "text", "action_url").
