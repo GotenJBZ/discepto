@@ -63,7 +63,7 @@ func (h *DisceptoH) ListMembers(ctx context.Context) ([]models.Member, error) {
 
 	return members, nil
 }
-func (h *DisceptoH) ReadPublicUser(ctx context.Context, userID int) (*models.User, error) {
+func (h *DisceptoH) ReadPublicUser(ctx context.Context, userID int) (*models.UserView, error) {
 	if !h.globalPerms.Login {
 		return nil, ErrPermDenied
 	}
@@ -305,12 +305,22 @@ func (h *DisceptoH) SearchByThesis(ctx context.Context, title string) ([]models.
 	}
 	return essays, nil
 }
-func readPublicUser(ctx context.Context, db DBTX, userID int) (*models.User, error) {
-	user := &models.User{}
+func (h *DisceptoH) ListUserEssays(ctx context.Context, userID int) ([]models.EssayView, error) {
+	return listUserEssays(ctx, h.sharedDB, userID)
+}
+func readPublicUser(ctx context.Context, db DBTX, userID int) (*models.UserView, error) {
+	user := &models.UserView{}
 	sql, args, _ := psql.
-		Select("users.name", "users.id").
+		Select(
+			"users.name",
+			"users.id",
+			"SUM(CASE votes.vote_type WHEN 'upvote' THEN 1 ELSE 0 END) AS karma",
+		).
 		From("users").
-		Where(sq.Eq{"id": userID}).
+		LeftJoin("essays ON essays.attributed_to_id = users.id").
+		LeftJoin("votes ON essays.id = votes.essay_id").
+		GroupBy("users.id").
+		Where(sq.Eq{"users.id": userID}).
 		ToSql()
 
 	err := pgxscan.Get(

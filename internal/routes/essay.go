@@ -70,6 +70,7 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppErr
 func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError {
 	userH := GetUserH(r)
 	subH := GetSubdisceptoH(r)
+	disceptoH := GetDisceptoH(r)
 	esH, _ := r.Context().Value(EssayHCtxKey).(*db.EssayH)
 
 	subData, err := subH.ReadView(r.Context(), userH)
@@ -104,6 +105,11 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		}
 	}
 
+	user, err := disceptoH.ReadPublicUser(r.Context(), essay.AttributedToID)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
 	data := struct {
 		Subdiscepto     *models.SubdisceptoView
 		Essay           *models.EssayView
@@ -113,6 +119,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		EssayUserDid    *models.EssayUserDid
 		SubdisceptoList []string
 		Perms           models.EssayPerms
+		User            *models.UserView
 	}{
 		Subdiscepto:     subData,
 		Essay:           essay,
@@ -122,6 +129,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		Replies:         replies,
 		FilterReplyType: filter,
 		Perms:           esH.Perms(),
+		User:            user,
 	}
 
 	routes.tmpls.RenderHTML(w, "essay", data)

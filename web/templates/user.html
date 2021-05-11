@@ -17,25 +17,14 @@
 
         <div class="columns">
             <div class="column is-8 is-fluid mr-2 ml-2">
-            
-                <section id="replies">
-                    
-                    <div class="tabs is-relative">
-                        <ul class="tabs-menu">
-                            <li class="{{if eq .FilterReplyType "general"}}is-active{{end}}"><a href="?replyType=general">Top</a></li>
-                            <li class="{{if eq .FilterReplyType "refutes"}}is-active{{end}}"><a href="?replyType=refutes">New</a></li>
-                            <li class="{{if eq .FilterReplyType "supports"}}is-active{{end}}"><a href="?replyType=supports">Hot</a></li>
-                        </ul>               
-                    </div>
-                </section>
-                <br>
                 {{ range .Essays}}
                 {{ template "essayCard" . }} 
                 {{ end }}
             </div>
             <div class="column is-4 is-fluid mr-2 ml-2">
+                {{ template "userCard" . }}
                 
-                <div class="card events-card ">
+                <div class="card events-card block">
                     <nav class="panel is-primary">
                         <p class="panel-heading ">Your Communities</p>
                         {{ $length := len .MySubdisceptos }} {{ if eq $length 0 }}
@@ -44,63 +33,6 @@
                     </nav>
                 </div>
                 
-                <br>
-                <div class="card">
-                    <nav class="panel is-primary">
-                        <p class="panel-heading ">Your notifications</p>
-                        <a href="notifications" class="panel-block "> 
-                            <article class="media">
-                              <div class="media-left">
-                              <figure class="image is-48x48">
-                                <img class="is-rounded" src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
-                              </figure>
-                              </div>
-                              <div class="media-content">
-                              <p class="subtitle is-6">@user has upvoted your post!</p>
-                              </div>
-                              <div class="media-right">
-                                <span class="icon">
-                                  <i class="fas fa-arrow-up"></i>
-                                </span>
-                              </div>
-                          </article>
-                          </a>
-                          <a href="notifications" class="panel-block "> 
-                            <article class="media">
-                              <div class="media-left">
-                              <figure class="image is-48x48">
-                                <img class="is-rounded" src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
-                              </figure>
-                              </div>
-                              <div class="media-content">
-                              <p class="subtitle is-6">@user has upvoted your post!</p>
-                              </div>
-                              <div class="media-right">
-                                <span class="icon">
-                                  <i class="fas fa-arrow-up"></i>
-                                </span>
-                              </div>
-                          </article>
-                          </a>
-                          <a href="notifications" class="panel-block "> 
-                            <article class="media">
-                              <div class="media-left">
-                              <figure class="image is-48x48">
-                                <img class="is-rounded" src="https://bulma.io/images/placeholders/96x96.png" alt="Placeholder image">
-                              </figure>
-                              </div>
-                              <div class="media-content">
-                              <p class="subtitle is-6">@user has upvoted your post!</p>
-                              </div>
-                              <div class="media-right">
-                                <span class="icon">
-                                  <i class="fas fa-arrow-up"></i>
-                                </span>
-                              </div>
-                          </article>
-                          </a>
-                    </nav>
-                </div>
             </div>
         </div>
         {{ end }}

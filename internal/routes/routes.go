@@ -117,7 +117,8 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 
 	loggedIn := r.With(routes.EnforceCtx(UserHCtxKey))
 	loggedIn.Get("/signout", routes.AppHandler(routes.GetSignout))
-	loggedIn.Get("/user", routes.AppHandler(routes.GetUser))
+	loggedIn.Get("/u", routes.AppHandler(routes.GetUserSelf))
+	loggedIn.Get("/u/{viewingUserID}", routes.AppHandler(routes.GetUser))
 	loggedIn.Get("/newessay", routes.AppHandler(routes.GetNewEssay))
 	loggedIn.Post("/newessay", routes.AppHandler(routes.PostEssay))
 	loggedIn.Route("/roles", routes.GlobalRolesRouter)
@@ -357,17 +358,60 @@ func (routes *Routes) GetSignout(w http.ResponseWriter, r *http.Request) AppErro
 	return nil
 }
 func (routes *Routes) GetUser(w http.ResponseWriter, r *http.Request) AppError {
-	userdata := models.User{ID: 1, Name: "pp", Email: "pp@pp.com"}
+	userH := GetUserH(r)
+	disceptoH := GetDisceptoH(r)
+	vUserID, err := strconv.Atoi(chi.URLParam(r, "viewingUserID"))
+	if err != nil {
+		return &ErrBadRequest{Cause: err}
+	}
+	essays, err := disceptoH.ListUserEssays(r.Context(), vUserID)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
+	userData, err := disceptoH.ReadPublicUser(r.Context(), vUserID)
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
+	mySubs, err := userH.ListMySubdisceptos(r.Context())
 	routes.tmpls.RenderHTML(w, "user", struct {
-		User            models.User
+		User            *models.UserView
 		Essays          []models.EssayView
 		FilterReplyType string
 		MySubdisceptos  []string
 	}{
-		User:            userdata,
-		Essays:          []models.EssayView{},
+		User:            userData,
+		Essays:          essays,
 		FilterReplyType: "general",
-		MySubdisceptos:  []string{},
+		MySubdisceptos:  mySubs,
+	})
+	return nil
+}
+func (routes *Routes) GetUserSelf(w http.ResponseWriter, r *http.Request) AppError {
+	userH := GetUserH(r)
+	disceptoH := GetDisceptoH(r)
+	essays, err := disceptoH.ListUserEssays(r.Context(), userH.ID())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
+	userData, err := disceptoH.ReadPublicUser(r.Context(), userH.ID())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
+	mySubs, err := userH.ListMySubdisceptos(r.Context())
+	routes.tmpls.RenderHTML(w, "user", struct {
+		User            *models.UserView
+		Essays          []models.EssayView
+		FilterReplyType string
+		MySubdisceptos  []string
+	}{
+		User:            userData,
+		Essays:          essays,
+		FilterReplyType: "general",
+		MySubdisceptos:  mySubs,
 	})
 	return nil
 }

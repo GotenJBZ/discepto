@@ -4,4 +4,5 @@ pkgs.mkShell {
     go
     gopls
   ];
+  hardeningDisable = [ "all" ];
 }

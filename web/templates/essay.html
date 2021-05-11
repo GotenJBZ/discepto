@@ -31,7 +31,7 @@
                                         
                                     </p>
                                     <p class="subtitle is-6">
-                                        <a href="#">{{.Essay.AttributedToName}}</a>&nbsp; <time datetime="2018-1-1">{{ .Essay.Published | formatTime }}</time>
+                                    <a href="/u/{{.Essay.AttributedToID}}">u/{{.Essay.AttributedToName}}</a>&nbsp; <time datetime="2018-1-1">{{ .Essay.Published | formatTime }}</time>
                                     </p>
                                     
                                 </div>
@@ -176,25 +176,7 @@
                     </nav>
                 </div>
                 <br> 
-                <div class="box is-relative is-flex-grow-1 is-flex is-flex-direction-column">
-                <div class="field is-grouped">
-                    <figure class="image is-48x48">
-                        <img class="is-rounded" src="https://bulma.io/images/placeholders/48x48.png">
-                    </figure>
-                    <div class="field pl-5">
-                        <p class="title is-4"><a href="">{{.Essay.AttributedToName}}</a></p>
-                        <p class="subtitle is-6">Followers: 20k</p>
-                    </div>
-                </div>
-                <p class="block is-flex-grow-1">Bio Lorem ipsum dolor sit amet consectetur, adipisicing elit. Obcaecati commodi similique asperiores incidunt reprehenderit molestias ea natus corporis. Maxime fugit possimus obcaecati cumque explicabo ipsum aspernatur recusandae ratione voluptates exercitationem?</p>
-                <div class="field is-grouped">
-                    <div class="control is-expanded">          
-                        <button class="button is-primary is-outlined is-fullwidth is-rounded">follow</button> 
-                        
-                    </div>  
-                    
-                </div>
-            </div>
+                {{ template "userCard" . }}
             </div>
 
             {{ template "footer" }} {{ end }}

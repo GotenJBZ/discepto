@@ -6,6 +6,12 @@ type User struct {
 	ID    int
 	Name  string
 	Email string
+	Bio   string
+}
+
+type UserView struct {
+	User
+	Karma int
 }
 
 type Member struct {

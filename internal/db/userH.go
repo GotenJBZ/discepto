@@ -133,3 +133,18 @@ func sendNotification(ctx context.Context, db DBTX, notif models.Notification) e
 	_, err := db.Exec(ctx, sql, args...)
 	return err
 }
+func listUserEssays(ctx context.Context, db DBTX, userID int) ([]models.EssayView, error) {
+	essayPreviews := []models.EssayView{}
+	sql, args, _ := selectEssayWithJoins.
+		Join("subdisceptos ON subdisceptos.name = essays.posted_in").
+		GroupBy("essays.id", "essay_replies.from_id", "users.name").
+		Where(sq.Eq{"subdisceptos.public": true }).
+		OrderBy("essays.id DESC").
+		ToSql()
+
+	err := pgxscan.Select(ctx, db, &essayPreviews, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return essayPreviews, nil
+}

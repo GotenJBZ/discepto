@@ -1,0 +1,16 @@
+{{ define "userCard" }}
+<div class="box is-relative is-flex-grow-1 is-flex is-flex-direction-column">
+    <div class="field is-grouped">
+        <figure class="image is-48x48">
+            <img class="is-rounded" src="https://bulma.io/images/placeholders/48x48.png">
+        </figure>
+        <div class="field pl-5">
+            <p class="title is-4"><a href="/u/{{.User.ID}}">u/{{ .User.Name }}</a></p>
+            <p class="subtitle is-6">Karma: {{ .User.Karma }}</p>
+        </div>
+    </div>
+    {{ if .User.Bio }}
+    <p class="block is-flex-grow-1">{{ .User.Bio }}</p>
+    {{ end }}
+</div>
+{{ end }}
