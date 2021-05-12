@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/georgysavva/scany/pgxscan"
 
@@ -368,6 +369,7 @@ func (h SubdisceptoH) createEssay(ctx context.Context, tx DBTX, essay *models.Es
 		return nil, ErrBadContentLen
 	}
 	essay.PostedIn = h.name
+	essay.Published = time.Now()
 
 	err = insertEssay(ctx, tx, essay)
 	if err != nil {
