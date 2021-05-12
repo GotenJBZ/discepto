@@ -75,14 +75,6 @@ VALUES
 (-100, 'login');
 
 
-CREATE TABLE tokens (
-	token varchar(255),
-	user_id int REFERENCES users(id) ON DELETE CASCADE,
-	last_used TIMESTAMP,
-	last_used_ip inet,
-	PRIMARY KEY(user_id, token)
-);
-
 CREATE TABLE essays (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	thesis varchar(350) NOT NULL,

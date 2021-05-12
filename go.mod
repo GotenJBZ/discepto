@@ -4,11 +4,11 @@ go 1.15
 
 require (
 	github.com/Masterminds/squirrel v1.5.0
+	github.com/alexedwards/scs/v2 v2.4.0
 	github.com/georgysavva/scany v0.2.7
 	github.com/go-chi/chi v1.5.1
 	github.com/golang-migrate/migrate/v4 v4.14.1
 	github.com/google/go-cmp v0.5.3 // indirect
-	github.com/gorilla/sessions v1.2.1
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/jackc/pgconn v1.8.0
 	github.com/jackc/pgx/v4 v4.10.1

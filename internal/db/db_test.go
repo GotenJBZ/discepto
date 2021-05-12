@@ -122,23 +122,21 @@ func TestAuth(t *testing.T) {
 	_, err := db.CreateUser(context.Background(), user, passwd)
 	require.Nil(err)
 
-	// With a bad passwd
-	passwd = "93sdjfhkasdhfkjha"
-	token, err := db.Login(context.Background(), user.Email, passwd)
-	require.NotNil(err)
+	var userH *UserH
+	{
 
-	// Normal login
-	passwd = mockPasswd
-	token, err = db.Login(context.Background(), user.Email, passwd)
-	require.Nil(err)
-
-	// Retrieve user by token
-	userH, err := db.GetUserH(context.Background(), token)
-	require.Nil(err)
-	require.Equal(user.ID, userH.id)
-
-	// Sign out
-	require.Nil(db.Signout(context.Background(), token))
+		// With a bad passwd
+		passwd = "93sdjfhkasdhfkjha"
+		_, err := db.Login(context.Background(), user.Email, passwd)
+		require.NotNil(err)
+	}
+	{
+		// Normal login
+		passwd = mockPasswd
+		uH, err := db.Login(context.Background(), user.Email, passwd)
+		userH = uH
+		require.Nil(err)
+	}
 
 	// Clean
 	require.Nil(userH.Delete(context.Background()))
@@ -278,13 +276,11 @@ func TestSubdiscepto(t *testing.T) {
 	}
 
 	// Clean
-	token, err := db.Login(context.Background(), mockUser().Email, mockPasswd)
+	userH, err := db.Login(context.Background(), mockUser().Email, mockPasswd)
 	require.Nil(err)
-	userH, err := db.GetUserH(context.Background(), token)
+	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
 	require.Nil(err)
-	disceptoH, err := db.GetDisceptoH(context.Background(), &userH)
-	require.Nil(err)
-	subH, err := disceptoH.GetSubdisceptoH(context.Background(), mockSubName, &userH)
+	subH, err := disceptoH.GetSubdisceptoH(context.Background(), mockSubName, userH)
 	require.Nil(err)
 	err = subH.Delete(context.Background())
 	require.Nil(err)

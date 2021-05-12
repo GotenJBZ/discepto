@@ -68,7 +68,7 @@ func (sdb *SharedDB) CreateUser(ctx context.Context, user *models.User, passwd s
 
 	return uH, nil
 }
-func (sdb *SharedDB) Login(ctx context.Context, email string, passwd string) (token string, err error) {
+func (sdb *SharedDB) Login(ctx context.Context, email string, passwd string) (*UserH, error) {
 	sql, args, _ := psql.
 		Select("id", "passwd_hash").
 		From("users").
@@ -79,7 +79,7 @@ func (sdb *SharedDB) Login(ctx context.Context, email string, passwd string) (to
 		ID         int
 		PasswdHash string
 	}
-	err = pgxscan.Get(
+	err := pgxscan.Get(
 		ctx,
 		sdb.db,
 		&data,
@@ -87,33 +87,21 @@ func (sdb *SharedDB) Login(ctx context.Context, email string, passwd string) (to
 		args...,
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	compareErr := bcrypt.CompareHashAndPassword([]byte(data.PasswdHash), []byte(passwd))
 	if compareErr != nil {
-		return "", compareErr
+		return nil, compareErr
 	}
 
-	// Insert a new token
-	token = utils.GenToken(TokenLen)
-	sql, args, _ = psql.
-		Insert("tokens").
-		Columns("user_id", "token").
-		Values(data.ID, token).
-		ToSql()
-
-	_, err = sdb.db.Exec(ctx, sql, args...)
-	if err != nil {
-		return "", err
-	}
-	return token, nil
-}
-func (sdb *SharedDB) Signout(ctx context.Context, token string) error {
-	_, err := sdb.db.Exec(ctx, "DELETE FROM tokens WHERE tokens.token = $1", token)
-	if err != nil {
-		return err
-	}
-	return nil
+	return &UserH{
+		id: data.ID,
+		perms: userPerms{
+			Read:   true,
+			Delete: true,
+		},
+		sharedDB: sdb.db,
+	}, nil
 }
 func validatePasswd(passwd string, userInputs []string) bool {
 	if len(passwd) < 8 || len(passwd) > 64 {

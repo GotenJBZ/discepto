@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"gitlab.com/ranfdev/discepto/internal/db"
@@ -28,20 +28,19 @@ const (
 )
 
 type Routes struct {
-	envConfig   *models.EnvConfig
-	db          *db.SharedDB
-	tmpls       *render.Templates
-	cookiestore *sessions.CookieStore
+	envConfig      *models.EnvConfig
+	db             *db.SharedDB
+	tmpls          *render.Templates
+	sessionManager *scs.SessionManager
 }
 
 func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tmpls *render.Templates) chi.Router {
-	cookiestore := sessions.NewCookieStore(config.SessionKey)
-	cookiestore.Options = &sessions.Options{
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
+	sessionManager := NewSessionManager(config)
+	routes := &Routes{envConfig: config, db: db, tmpls: tmpls, sessionManager: sessionManager}
+	sessionManager.ErrorFunc = func(w http.ResponseWriter, r *http.Request, err error) {
+		routes.RenderErr(w, r, &ErrInternal{Cause: err})
 	}
-	routes := &Routes{envConfig: config, db: db, tmpls: tmpls, cookiestore: cookiestore}
+
 	r := chi.NewRouter()
 
 	logger := hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
@@ -63,6 +62,7 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 	r.Use(hlog.NewHandler(log))
 	r.Use(logger)
 
+	r.Use(sessionManager.LoadAndSave)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(15 * time.Second))
 
@@ -87,7 +87,7 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 	r.Route("/s", routes.SubdisceptoRouter)
 
 	loggedIn := r.With(routes.EnforceCtx(UserHCtxKey))
-	loggedIn.Get("/signout", routes.AppHandler(routes.GetSignout))
+	loggedIn.Post("/signout", routes.AppHandler(routes.PostSignout))
 	loggedIn.Get("/user", routes.AppHandler(routes.GetUser))
 	loggedIn.Get("/newessay", routes.AppHandler(routes.GetNewEssay))
 	loggedIn.Post("/newessay", routes.AppHandler(routes.PostEssay))
@@ -105,29 +105,31 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 	})
 	return r
 }
+func NewSessionManager(config *models.EnvConfig) *scs.SessionManager {
+	sessionManager := scs.New()
+	sessionManager.Lifetime = 30 * 24 * time.Hour
+	sessionManager.Cookie.HttpOnly = true
+	sessionManager.Cookie.Path = "/"
+	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
+	sessionManager.Cookie.Persist = true
+	sessionManager.Cookie.Secure = !config.Debug
+	return sessionManager
+}
 
 func (routes *Routes) UserCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, _ := routes.cookiestore.Get(r, "discepto")
-		token := session.Values["token"]
-		token = fmt.Sprintf("%v", token) // conv to string
-
-		if token == "" {
-			ctx := context.WithValue(r.Context(), UserHCtxKey, nil)
-			next.ServeHTTP(w, r.WithContext(ctx))
+		if !routes.sessionManager.Exists(r.Context(), "userID") {
+			next.ServeHTTP(w, r)
 			return
 		}
 
-		user, err := routes.db.GetUserH(r.Context(), fmt.Sprintf("%v", token))
+		userID := routes.sessionManager.GetInt(r.Context(), "userID")
+		userH, err := routes.db.GetUnsafeUserH(r.Context(), userID)
 		if err != nil {
-			session.Values["token"] = ""
-			session.Save(r, w)
-			ctx := context.WithValue(r.Context(), UserHCtxKey, nil)
-			next.ServeHTTP(w, r.WithContext(ctx))
-			return
+			routes.sessionManager.Clear(r.Context())
 		}
 
-		ctx := context.WithValue(r.Context(), UserHCtxKey, &user)
+		ctx := context.WithValue(r.Context(), UserHCtxKey, &userH)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -263,16 +265,19 @@ func (routes *Routes) AppHandler(handler func(w http.ResponseWriter, r *http.Req
 	res := func(w http.ResponseWriter, r *http.Request) {
 		err := handler(w, r)
 		if err != nil {
-			loggableErr := err.Respond(w, r, routes)
-
-			hlog.FromRequest(r).
-				Error().
-				Str("request_id", middleware.GetReqID(r.Context())).
-				Err(loggableErr.Cause).
-				Send()
+			routes.RenderErr(w, r, err)
 		}
 	}
 	return res
+}
+func (routes *Routes) RenderErr(w http.ResponseWriter, r *http.Request, err AppError) {
+	loggableErr := err.Respond(w, r, routes)
+
+	hlog.FromRequest(r).
+		Error().
+		Str("request_id", middleware.GetReqID(r.Context())).
+		Err(loggableErr.Cause).
+		Send()
 }
 
 // Routes
@@ -304,24 +309,11 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	routes.tmpls.RenderHTML(w, "home", data)
 	return nil
 }
-func (routes *Routes) signOut(w http.ResponseWriter, r *http.Request) error {
-	session, _ := routes.cookiestore.Get(r, "discepto")
-	token := session.Values["token"]
+func (routes *Routes) PostSignout(w http.ResponseWriter, r *http.Request) AppError {
+	routes.sessionManager.RenewToken(r.Context())
+	routes.sessionManager.Remove(r.Context(), "userID")
 
-	// Remove token before deleting from db, to signout in any case
-	session.Values["token"] = ""
-	session.Save(r, w)
-
-	err := routes.db.Signout(r.Context(), fmt.Sprintf("%v", token))
-	return err
-}
-func (routes *Routes) GetSignout(w http.ResponseWriter, r *http.Request) AppError {
-	err := routes.signOut(w, r)
-	if err != nil {
-		return &ErrInternal{Cause: err}
-	}
-
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 	return nil
 }
 func (routes *Routes) GetUser(w http.ResponseWriter, r *http.Request) AppError {
@@ -373,16 +365,18 @@ func (routes *Routes) ViewDeleteNotif(w http.ResponseWriter, r *http.Request) Ap
 	return nil
 }
 func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) AppError {
-	token, err := routes.db.Login(r.Context(), r.FormValue("email"), r.FormValue("password"))
+	userH, err := routes.db.Login(r.Context(), r.FormValue("email"), r.FormValue("password"))
 	if err != nil {
 		return &ErrBadRequest{
 			Cause:      err,
 			Motivation: "Bad email or password",
 		}
 	}
-	session, _ := routes.cookiestore.Get(r, "discepto")
-	session.Values["token"] = token
-	session.Save(r, w)
+	err = routes.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+	routes.sessionManager.Put(r.Context(), "userID", userH.ID())
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil

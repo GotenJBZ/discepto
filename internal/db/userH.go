@@ -23,25 +23,14 @@ func ToUserH(t interface{}) (*UserH, bool) {
 	return v, ok
 }
 
-func (sdb SharedDB) GetUserH(ctx context.Context, token string) (UserH, error) {
-	sql, args, _ := psql.
-		Select("user_id").
-		From("tokens").
-		Where(sq.Eq{"token": token}).
-		ToSql()
-
+func (sdb SharedDB) GetUnsafeUserH(ctx context.Context, userID int) (UserH, error) {
 	uH := UserH{
+		id:       userID,
 		sharedDB: sdb.db,
 		perms: userPerms{
 			Read:   true,
 			Delete: true,
 		},
-	}
-	row := sdb.db.QueryRow(ctx, sql, args...)
-	err := row.Scan(&uH.id)
-
-	if err != nil {
-		return uH, err
 	}
 	return uH, nil
 }
