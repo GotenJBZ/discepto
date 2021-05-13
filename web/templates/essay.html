@@ -107,7 +107,14 @@
 
 
                 <section id="replies">
-                    <h1 class="title is-2 ">Replies</h1>
+                    <h1 class="title is-2">
+                        <span class="icon is-large">
+                            <i style="font-size: 32px" class="fas fa-comment-dots"></i>
+                        </span>
+                        <span>
+                            Replies
+                        </span>
+                    </h1>
                     <div class="tabs">
                         <ul class="tabs-menu" hx-indicator="#replies" hx-boost="true" hx-swap="outerHTML" hx-target="#replies" hx-select="#replies">
                             <li class="{{if eq .FilterReplyType "general"}}is-active{{end}}"><a href="?replyType=general">Generals</a></li>
