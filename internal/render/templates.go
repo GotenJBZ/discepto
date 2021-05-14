@@ -13,6 +13,8 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
+const MaxPreviewLength = 200
+
 type Templates struct {
 	templates *template.Template
 	funcMap   template.FuncMap
@@ -43,15 +45,17 @@ func markdown(args ...interface{}) template.HTML {
 func markdownPreview(args ...interface{}) template.HTML {
 	var b bytes.Buffer
 	s := args[0].(string)
-	i := strings.Index(s, "\n\r")
-	maxLen := len(s)
-	if 300 < maxLen {
-		maxLen = 300
+	if len(s) > MaxPreviewLength {
+		s = s[0:MaxPreviewLength]
 	}
-	if i < 0 || i > maxLen {
-		i = maxLen
+	indexNewline := strings.Index(s, "\n\r")
+	indexSpace := strings.LastIndex(s, " ")
+	if indexNewline > 0 {
+		s = s[0:indexNewline]
+	} else {
+		s = s[0:indexSpace]
 	}
-	goldmark.Convert([]byte(s[0:i]), &b)
+	goldmark.Convert([]byte(s), &b)
 	html := b.String()
 
 	return template.HTML(string(html))
