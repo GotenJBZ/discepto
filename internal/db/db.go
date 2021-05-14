@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/database/pgx"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 
 	sq "github.com/Masterminds/squirrel"
@@ -48,6 +49,7 @@ type SharedDB struct {
 }
 
 func migrator(dbURL string) (*migrate.Migrate, error) {
+	dbURL = strings.Replace(dbURL, "postgres", "pgx", 1)
 	d, err := iofs.New(migrations.FS, ".")
 	if err != nil {
 		return nil, fmt.Errorf("Error reading migrations: %s", err)
