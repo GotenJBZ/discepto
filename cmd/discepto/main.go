@@ -12,6 +12,7 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/render"
 	"gitlab.com/ranfdev/discepto/internal/routes"
+	"gitlab.com/ranfdev/discepto/web"
 )
 
 const usage = `Usage:
@@ -73,6 +74,7 @@ func (server *DisceptoServer) setupLogger() {
 }
 func (server *DisceptoServer) setupTemplates() {
 	server.templates = render.GetTemplates(&server.EnvConfig)
+	server.templates.SetFS(web.FS)
 }
 func (server *DisceptoServer) setupRouter() {
 	server.router = routes.NewRouter(&server.EnvConfig, &server.database, server.logger, &server.templates)

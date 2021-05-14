@@ -46,7 +46,7 @@ func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) AppError
 		Essays:         essays,
 		Query:          query,
 		FilterType:     filterType,
-		SearchBy:	searchBy,
+		SearchBy:       searchBy,
 	})
 	return nil
 }

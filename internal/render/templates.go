@@ -3,6 +3,7 @@ package render
 import (
 	"bytes"
 	"html/template"
+	"io/fs"
 	"log"
 	"net/http"
 	"strings"
@@ -14,13 +15,14 @@ import (
 
 type Templates struct {
 	templates *template.Template
+	funcMap   template.FuncMap
 	envConfig *models.EnvConfig
 }
 
 func (tmpls *Templates) RenderHTML(w http.ResponseWriter, tmplName string, data interface{}) {
 	// Reload templates every time when developing locally.
 	if tmpls.envConfig.Debug {
-		tmpls.load()
+		tmpls.loadFromDisk()
 	}
 	buff := bytes.NewBuffer([]byte{})
 	err := tmpls.templates.ExecuteTemplate(buff, tmplName, data)
@@ -61,17 +63,26 @@ func formatTime(args ...interface{}) template.HTML {
 func now(args ...interface{}) time.Time {
 	return time.Now()
 }
-func (tmpls *Templates) load() {
-	tmpls.templates = template.Must(template.New("").Funcs(template.FuncMap{
-		"markdown":        markdown,
-		"markdownPreview": markdownPreview,
-		"now":             now,
-		"formatTime":      formatTime,
-	}).ParseGlob("web/templates/*"),
+func (tmpls *Templates) loadFromDisk() {
+	tmpls.templates = template.Must(
+		template.New("").
+			Funcs(tmpls.funcMap).
+			ParseGlob("web/templates/*"),
+	)
+}
+func (tmpls *Templates) SetFS(fs fs.FS) {
+	tmpls.templates = template.Must(template.New("").
+		Funcs(tmpls.funcMap).
+		ParseFS(fs, "templates/*html"),
 	)
 }
 func GetTemplates(envConfig *models.EnvConfig) Templates {
 	tmpls := Templates{envConfig: envConfig}
-	tmpls.load()
+	tmpls.funcMap = template.FuncMap{
+		"markdown":        markdown,
+		"markdownPreview": markdownPreview,
+		"now":             now,
+		"formatTime":      formatTime,
+	}
 	return tmpls
 }

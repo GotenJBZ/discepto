@@ -6,7 +6,7 @@ A debate/discussion platform.
 You need
 - go
 - postgresql
-- make
+- make (to build the release binary)
 
 ```bash
 git clone $repo_url
@@ -15,7 +15,8 @@ cd $repo_url
 # To run:
 # When developing locally, set DEBUG to true.
 # Pass the correct database creds
-DISCEPTO_DATABASE_URL="postgres://user:passwd@localhost/disceptoDb" make run
+export DISCEPTO_DATABASE_URL="postgres://postgres:passwdpost@localhost/discepto?sslmode=disable"
+go run cmd/discepto/main.go start
 
 # To build release:
 make release

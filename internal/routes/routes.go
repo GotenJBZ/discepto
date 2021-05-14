@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -16,6 +18,7 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/db"
 	"gitlab.com/ranfdev/discepto/internal/models"
 	"gitlab.com/ranfdev/discepto/internal/render"
+	"gitlab.com/ranfdev/discepto/web"
 )
 
 type disceptoCtxKey int
@@ -72,7 +75,13 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 	r.Use(routes.DisceptoCtx)
 
 	// Serve static files
-	staticFileServer := http.FileServer(http.Dir("./web/static"))
+	var staticFileFS fs.FS
+	if config.Debug {
+		staticFileFS = os.DirFS("./web/static")
+	} else {
+		staticFileFS, _ = fs.Sub(web.FS, "static")
+	}
+	staticFileServer := http.FileServer(http.FS(staticFileFS))
 	r.Get("/static/*", func(w http.ResponseWriter, r *http.Request) {
 		fs := http.StripPrefix("/static", staticFileServer)
 		fs.ServeHTTP(w, r)

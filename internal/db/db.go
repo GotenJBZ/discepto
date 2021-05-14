@@ -7,13 +7,14 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/migrations"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -46,10 +47,18 @@ type SharedDB struct {
 	bcryptCost int
 }
 
-func MigrateUp(dbURL string) error {
-	m, err := migrate.New("file://migrations", dbURL)
+func migrator(dbURL string) (*migrate.Migrate, error) {
+	d, err := iofs.New(migrations.FS, ".")
 	if err != nil {
-		return fmt.Errorf("Error reading migrations: %s", err)
+		return nil, fmt.Errorf("Error reading migrations: %s", err)
+	}
+	m, err := migrate.NewWithSourceInstance("iofs", d, dbURL)
+	return m, err
+}
+func MigrateUp(dbURL string) error {
+	m, err := migrator(dbURL)
+	if err != nil {
+		return err
 	}
 	defer m.Close()
 	err = m.Up()
@@ -59,9 +68,9 @@ func MigrateUp(dbURL string) error {
 	return nil
 }
 func MigrateDown(dbURL string) error {
-	m, err := migrate.New("file://migrations", dbURL)
+	m, err := migrator(dbURL)
 	if err != nil {
-		return fmt.Errorf("Error reading migrations: %s", err)
+		return err
 	}
 	defer m.Close()
 	err = m.Down()
@@ -71,9 +80,9 @@ func MigrateDown(dbURL string) error {
 	return nil
 }
 func Drop(dbURL string) error {
-	m, err := migrate.New("file://migrations", dbURL)
+	m, err := migrator(dbURL)
 	if err != nil {
-		return fmt.Errorf("Error reading migrations: %s", err)
+		return err
 	}
 	defer m.Close()
 	err = m.Drop()
