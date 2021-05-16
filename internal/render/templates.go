@@ -62,7 +62,11 @@ func markdownPreview(args ...interface{}) template.HTML {
 }
 func formatTime(args ...interface{}) template.HTML {
 	t := args[0].(time.Time)
-	return template.HTML(t.Format("Jan 2 15:04:05"))
+	f := "Jan 2"
+	if len(args) > 1 {
+		f = args[1].(string)
+	}
+	return template.HTML(t.Format(f))
 }
 func now(args ...interface{}) time.Time {
 	return time.Now()

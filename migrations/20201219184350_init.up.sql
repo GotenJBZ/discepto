@@ -2,7 +2,8 @@ CREATE TABLE users (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	name varchar(50) NOT NULL,
 	email varchar(100) UNIQUE NOT NULL,
-	passwd_hash varchar(255) NOT NULL
+	passwd_hash varchar(255) NOT NULL,
+	created_at timestamp NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE subdisceptos (

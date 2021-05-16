@@ -6,7 +6,11 @@
         </figure>
         <div class="field pl-5">
             <p class="title is-4"><a href="/u/{{.User.ID}}">u/{{ .User.Name }}</a></p>
-            <p class="subtitle is-6">Karma: {{ .User.Karma }}</p>
+            <p class="subtitle is-6">
+                <span>Karma: {{ .User.Karma }}</span>
+                <br>
+                <span>User since: {{ formatTime .User.CreatedAt "Jan 2" }}</span>
+            </p>
         </div>
     </div>
     {{ if .User.Bio }}

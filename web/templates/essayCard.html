@@ -12,7 +12,8 @@
 
         <div class="media-content">
             <p>
-                <strong>{{.Thesis}}</strong> <br> <small>u/{{.AttributedToName}}</small> <small>{{.Published}}</small>                                    
+                <strong>{{.Thesis}}</strong> <br> <small>u/{{.AttributedToName}}</small>
+                <small>{{formatTime .Published "Jan 2 15:04"}}</small>                                    
             </p>
             
         </div>

@@ -138,7 +138,7 @@ func listUserEssays(ctx context.Context, db DBTX, userID int) ([]models.EssayVie
 	sql, args, _ := selectEssayWithJoins.
 		Join("subdisceptos ON subdisceptos.name = essays.posted_in").
 		GroupBy("essays.id", "essay_replies.from_id", "users.name").
-		Where(sq.Eq{"subdisceptos.public": true }).
+		Where(sq.Eq{"subdisceptos.public": true}).
 		OrderBy("essays.id DESC").
 		ToSql()
 

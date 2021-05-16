@@ -23,7 +23,7 @@
                 </div>
                 <div class="box content">
                     <form id="perms-form" method="post" hx-put="{{ .RoleName }}" hx-select="#perms-form" hx-boost="true">
-                    <p>Loaded at: {{now | formatTime}}</p>
+                    <p>Loaded at: {{ formatTime now "Jan 2 15:04:05" }}</p>
                     {{ range $k, $v := .AvailablePerms }}
                         <div class="field is-horizontal">
                           <div class="field-label">

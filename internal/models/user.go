@@ -1,6 +1,9 @@
 package models
 
-import "database/sql"
+import (
+	"database/sql"
+	"time"
+)
 
 type User struct {
 	ID    int
@@ -11,7 +14,8 @@ type User struct {
 
 type UserView struct {
 	User
-	Karma int
+	Karma     int
+	CreatedAt time.Time
 }
 
 type Member struct {

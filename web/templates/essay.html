@@ -31,7 +31,8 @@
                                         
                                     </p>
                                     <p class="subtitle is-6">
-                                    <a href="/u/{{.Essay.AttributedToID}}">u/{{.Essay.AttributedToName}}</a>&nbsp; <time datetime="2018-1-1">{{ .Essay.Published | formatTime }}</time>
+                                        <a href="/u/{{.Essay.AttributedToID}}">u/{{.Essay.AttributedToName}}</a>
+                                        <time>{{ formatTime .Essay.Published "Jan 2 15:04" }}</time>
                                     </p>
                                     
                                 </div>

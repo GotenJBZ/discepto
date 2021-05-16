@@ -314,6 +314,7 @@ func readPublicUser(ctx context.Context, db DBTX, userID int) (*models.UserView,
 		Select(
 			"users.name",
 			"users.id",
+			"users.created_at",
 			"SUM(CASE votes.vote_type WHEN 'upvote' THEN 1 ELSE 0 END) AS karma",
 		).
 		From("users").
