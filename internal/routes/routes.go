@@ -80,7 +80,7 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 		r.Use(func(next http.Handler) http.Handler {
 			limiter := httprate.Limit(LimitPostCount, LimitPostDuration, httprate.KeyByIP)
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method == "POST" {
+				if r.Method == "POST" || r.Method == "DELETE" || r.Method == "PUT" {
 					limiter(next)
 				} else {
 					next.ServeHTTP(w, r)
