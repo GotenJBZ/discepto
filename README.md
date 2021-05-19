@@ -24,8 +24,8 @@ make release
 
 ### Environment variables
 ```
-DISCEPTO_DEBUG: when `true`, reload html templates every request
-DISCEPTO_DATABASE_URL: you know
-DISCEPTO_PORT: you know. Default is 23495
-DISCEPTO_SESSION_KEY: key used to sign cookies
+DISCEPTO_DEBUG: when `true`, always reload html templates, improve debugging/logging
+DISCEPTO_DATABASE_URL: for example "postgres://user:password@localhost/database"
+DISCEPTO_PORT: Discepto will open and listen on this TCP port. Default is 23495
+DISCEPTO_SESSION_KEY: Key used to sign cookies
 ```
