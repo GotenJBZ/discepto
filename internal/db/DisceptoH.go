@@ -12,6 +12,7 @@ import (
 )
 
 type DisceptoH struct {
+	RolesH
 	sharedDB    DBTX
 	globalPerms models.GlobalPerms
 }
@@ -28,17 +29,19 @@ func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) (*DisceptoH, e
 			return nil, err
 		}
 	}
-	return &DisceptoH{globalPerms: globalPerms, sharedDB: sdb.db}, nil
+	rolesH := RolesH{
+		contextPerms: globalPerms.ToBoolMap(),
+		rolesPerms: struct {
+			ManageRoles bool
+		}{globalPerms.ManageGlobalRole},
+		domain:   RoleDomain("discepto"),
+		sharedDB: sdb.db,
+	}
+	return &DisceptoH{globalPerms: globalPerms, RolesH: rolesH, sharedDB: sdb.db}, nil
 }
 
 func (h *DisceptoH) Perms() models.GlobalPerms {
 	return h.globalPerms
-}
-func (h *DisceptoH) ListRoles(ctx context.Context) ([]models.Role, error) {
-	if !h.globalPerms.ManageRole {
-		return nil, ErrPermDenied
-	}
-	return listRoles(ctx, h.sharedDB, "discepto")
 }
 func (h *DisceptoH) ListMembers(ctx context.Context) ([]models.Member, error) {
 	if !h.globalPerms.Login {
@@ -58,7 +61,7 @@ func (h *DisceptoH) ListMembers(ctx context.Context) ([]models.Member, error) {
 	}
 
 	for i := range members {
-		members[i].Roles, err = listUserRoles(ctx, h.sharedDB, members[i].UserID, "discepto")
+		members[i].Roles, err = h.ListUserRoles(ctx, members[i].UserID)
 	}
 
 	return members, nil
@@ -80,49 +83,22 @@ func (h *DisceptoH) CreateSubdiscepto(ctx context.Context, uH UserH, subd models
 	}
 	return h.createSubdiscepto(ctx, uH, subd)
 }
-func (h DisceptoH) CreateGlobalRole(ctx context.Context, globalPerms models.GlobalPerms, role string) error {
-	if !h.globalPerms.ManageRole || h.globalPerms.And(globalPerms) != globalPerms {
-		return ErrPermDenied
-	}
-	_, err := createRole(ctx, h.sharedDB, "discepto", role, false, globalPerms.ToBoolMap())
-	return err
-}
-func (h *DisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, roleH RoleH) error {
-	if !h.globalPerms.ManageRole ||
-		!byUser.perms.Read ||
-		!roleH.rolePerms.ManageRole ||
-		!(roleH.domain == "discepto") {
-		return ErrPermDenied
-	}
-	newRolePerms, err := roleH.ListActivePerms(ctx)
-	if err != nil {
-		return err
-	}
-	globalPerms := models.GlobalPermsFromMap(newRolePerms)
-	if globalPerms.And(h.globalPerms) != globalPerms {
-		return ErrPermDenied
-	}
-	return assignRole(ctx, h.sharedDB, toUser, roleH.id)
-}
-func (h *DisceptoH) UnassignRole(ctx context.Context, toUser int, roleH RoleH) error {
-	if !h.globalPerms.ManageRole || !roleH.rolePerms.ManageRole || !(roleH.domain == "discepto") {
-		return ErrPermDenied
-	}
-	newRolePerms, err := roleH.ListActivePerms(ctx)
-	if err != nil {
-		return err
-	}
-	globalPerms := models.GlobalPermsFromMap(newRolePerms)
-	if globalPerms.And(h.globalPerms) != globalPerms {
-		return ErrPermDenied
-	}
-	return unassignRole(ctx, h.sharedDB, toUser, roleH.id)
-}
 func (h *DisceptoH) ListAvailablePerms() map[string]bool {
 	return models.GlobalPerms{}.ToBoolMap()
 }
 func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models.Subdiscepto) (*SubdisceptoH, error) {
 	firstUserID := uH.id
+	subH := &SubdisceptoH{
+		sharedDB: h.sharedDB,
+		name:     subd.Name,
+		RolesH: RolesH{
+			contextPerms: models.SubPermsOwner.ToBoolMap(),
+			rolesPerms:   struct{ ManageRoles bool }{true},
+			domain:       subRoleDomain(subd.Name),
+			sharedDB:     h.sharedDB,
+		},
+		subPerms: models.SubPermsOwner,
+	}
 	err := execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
 		err := createSubdiscepto(ctx, tx, subd)
 		if err != nil {
@@ -142,7 +118,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			CommonAfterRejoin: true,
 		}
 		p := subPerms.ToBoolMap()
-		_, err = createRole(ctx, tx, subRoleDomain(subd.Name), "common", false, p)
+		_, err = createRole(ctx, tx, string(subH.RolesH.domain), "common", false, p)
 		if err != nil {
 			return err
 		}
@@ -152,7 +128,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			CommonAfterRejoin: true,
 		}
 		p = subPerms.ToBoolMap()
-		_, err = createRole(ctx, tx, subRoleDomain(subd.Name), "common-after-rejoin", false, p)
+		_, err = createRole(ctx, tx, string(subH.RolesH.domain), "common-after-rejoin", false, p)
 		if err != nil {
 			return err
 		}
@@ -170,7 +146,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			ViewReport:        true,
 			DeleteReport:      true,
 		}
-		adminRoleID, err := createRole(ctx, tx, subRoleDomain(subd.Name), "admin", true, subPerms.ToBoolMap())
+		adminRoleID, err := createRole(ctx, tx, string(subH.RolesH.domain), "admin", true, subPerms.ToBoolMap())
 		if err != nil {
 			return err
 		}
@@ -188,7 +164,6 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 	if err != nil {
 		return nil, err
 	}
-	subH := &SubdisceptoH{h.sharedDB, subd.Name, models.SubPermsOwner}
 	return subH, nil
 }
 func (h *DisceptoH) DeleteReport(ctx context.Context, report *models.Report) error {

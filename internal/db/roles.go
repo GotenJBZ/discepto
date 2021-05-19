@@ -12,11 +12,6 @@ var (
 	RoleDisceptoCommon = models.Role{ID: -100, Name: "common", Preset: true}
 )
 
-const (
-	PermCreateSubdiscepto = "create_subdiscepto"
-	PermReadSubsdiscepto  = "read_subdiscepto"
-)
-
 func listRoles(ctx context.Context, db DBTX, domain string) ([]models.Role, error) {
 	sql, args, _ := psql.Select("id", "name", "preset").
 		From("roles").
@@ -194,7 +189,7 @@ type HigherRole map[string]bool
 
 func isLowerRole(oldRole HigherRole, newRole map[string]bool) bool {
 	for k := range newRole {
-		if _, ok := oldRole[k]; !ok {
+		if v, ok := oldRole[k]; !ok || !v {
 			return false
 		}
 	}

@@ -15,21 +15,23 @@ import (
 
 const SubRolePrefix = "subdisceptos"
 
-func subRoleDomain(subdiscepto string) string {
-	return fmt.Sprintf("%s/%s", SubRolePrefix, subdiscepto)
+func subRoleDomain(subdiscepto string) RoleDomain {
+	return RoleDomain(fmt.Sprintf("%s/%s", SubRolePrefix, subdiscepto))
 }
 
 type SubdisceptoH struct {
 	sharedDB DBTX
 	name     string
+	RolesH
 	subPerms models.SubPerms
 }
 
 func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH *UserH) (*SubdisceptoH, error) {
 	subPerms := &models.SubPerms{}
+	roleDomain := subRoleDomain(subdiscepto)
 	if uH != nil {
 		// First, try getting user's permissions
-		subPermsMap, err := getUserPerms(ctx, dH.sharedDB, subRoleDomain(subdiscepto), uH.id)
+		subPermsMap, err := getUserPerms(ctx, dH.sharedDB, string(roleDomain), uH.id)
 		if err != nil {
 			return nil, err
 		}
@@ -61,7 +63,15 @@ func (dH DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH 
 		}
 	}
 
-	h := &SubdisceptoH{dH.sharedDB, subdiscepto, *subPerms}
+	rolesH := RolesH{
+		contextPerms: subPerms.ToBoolMap(),
+		rolesPerms: struct {
+			ManageRoles bool
+		}{subPerms.ManageRole},
+		domain:   roleDomain,
+		sharedDB: dH.sharedDB,
+	}
+	h := &SubdisceptoH{dH.sharedDB, subdiscepto, rolesH, *subPerms}
 	return h, nil
 }
 func (h *SubdisceptoH) Perms() models.SubPerms {
@@ -146,36 +156,6 @@ func (h SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH 
 
 	return essay, nil
 }
-func (h SubdisceptoH) AssignRole(ctx context.Context, byUser UserH, toUser int, roleH RoleH) error {
-	if !h.subPerms.ManageRole || !byUser.perms.Read || !roleH.rolePerms.ManageRole || !(roleH.domain == subRoleDomain(h.name)) {
-		return ErrPermDenied
-	}
-	newRolePerms, err := roleH.ListActivePerms(ctx)
-	if err != nil {
-		return err
-	}
-	subPerms := models.SubPermsFromMap(newRolePerms)
-	if subPerms.And(h.subPerms) != subPerms {
-		return ErrPermDenied
-	}
-	return assignRole(ctx, h.sharedDB, toUser, roleH.id)
-}
-func (h SubdisceptoH) UnassignRole(ctx context.Context, toUser int, roleH RoleH) error {
-	if !h.subPerms.ManageRole || !roleH.rolePerms.ManageRole || !(roleH.domain == subRoleDomain(h.name)) {
-		return ErrPermDenied
-	}
-
-	newRolePerms, err := roleH.ListActivePerms(ctx)
-	if err != nil {
-		return err
-	}
-	subPerms := models.SubPermsFromMap(newRolePerms)
-	if subPerms.And(h.subPerms) != subPerms {
-		return ErrPermDenied
-	}
-
-	return unassignRole(ctx, h.sharedDB, toUser, roleH.id)
-}
 func (h *SubdisceptoH) ListAvailablePerms() map[string]bool {
 	return models.SubPerms{}.ToBoolMap()
 }
@@ -194,11 +174,24 @@ func (h SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
 	if !h.subPerms.ReadSubdiscepto || !userH.perms.Read {
 		return ErrPermDenied
 	}
-	if h.subPerms.CommonAfterRejoin {
-		return removeMemberClean(ctx, h.sharedDB, h.name, userH.id)
-	} else {
-		return removeMember(ctx, h.sharedDB, h.name, userH.id)
-	}
+	return execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
+		err := removeMember(ctx, h.sharedDB, h.name, userH.id)
+		if err != nil {
+			return err
+		}
+		rolesH := h.RolesH.withTx(tx)
+		err = rolesH.UnassignAll(ctx, userH.id)
+		if err != nil {
+			return err
+		}
+		if h.subPerms.CommonAfterRejoin {
+			commonRole, err := rolesH.GetRoleH(ctx, "common-after-rejoin")
+			if err == nil {
+				return rolesH.Assign(ctx, userH.id, *commonRole)
+			}
+		}
+		return nil
+	})
 }
 func (h SubdisceptoH) ListReports(ctx context.Context) ([]models.ReportView, error) {
 	if !h.subPerms.ViewReport {
@@ -342,21 +335,10 @@ func (h *SubdisceptoH) ListMembers(ctx context.Context) ([]models.Member, error)
 	}
 
 	for i := range members {
-		members[i].Roles, err = listUserRoles(ctx, h.sharedDB, members[i].UserID, subRoleDomain(h.name))
+		members[i].Roles, err = h.ListUserRoles(ctx, members[i].UserID)
 	}
 
 	return members, nil
-}
-
-func (h SubdisceptoH) ListRoles(ctx context.Context) ([]models.Role, error) {
-	if !h.subPerms.ManageRole {
-		return nil, ErrPermDenied
-	}
-	roles, err := listRoles(ctx, h.sharedDB, subRoleDomain(h.name))
-	if err != nil {
-		return nil, err
-	}
-	return roles, nil
 }
 
 func (h SubdisceptoH) createEssay(ctx context.Context, tx DBTX, essay *models.Essay) (*EssayH, error) {
@@ -572,7 +554,7 @@ func addMember(ctx context.Context, db DBTX, subdiscepto string, userID int) err
 			return err
 		}
 
-		commonRole, err := findRoleByName(ctx, tx, subRoleDomain(subdiscepto), "common")
+		commonRole, err := findRoleByName(ctx, tx, string(subRoleDomain(subdiscepto)), "common")
 		if err != nil {
 			return err
 		}
@@ -597,7 +579,7 @@ func rejoin(ctx context.Context, db DBTX, subdiscepto string, userID int, perms 
 		}
 
 		if perms.CommonAfterRejoin {
-			roles, err := listUserRoles(ctx, tx, userID, subRoleDomain(subdiscepto))
+			roles, err := listUserRoles(ctx, tx, userID, string(subRoleDomain(subdiscepto)))
 			if err != nil {
 				return err
 			}
@@ -612,7 +594,7 @@ func rejoin(ctx context.Context, db DBTX, subdiscepto string, userID int, perms 
 				}
 			}
 			if _, ok := rolesMap["common"]; !ok {
-				commonRole, err := findRoleByName(ctx, tx, subRoleDomain(subdiscepto), "common")
+				commonRole, err := findRoleByName(ctx, tx, string(subRoleDomain(subdiscepto)), "common")
 				if err != nil {
 					return err
 				}
@@ -621,27 +603,6 @@ func rejoin(ctx context.Context, db DBTX, subdiscepto string, userID int, perms 
 		}
 		return nil
 	})
-}
-func removeMemberClean(ctx context.Context, db DBTX, subdiscepto string, userID int) error {
-	execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
-		removeMember(ctx, tx, subdiscepto, userID)
-		roles, err := listUserRoles(ctx, tx, userID, subRoleDomain(subdiscepto))
-		if err != nil {
-			return err
-		}
-		for _, role := range roles {
-			err := unassignRole(ctx, tx, userID, role.ID)
-			if err != nil {
-				return err
-			}
-		}
-		commonAfterRejoinRole, err := findRoleByName(ctx, tx, subRoleDomain(subdiscepto), "common-after-rejoin")
-		if err != nil {
-			return err
-		}
-		return assignRole(ctx, tx, userID, commonAfterRejoinRole.ID)
-	})
-	return nil
 }
 func removeMember(ctx context.Context, db DBTX, subdiscepto string, userID int) error {
 	sql, args, _ := psql.

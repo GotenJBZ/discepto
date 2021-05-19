@@ -380,12 +380,12 @@ func TestRoles(t *testing.T) {
 		ManageGlobalRole:  false,
 	}, models.GlobalPermsFromMap(globalPerms2))
 
-	subPerms, err := getUserPerms(context.Background(), db.db, subRoleDomain(subH.name), userH.id)
+	subPerms, err := getUserPerms(context.Background(), db.db, string(subRoleDomain(subH.name)), userH.id)
 	require.Equal(models.SubPermsOwner, models.SubPermsFromMap(subPerms))
 	require.Nil(err)
 
 	// Check "common" sub role
-	subPerms2, err := getUserPerms(context.Background(), db.db, subRoleDomain(subH.name), user2H.id)
+	subPerms2, err := getUserPerms(context.Background(), db.db, string(subRoleDomain(subH.name)), user2H.id)
 	require.Nil(err)
 	require.Equal(models.SubPerms{
 		ReadSubdiscepto:   true,
@@ -400,9 +400,9 @@ func TestRoles(t *testing.T) {
 	// Remove "common" global role, banning the user
 	roleH, err := subH.GetRoleH(context.Background(), "common")
 	require.Nil(err)
-	err = subH.UnassignRole(context.Background(), user2H.id, *roleH)
+	err = subH.Unassign(context.Background(), user2H.id, *roleH)
 	require.Nil(err)
-	subPerms2, err = getUserPerms(context.Background(), db.db, subRoleDomain(subH.name), user2H.id)
+	subPerms2, err = getUserPerms(context.Background(), db.db, string(subRoleDomain(subH.name)), user2H.id)
 	require.Nil(err)
 	require.Equal(models.SubPerms{
 		ReadSubdiscepto:   false,
