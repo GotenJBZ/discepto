@@ -4,11 +4,11 @@ go 1.16
 
 require (
 	github.com/Masterminds/squirrel v1.5.0
+	github.com/alexedwards/scs/v2 v2.4.0
 	github.com/georgysavva/scany v0.2.7
 	github.com/go-chi/chi v1.5.1
 	github.com/go-chi/httprate v0.4.0
 	github.com/golang-migrate/migrate/v4 v4.14.2-0.20210511063805-2e7358e012a6
-	github.com/gorilla/sessions v1.2.1
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/jackc/pgconn v1.8.0
 	github.com/jackc/pgx/v4 v4.10.1

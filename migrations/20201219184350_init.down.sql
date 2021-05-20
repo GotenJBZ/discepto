@@ -9,7 +9,6 @@ DROP TABLE essay_sources;
 DROP TABLE essay_tags;
 DROP TABLE essay_replies;
 DROP TABLE essays;
-DROP TABLE tokens;
 DROP TABLE user_roles;
 DROP TABLE role_perms;
 DROP TABLE roles;
