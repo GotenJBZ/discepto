@@ -5,7 +5,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 )
 
 type userPerms struct {
@@ -37,11 +37,11 @@ func (sdb SharedDB) GetUnsafeUserH(ctx context.Context, userID int) (UserH, erro
 func (h UserH) ID() int {
 	return h.id
 }
-func (h UserH) Read(ctx context.Context) (*models.User, error) {
+func (h UserH) Read(ctx context.Context) (*domain.User, error) {
 	if !h.perms.Read {
 		return nil, ErrPermDenied
 	}
-	user := &models.User{}
+	user := &domain.User{}
 	sql, args, _ := psql.
 		Select("users.name", "users.id", "users.email").
 		From("users").
@@ -82,11 +82,11 @@ func (h UserH) ListMySubdisceptos(ctx context.Context) (subs []string, err error
 	}
 	return subs, nil
 }
-func (h UserH) ListNotifications(ctx context.Context) ([]models.NotifView, error) {
+func (h UserH) ListNotifications(ctx context.Context) ([]domain.NotifView, error) {
 	if !h.perms.Read {
 		return nil, ErrPermDenied
 	}
-	notifs := []models.NotifView{}
+	notifs := []domain.NotifView{}
 	sql, args, _ := psql.Select("id", "notif_type", "title", "text", "action_url").
 		From("notifications").
 		Where(sq.Eq{"user_id": h.id}).
@@ -113,7 +113,7 @@ func (h UserH) DeleteNotif(ctx context.Context, notifID int) error {
 	}
 	return nil
 }
-func sendNotification(ctx context.Context, db DBTX, notif models.Notification) error {
+func sendNotification(ctx context.Context, db DBTX, notif domain.Notification) error {
 	sql, args, _ := psql.
 		Insert("notifications").
 		Columns("user_id", "notif_type", "title", "text", "action_url").
@@ -122,8 +122,8 @@ func sendNotification(ctx context.Context, db DBTX, notif models.Notification) e
 	_, err := db.Exec(ctx, sql, args...)
 	return err
 }
-func listUserEssays(ctx context.Context, db DBTX, userID int) ([]models.EssayView, error) {
-	essayPreviews := []models.EssayView{}
+func listUserEssays(ctx context.Context, db DBTX, userID int) ([]domain.EssayView, error) {
+	essayPreviews := []domain.EssayView{}
 	sql, args, _ := selectEssayWithJoins.
 		Join("subdisceptos ON subdisceptos.name = essays.posted_in").
 		GroupBy("essays.id", "essay_replies.from_id", "users.name").

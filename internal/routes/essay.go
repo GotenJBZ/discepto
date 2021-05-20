@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"gitlab.com/ranfdev/discepto/internal/db"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 )
 
 func (routes *Routes) EssaysRouter(r chi.Router) {
@@ -52,12 +52,12 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) AppErr
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
 
 	essay := struct {
-		*models.Essay
+		*domain.Essay
 		MySubdisceptos []string
 	}{
-		Essay: &models.Essay{
+		Essay: &domain.Essay{
 			PostedIn: subdiscepto,
-			Replying: models.Replying{
+			Replying: domain.Replying{
 				InReplyTo: inReplyTo,
 			},
 		},
@@ -97,7 +97,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		return &ErrInternal{Cause: err}
 	}
 
-	essayUserDid := &models.EssayUserDid{}
+	essayUserDid := &domain.EssayUserDid{}
 	if userH != nil {
 		essayUserDid, err = esH.GetUserDid(r.Context(), *userH)
 		if err != nil {
@@ -111,15 +111,15 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	}
 
 	data := struct {
-		Subdiscepto     *models.SubdisceptoView
-		Essay           *models.EssayView
-		Replies         []models.EssayView
+		Subdiscepto     *domain.SubdisceptoView
+		Essay           *domain.EssayView
+		Replies         []domain.EssayView
 		FilterReplyType string
 		Sources         []string
-		EssayUserDid    *models.EssayUserDid
+		EssayUserDid    *domain.EssayUserDid
 		SubdisceptoList []string
-		Perms           models.EssayPerms
-		User            *models.UserView
+		Perms           domain.EssayPerms
+		User            *domain.UserView
 	}{
 		Subdiscepto:     subData,
 		Essay:           essay,
@@ -148,10 +148,10 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
 
 	// Parse reply type
-	replyType := models.ReplyTypeGeneral
+	replyType := domain.ReplyTypeGeneral
 	{
 		rType := r.FormValue("replyType")
-		for _, t := range models.AvailableReplyTypes {
+		for _, t := range domain.AvailableReplyTypes {
 			if rType == t.String {
 				replyType = sql.NullString{
 					String: rType,
@@ -165,11 +165,11 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 	// Parse tags
 	tags := strings.Fields(r.FormValue("tags"))
 
-	replyData := models.Replying{
+	replyData := domain.Replying{
 		InReplyTo: inReplyTo,
 		ReplyType: replyType,
 	}
-	essay := models.Essay{
+	essay := domain.Essay{
 		Thesis:         r.FormValue("thesis"),
 		Content:        r.FormValue("content"),
 		AttributedToID: userH.ID(),
@@ -205,7 +205,7 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) AppError
 func (routes *Routes) PostReport(w http.ResponseWriter, r *http.Request) AppError {
 	essayH := GetEssayH(r)
 	userH := GetUserH(r)
-	report := models.Report{}
+	report := domain.Report{}
 	report.EssayID = essayH.ID()
 	report.FromUserID = userH.ID()
 	err := essayH.CreateReport(r.Context(), report, *userH)
@@ -231,12 +231,12 @@ func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) AppError 
 	userH := GetUserH(r)
 	esH := GetEssayH(r)
 
-	var vote models.VoteType
+	var vote domain.VoteType
 	switch r.FormValue("vote") {
 	case "upvote":
-		vote = models.VoteTypeUpvote
+		vote = domain.VoteTypeUpvote
 	case "downvote":
-		vote = models.VoteTypeDownvote
+		vote = domain.VoteTypeDownvote
 	}
 
 	esH.DeleteVote(r.Context(), *userH)

@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
 	"gitlab.com/ranfdev/discepto/internal/db"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 	"gitlab.com/ranfdev/discepto/internal/render"
 	"gitlab.com/ranfdev/discepto/internal/routes"
 	"gitlab.com/ranfdev/discepto/web"
@@ -25,7 +25,7 @@ func main() {
 		fmt.Println(usage)
 		return
 	}
-	envConfig := models.ReadEnvConfig()
+	envConfig := domain.ReadEnvConfig()
 	switch os.Args[1] {
 	case "start":
 		server := DisceptoServer{EnvConfig: envConfig}
@@ -54,7 +54,7 @@ func main() {
 }
 
 type DisceptoServer struct {
-	models.EnvConfig
+	domain.EnvConfig
 	logger    zerolog.Logger
 	router    chi.Router
 	database  db.SharedDB

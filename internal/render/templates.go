@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/yuin/goldmark"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 )
 
 const MaxPreviewLength = 200
@@ -18,7 +18,7 @@ const MaxPreviewLength = 200
 type Templates struct {
 	templates *template.Template
 	funcMap   template.FuncMap
-	envConfig *models.EnvConfig
+	envConfig *domain.EnvConfig
 }
 
 func (tmpls *Templates) RenderHTML(w http.ResponseWriter, tmplName string, data interface{}) {
@@ -84,7 +84,7 @@ func (tmpls *Templates) SetFS(fs fs.FS) {
 		ParseFS(fs, "templates/*html"),
 	)
 }
-func GetTemplates(envConfig *models.EnvConfig) Templates {
+func GetTemplates(envConfig *domain.EnvConfig) Templates {
 	tmpls := Templates{envConfig: envConfig}
 	tmpls.funcMap = template.FuncMap{
 		"markdown":        markdown,

@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 	"gitlab.com/ranfdev/discepto/internal/utils"
 )
 
@@ -82,8 +82,8 @@ func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) Ap
 	}
 
 	data := struct {
-		GlobalPerms models.GlobalPerms
-		Subs        []models.SubdisceptoView
+		GlobalPerms domain.GlobalPerms
+		Subs        []domain.SubdisceptoView
 	}{
 		GlobalPerms: disceptoH.Perms(),
 		Subs:        subs,
@@ -126,11 +126,11 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 	}
 
 	data := struct {
-		*models.SubdisceptoView
-		Essays          []models.EssayView
+		*domain.SubdisceptoView
+		Essays          []domain.EssayView
 		IsMember        bool
 		SubdisceptoList []string
-		SubPerms        models.SubPerms
+		SubPerms        domain.SubPerms
 	}{
 		SubdisceptoView: subData,
 		Essays:          essays,
@@ -145,7 +145,7 @@ func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 	userH := GetUserH(r)
 	disceptoH := GetDisceptoH(r)
 
-	sub := models.Subdiscepto{}
+	sub := domain.Subdiscepto{}
 	err := utils.ParseFormStruct(r, &sub)
 	if err != nil {
 		return &ErrBadRequest{}
@@ -162,7 +162,7 @@ func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 func (routes *Routes) PutSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	subH := GetSubdisceptoH(r)
 
-	sub := &models.Subdiscepto{}
+	sub := &domain.Subdiscepto{}
 	err := utils.ParseFormStruct(r, sub)
 	if err != nil {
 		return &ErrBadRequest{}
@@ -176,6 +176,6 @@ func (routes *Routes) PutSubdiscepto(w http.ResponseWriter, r *http.Request) App
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
-	routes.tmpls.RenderHTML(w, "subdisceptoForm", struct{ Subdiscepto *models.Subdiscepto }{sub})
+	routes.tmpls.RenderHTML(w, "subdisceptoForm", struct{ Subdiscepto *domain.Subdiscepto }{sub})
 	return nil
 }

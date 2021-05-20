@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 )
 
 func (routes *Routes) SubReportsRouter(r chi.Router) {
@@ -21,8 +21,8 @@ func (routes *Routes) GetReports(w http.ResponseWriter, r *http.Request) AppErro
 		return &ErrInternal{Cause: err}
 	}
 	routes.tmpls.RenderHTML(w, "reports", struct {
-		Reports  []models.ReportView
-		SubPerms models.SubPerms
+		Reports  []domain.ReportView
+		SubPerms domain.SubPerms
 	}{
 		reports,
 		subH.Perms(),

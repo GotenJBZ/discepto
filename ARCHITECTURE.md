@@ -17,7 +17,7 @@ creations of custom ones.
 # Security
 In code, security and roles are enforced following in part the design guidelines of the object-capability-model.
 
-Inside the discepto codebase, there is pure data (inside the "models" package) and data handlers (inside the "db" package).
+Inside the discepto codebase, there is pure data (inside the "domain" package) and data handlers (inside the "db" package).
 
 To retrieve some data or delete it, or [action on the data], you must have a reference (handler) to it (object-capability-model).
 

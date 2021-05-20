@@ -1,31 +1,36 @@
-package db
+package adapters
 
 import (
 	"context"
 
 	sq "github.com/Masterminds/squirrel"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 )
 
-var (
-	RoleDisceptoAdmin  = models.Role{ID: -123, Name: "admin", Preset: true}
-	RoleDisceptoCommon = models.Role{ID: -100, Name: "common", Preset: true}
-)
 
-func listRoles(ctx context.Context, db DBTX, domain string) ([]models.Role, error) {
+var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+type rbacRepo struct {
+	db DBTX
+}
+
+func NewRBACRepo(db DBTX) domain.RBACRepo {
+	return &rbacRepo {db}
+}
+
+func (r *rbacRepo) ListRoles(ctx context.Context, roleDomain string) ([]domain.Role, error) {
 	sql, args, _ := psql.Select("id", "name", "preset").
 		From("roles").
-		Where(sq.Eq{"domain": domain}).
+		Where(sq.Eq{"domain": roleDomain}).
 		ToSql()
 
-	rows, err := db.Query(ctx, sql, args...)
+	rows, err := r.db.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	roles := []models.Role{}
+	roles := []domain.Role{}
 	for rows.Next() {
-		role := models.Role{}
+		role := domain.Role{}
 		err := rows.Scan(&role.ID, &role.Name, &role.Preset)
 		if err != nil {
 			return nil, err
@@ -34,21 +39,21 @@ func listRoles(ctx context.Context, db DBTX, domain string) ([]models.Role, erro
 	}
 	return roles, err
 }
-func listUserRoles(ctx context.Context, db DBTX, userID int, domain string) ([]models.Role, error) {
+func (r *rbacRepo) ListUserRoles(ctx context.Context, userID int, roleDomain string) ([]domain.Role, error) {
 	sql, args, _ := psql.Select("id", "name", "preset").
 		From("roles").
 		Join("user_roles ON roles.id = user_roles.role_id").
-		Where(sq.Eq{"domain": domain, "user_id": userID}).
+		Where(sq.Eq{"domain": roleDomain, "user_id": userID}).
 		ToSql()
 
-	rows, err := db.Query(ctx, sql, args...)
+	rows, err := r.db.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	roles := []models.Role{}
+	roles := []domain.Role{}
 	for rows.Next() {
-		role := models.Role{}
+		role := domain.Role{}
 		err := rows.Scan(&role.ID, &role.Name, &role.Preset)
 		if err != nil {
 			return nil, err
@@ -57,28 +62,28 @@ func listUserRoles(ctx context.Context, db DBTX, userID int, domain string) ([]m
 	}
 	return roles, err
 }
-func findRoleByName(ctx context.Context, db DBTX, domain string, name string) (*models.Role, error) {
+func (r *rbacRepo) FindRoleByName(ctx context.Context, roleDomain string, name string) (*domain.Role, error) {
 	sql, args, _ := psql.Select("id", "name", "preset").
 		From("roles").
-		Where(sq.Eq{"domain": domain, "name": name}).
+		Where(sq.Eq{"domain": roleDomain, "name": name}).
 		ToSql()
 
-	row := db.QueryRow(ctx, sql, args...)
-	role := models.Role{}
+	row := r.db.QueryRow(ctx, sql, args...)
+	role := domain.Role{}
 	err := row.Scan(&role.ID, &role.Name, &role.Preset)
 	if err != nil {
 		return nil, err
 	}
-	role.Domain = domain
+	role.Domain = roleDomain
 	return &role, nil
 }
-func listRolePerms(ctx context.Context, db DBTX, roleID int) (map[string]bool, error) {
+func (r *rbacRepo) ListRolePerms(ctx context.Context, roleID int) (map[string]bool, error) {
 	sql, args, _ := psql.Select("permission").
 		From("role_perms").
 		Where(sq.Eq{"role_id": roleID}).
 		ToSql()
 
-	rows, err := db.Query(ctx, sql, args...)
+	rows, err := r.db.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -95,15 +100,15 @@ func listRolePerms(ctx context.Context, db DBTX, roleID int) (map[string]bool, e
 	return roles, err
 }
 
-func getUserPerms(ctx context.Context, db DBTX, domain string, userID int) (map[string]bool, error) {
+func (r *rbacRepo) GetUserPerms(ctx context.Context, roleDomain string, userID int) (map[string]bool, error) {
 	sql, args, _ := psql.Select("permission").
 		From("user_roles").
 		Join("role_perms ON user_roles.role_id = role_perms.role_id").
 		Join("roles ON user_roles.role_id = roles.id").
-		Where(sq.Eq{"domain": domain, "user_id": userID}).
+		Where(sq.Eq{"domain": roleDomain, "user_id": userID}).
 		ToSql()
 
-	rows, err := db.Query(ctx, sql, args...)
+	rows, err := r.db.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -120,30 +125,30 @@ func getUserPerms(ctx context.Context, db DBTX, domain string, userID int) (map[
 	return res, nil
 }
 
-func assignRole(ctx context.Context, db DBTX, userID int, roleID int) error {
+func (r *rbacRepo) AssignRole(ctx context.Context, userID int, roleID int) error {
 	sql, args, _ := psql.Insert("user_roles").Columns("user_id", "role_id").Values(userID, roleID).ToSql()
-	_, err := db.Exec(ctx, sql, args...)
+	_, err := r.db.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func unassignRole(ctx context.Context, db DBTX, userID int, roleID int) error {
+func (r *rbacRepo) UnassignRole(ctx context.Context, userID int, roleID int) error {
 	sql, args, _ := psql.Delete("user_roles").Where(sq.Eq{"user_id": userID, "role_id": roleID}).ToSql()
-	_, err := db.Exec(ctx, sql, args...)
+	_, err := r.db.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func createRole(ctx context.Context, db DBTX, domain string, name string, preset bool, m map[string]bool) (int, error) {
+func (r *rbacRepo) CreateRole(ctx context.Context, role domain.Role, m map[string]bool) (int, error) {
 	rowID := -1
-	err := execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
+	err := execTx(ctx, r.db, func(ctx context.Context, tx DBTX) error {
 		sql, args, _ := psql.
 			Insert("roles").
 			Columns("domain", "name", "preset").
-			Values(domain, name, preset).
+			Values(role.Domain, role.Name, role.Preset).
 			Suffix("RETURNING id").
 			ToSql()
 
@@ -152,7 +157,7 @@ func createRole(ctx context.Context, db DBTX, domain string, name string, preset
 		if err != nil {
 			return err
 		}
-		err = setPermissions(ctx, tx, rowID, m)
+		err = r.SetPermissions(ctx, rowID, m)
 		if err != nil {
 			return err
 		}
@@ -161,13 +166,13 @@ func createRole(ctx context.Context, db DBTX, domain string, name string, preset
 	})
 	return rowID, err
 }
-func setPermissions(ctx context.Context, db DBTX, roleID int, perms map[string]bool) error {
+func (r *rbacRepo) SetPermissions(ctx context.Context, roleID int, perms map[string]bool) error {
 	sql, args, _ := psql.
 		Delete("role_perms").
 		Where(sq.Eq{"role_id": roleID}).
 		ToSql()
 
-	_, err := db.Exec(ctx, sql, args...)
+	_, err := r.db.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}
@@ -181,24 +186,14 @@ func setPermissions(ctx context.Context, db DBTX, roleID int, perms map[string]b
 		}
 	}
 	sql, args, _ = q.ToSql()
-	_, err = db.Exec(ctx, sql, args...)
+	_, err = r.db.Exec(ctx, sql, args...)
 	return err
 }
 
-type HigherRole map[string]bool
-
-func isLowerRole(oldRole HigherRole, newRole map[string]bool) bool {
-	for k := range newRole {
-		if v, ok := oldRole[k]; !ok || !v {
-			return false
-		}
-	}
-	return true
-}
-func deleteRole(ctx context.Context, db DBTX, roleID int) error {
+func (r *rbacRepo) DeleteRole(ctx context.Context, roleID int) error {
 	sql, args, _ := psql.Delete("roles").Where(sq.Eq{"id": roleID}).ToSql()
 
-	_, err := db.Exec(ctx, sql, args...)
+	_, err := r.db.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}

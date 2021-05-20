@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 )
 
 func (routes *Routes) GlobalMembersRouter(r chi.Router) {
@@ -32,8 +32,8 @@ func (routes *Routes) renderMembers(w http.ResponseWriter, r *http.Request) AppE
 		return &ErrInternal{Cause: err}
 	}
 	data := struct {
-		Members []models.Member
-		Roles   []models.Role
+		Members []domain.Member
+		Roles   []domain.Role
 	}{
 		Members: members,
 		Roles:   roles,

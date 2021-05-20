@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 )
 
 const mockPasswd = "correcthorsebatterystaple!3" // hackerman
 const mockSubName = "mock"
 const mockSubName2 = "mock2"
 
-func mockUser() *models.User {
-	return &models.User{
+func mockUser() *domain.User {
+	return &domain.User{
 		Name:  "Pippo",
 		Email: "pippo@strana.com",
 	}
@@ -27,11 +27,11 @@ func mockUrl() url.URL {
 	url, _ := url.Parse("https://example.com")
 	return *url
 }
-func mockEssay(userID int) *models.Essay {
-	replyData := models.Replying{
-		ReplyType: models.ReplyTypeGeneral,
+func mockEssay(userID int) *domain.Essay {
+	replyData := domain.Replying{
+		ReplyType: domain.ReplyTypeGeneral,
 	}
-	return &models.Essay{
+	return &domain.Essay{
 		Thesis: "Banana is the best fruit",
 		Content: `Banana is the best fruit because...
 		Banana is the best fruit because...
@@ -46,15 +46,15 @@ func mockEssay(userID int) *models.Essay {
 		Sources:        []url.URL{mockUrl()},
 	}
 }
-func mockSubdiscepto() *models.Subdiscepto {
-	return &models.Subdiscepto{
+func mockSubdiscepto() *domain.Subdiscepto {
+	return &domain.Subdiscepto{
 		Name:        mockSubName,
 		Description: "Mock subdiscepto",
 		Public:      true,
 	}
 }
-func mockSubdiscepto2() *models.Subdiscepto {
-	return &models.Subdiscepto{
+func mockSubdiscepto2() *domain.Subdiscepto {
+	return &domain.Subdiscepto{
 		Name:        mockSubName2,
 		Description: "Mock subdiscepto 2",
 		Public:      true,
@@ -68,7 +68,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	envConfig := models.ReadEnvConfig()
+	envConfig := domain.ReadEnvConfig()
 
 	// Reset database before testing
 	err = MigrateDown(envConfig.DatabaseURL)
@@ -100,7 +100,7 @@ func TestUser(t *testing.T) {
 	user2 := mockUser()
 	user2.Email = "asdasdasdfjh"
 	testData := []struct {
-		user *models.User
+		user *domain.User
 		err  error
 	}{
 		{mockUser(), ErrEmailAlreadyUsed},
@@ -178,14 +178,14 @@ func TestEssay(t *testing.T) {
 	// Test list essays in favor
 	essay3 := mockEssay(user.ID)
 	essay3.InReplyTo = sql.NullInt32{Int32: int32(essay2.ID), Valid: true}
-	essay3.ReplyType = models.ReplyTypeSupports
+	essay3.ReplyType = domain.ReplyTypeSupports
 	parentEssayH, err := sub2H.GetEssayH(context.Background(), essay2.ID, userH)
 	require.Nil(err)
 	_, err = sub2H.CreateEssayReply(context.Background(), essay3, *parentEssayH)
 	require.Nil(err)
 
 	// Create upvote
-	err = essayH.CreateVote(context.Background(), *userH, models.VoteTypeUpvote)
+	err = essayH.CreateVote(context.Background(), *userH, domain.VoteTypeUpvote)
 	require.Nil(err)
 	updatedEssay, err := essayH.ReadView(context.Background())
 	require.Nil(err)
@@ -197,7 +197,7 @@ func TestEssay(t *testing.T) {
 	require.Nil(err)
 
 	// Create downvote
-	err = essayH.CreateVote(context.Background(), *userH, models.VoteTypeDownvote)
+	err = essayH.CreateVote(context.Background(), *userH, domain.VoteTypeDownvote)
 	require.Nil(err)
 	updatedEssay, err = essayH.ReadView(context.Background())
 	require.Nil(err)
@@ -207,12 +207,12 @@ func TestEssay(t *testing.T) {
 	// Check what a specific user did
 	did, err := essayH.GetUserDid(context.Background(), *userH)
 	require.Nil(err)
-	require.Equal(&models.EssayUserDid{
-		Vote: sql.NullString{String: string(models.VoteTypeDownvote), Valid: true},
+	require.Equal(&domain.EssayUserDid{
+		Vote: sql.NullString{String: string(domain.VoteTypeDownvote), Valid: true},
 	}, did)
 
 	// list
-	essayReplies, err := sub2H.ListReplies(context.Background(), *essay2H, &models.ReplyTypeSupports.String)
+	essayReplies, err := sub2H.ListReplies(context.Background(), *essay2H, &domain.ReplyTypeSupports.String)
 	require.Nil(err)
 	require.Len(essayReplies, 1)
 
@@ -344,13 +344,13 @@ func TestRoles(t *testing.T) {
 	// Check "admin" global role
 	globalPerms, err := getUserPerms(context.Background(), db.db, "discepto", userH.id)
 	require.Nil(err)
-	require.Equal(models.GlobalPerms{
+	require.Equal(domain.GlobalPerms{
 		Login:             true,
 		CreateSubdiscepto: true,
 		DeleteUser:        true,
 		BanUserGlobally:   true,
 		ManageGlobalRole:  true,
-		SubPerms: models.SubPerms{
+		SubPerms: domain.SubPerms{
 			ReadSubdiscepto:   true,
 			UpdateSubdiscepto: true,
 			CreateEssay:       true,
@@ -363,27 +363,27 @@ func TestRoles(t *testing.T) {
 			ViewReport:        true,
 			DeleteReport:      true,
 		},
-	}, models.GlobalPermsFromMap(globalPerms))
+	}, domain.GlobalPermsFromMap(globalPerms))
 
 	// Check "common" global role
 	globalPerms2, err := getUserPerms(context.Background(), db.db, "discepto", user2H.id)
 	require.Nil(err)
-	require.Equal(models.GlobalPerms{
+	require.Equal(domain.GlobalPerms{
 		Login:             true,
 		CreateSubdiscepto: false,
 		DeleteUser:        false,
 		BanUserGlobally:   false,
 		ManageGlobalRole:  false,
-	}, models.GlobalPermsFromMap(globalPerms2))
+	}, domain.GlobalPermsFromMap(globalPerms2))
 
 	subPerms, err := getUserPerms(context.Background(), db.db, string(subRoleDomain(subH.name)), userH.id)
-	require.Equal(models.SubPermsOwner, models.SubPermsFromMap(subPerms))
+	require.Equal(domain.SubPermsOwner, domain.SubPermsFromMap(subPerms))
 	require.Nil(err)
 
 	// Check "common" sub role
 	subPerms2, err := getUserPerms(context.Background(), db.db, string(subRoleDomain(subH.name)), user2H.id)
 	require.Nil(err)
-	require.Equal(models.SubPerms{
+	require.Equal(domain.SubPerms{
 		ReadSubdiscepto:   true,
 		CreateEssay:       true,
 		DeleteEssay:       false,
@@ -391,7 +391,7 @@ func TestRoles(t *testing.T) {
 		BanUser:           false,
 		ManageRole:        false,
 		CommonAfterRejoin: true,
-	}, models.SubPermsFromMap(subPerms2))
+	}, domain.SubPermsFromMap(subPerms2))
 
 	// Remove "common" global role, banning the user
 	roleH, err := subH.GetRoleH(context.Background(), "common")
@@ -400,7 +400,7 @@ func TestRoles(t *testing.T) {
 	require.Nil(err)
 	subPerms2, err = getUserPerms(context.Background(), db.db, string(subRoleDomain(subH.name)), user2H.id)
 	require.Nil(err)
-	require.Equal(models.SubPerms{
+	require.Equal(domain.SubPerms{
 		ReadSubdiscepto:   false,
 		CreateEssay:       false,
 		DeleteEssay:       false,
@@ -408,7 +408,7 @@ func TestRoles(t *testing.T) {
 		BanUser:           false,
 		ManageRole:        false,
 		CommonAfterRejoin: false,
-	}, models.SubPermsFromMap(subPerms2))
+	}, domain.SubPermsFromMap(subPerms2))
 
 	// A banned user shouldn't be able to leave the subdiscepto without a trace.
 	// The membership track record must be kept, to ensure the user stays banned

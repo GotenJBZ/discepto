@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 )
 
 func (routes *Routes) SubSettingsRouter(r chi.Router) {
@@ -19,7 +19,7 @@ func (routes *Routes) GetSubSettings(w http.ResponseWriter, r *http.Request) App
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
-	routes.tmpls.RenderHTML(w, "subsettings", struct{ Subdiscepto *models.Subdiscepto }{sub})
+	routes.tmpls.RenderHTML(w, "subsettings", struct{ Subdiscepto *domain.Subdiscepto }{sub})
 	return nil
 }
 func (routes *Routes) GetGlobalSettings(w http.ResponseWriter, r *http.Request) AppError {

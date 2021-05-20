@@ -11,7 +11,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/jackc/pgconn"
 	"gitlab.com/ranfdev/discepto/internal/db"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 )
 
 func (routes *Routes) GlobalRolesRouter(r chi.Router) {
@@ -31,14 +31,14 @@ func (routes *Routes) roleRouter(r chi.Router) {
 	r.Delete("/{roleName}", routes.AppHandler(routes.deleteRole))
 }
 
-func GetRoleManagerDiscepto(r *http.Request) RoleManager {
+func GetRoleManagerDiscepto(r *http.Request) domain.RBACService {
 	return GetDisceptoH(r)
 }
-func GetRoleManagerSubdiscepto(r *http.Request) RoleManager {
+func GetRoleManagerSubdiscepto(r *http.Request) domain.RBACService {
 	return GetSubdisceptoH(r)
 }
 
-type RoleManagerExtract = func(r *http.Request) RoleManager
+type RoleManagerExtract = func(r *http.Request) domain.RBACService
 
 func RoleManagerCtx(extract RoleManagerExtract) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -48,16 +48,6 @@ func RoleManagerCtx(extract RoleManagerExtract) func(next http.Handler) http.Han
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
-}
-
-type RoleManager interface {
-	Assign(ctx context.Context, toUser int, roleH db.RoleH) error
-	Unassign(ctx context.Context, toUser int, roleH db.RoleH) error
-	ListMembers(ctx context.Context) ([]models.Member, error)
-	ListRoles(ctx context.Context) ([]models.Role, error)
-	ListAvailablePerms() map[string]bool
-	GetRoleH(ctx context.Context, roleName string) (*db.RoleH, error)
-	CreateRole(ctx context.Context, roleName string) (*db.RoleH, error)
 }
 
 func (routes *Routes) assignRole(w http.ResponseWriter, r *http.Request) AppError {
@@ -154,8 +144,8 @@ func (routes *Routes) listRoles(w http.ResponseWriter, r *http.Request) AppError
 		return &ErrInternal{Cause: err}
 	}
 	data := struct {
-		Subdiscepto *models.SubdisceptoView
-		Roles       []models.Role
+		Subdiscepto *domain.SubdisceptoView
+		Roles       []domain.Role
 	}{
 		Subdiscepto: nil,
 		Roles:       roles,

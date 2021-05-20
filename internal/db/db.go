@@ -14,7 +14,7 @@ import (
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 	"gitlab.com/ranfdev/discepto/migrations"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -44,7 +44,7 @@ type DBTX interface {
 
 type SharedDB struct {
 	db         DBTX
-	config     *models.EnvConfig
+	config     *domain.EnvConfig
 	bcryptCost int
 }
 
@@ -94,7 +94,7 @@ func Drop(dbURL string) error {
 	return nil
 }
 
-func Connect(config *models.EnvConfig) (SharedDB, error) {
+func Connect(config *domain.EnvConfig) (SharedDB, error) {
 	db, err := pgxpool.Connect(context.Background(), config.DatabaseURL)
 	if err != nil {
 		err = fmt.Errorf("Failed to connect to postgres: %w", err)

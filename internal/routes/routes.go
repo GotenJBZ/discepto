@@ -17,7 +17,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"gitlab.com/ranfdev/discepto/internal/db"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 	"gitlab.com/ranfdev/discepto/internal/render"
 	"gitlab.com/ranfdev/discepto/web"
 )
@@ -37,13 +37,13 @@ const (
 )
 
 type Routes struct {
-	envConfig      *models.EnvConfig
+	envConfig      *domain.EnvConfig
 	db             *db.SharedDB
 	tmpls          *render.Templates
 	sessionManager *scs.SessionManager
 }
 
-func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tmpls *render.Templates) chi.Router {
+func NewRouter(config *domain.EnvConfig, db *db.SharedDB, log zerolog.Logger, tmpls *render.Templates) chi.Router {
 	sessionManager := NewSessionManager(config)
 	routes := &Routes{envConfig: config, db: db, tmpls: tmpls, sessionManager: sessionManager}
 	sessionManager.ErrorFunc = func(w http.ResponseWriter, r *http.Request, err error) {
@@ -135,7 +135,7 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 	})
 	return r
 }
-func NewSessionManager(config *models.EnvConfig) *scs.SessionManager {
+func NewSessionManager(config *domain.EnvConfig) *scs.SessionManager {
 	sessionManager := scs.New()
 	sessionManager.Lifetime = 30 * 24 * time.Hour
 	sessionManager.Cookie.HttpOnly = true
@@ -318,7 +318,7 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	type homeData struct {
 		LoggedIn       bool
 		MySubdisceptos []string
-		RecentEssays   []models.EssayView
+		RecentEssays   []domain.EssayView
 	}
 	disceptoH := GetDisceptoH(r)
 	userH := GetUserH(r)
@@ -368,8 +368,8 @@ func (routes *Routes) GetUser(w http.ResponseWriter, r *http.Request) AppError {
 
 	mySubs, err := userH.ListMySubdisceptos(r.Context())
 	routes.tmpls.RenderHTML(w, "user", struct {
-		User            *models.UserView
-		Essays          []models.EssayView
+		User            *domain.UserView
+		Essays          []domain.EssayView
 		FilterReplyType string
 		MySubdisceptos  []string
 	}{
@@ -395,8 +395,8 @@ func (routes *Routes) GetUserSelf(w http.ResponseWriter, r *http.Request) AppErr
 
 	mySubs, err := userH.ListMySubdisceptos(r.Context())
 	routes.tmpls.RenderHTML(w, "user", struct {
-		User            *models.UserView
-		Essays          []models.EssayView
+		User            *domain.UserView
+		Essays          []domain.EssayView
 		FilterReplyType string
 		MySubdisceptos  []string
 	}{
@@ -459,7 +459,7 @@ func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) AppError
 }
 func (routes *Routes) PostSignup(w http.ResponseWriter, r *http.Request) AppError {
 	email := r.FormValue("email")
-	_, err := routes.db.CreateUser(r.Context(), &models.User{
+	_, err := routes.db.CreateUser(r.Context(), &domain.User{
 		Name:  r.FormValue("name"),
 		Email: email,
 	}, r.FormValue("password"))

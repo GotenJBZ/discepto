@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 )
 
 func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) AppError {
@@ -16,7 +16,7 @@ func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) AppError
 	query := r.URL.Query().Get("q")
 	filterType := r.URL.Query().Get("filterType")
 
-	var essays []models.EssayView
+	var essays []domain.EssayView
 	var err error
 	switch searchBy {
 	case "thesis":
@@ -36,7 +36,7 @@ func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) AppError
 	}
 
 	routes.tmpls.RenderHTML(w, "search", struct {
-		Essays         []models.EssayView
+		Essays         []domain.EssayView
 		MySubdisceptos []string
 		Query          string
 		FilterType     string

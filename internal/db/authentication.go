@@ -8,12 +8,12 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgconn"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 	"gitlab.com/ranfdev/discepto/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (sdb *SharedDB) CreateUser(ctx context.Context, user *models.User, passwd string) (uH *UserH, err error) {
+func (sdb *SharedDB) CreateUser(ctx context.Context, user *domain.User, passwd string) (uH *UserH, err error) {
 	// Check email format
 	if !utils.ValidateEmail(user.Email) {
 		return nil, ErrInvalidFormat
@@ -131,7 +131,7 @@ func validatePasswd(passwd string, userInputs []string) bool {
 
 	return true
 }
-func insertUser(ctx context.Context, db DBTX, user *models.User, hash []byte) error {
+func insertUser(ctx context.Context, db DBTX, user *domain.User, hash []byte) error {
 	// Insert the new user
 	sql, args, _ := psql.
 		Insert("users").

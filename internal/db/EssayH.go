@@ -8,13 +8,13 @@ import (
 	"github.com/georgysavva/scany/pgxscan"
 
 	sq "github.com/Masterminds/squirrel"
-	"gitlab.com/ranfdev/discepto/internal/models"
+	"gitlab.com/ranfdev/discepto/internal/domain"
 )
 
 type EssayH struct {
 	sharedDB   DBTX
 	id         int
-	essayPerms models.EssayPerms
+	essayPerms domain.EssayPerms
 }
 
 func isEssayOwner(ctx context.Context, db DBTX, essayID int, userID int) bool {
@@ -54,10 +54,10 @@ var selectEssayWithJoins = selectEssay.
 	LeftJoin("votes ON votes.essay_id = essays.id").
 	LeftJoin("users ON essays.attributed_to_id = users.id")
 
-func (h *EssayH) Perms() models.EssayPerms {
+func (h *EssayH) Perms() domain.EssayPerms {
 	return h.essayPerms
 }
-func (h EssayH) ReadView(ctx context.Context) (*models.EssayView, error) {
+func (h EssayH) ReadView(ctx context.Context) (*domain.EssayView, error) {
 	if !h.essayPerms.Read {
 		return nil, ErrPermDenied
 	}
@@ -66,7 +66,7 @@ func (h EssayH) ReadView(ctx context.Context) (*models.EssayView, error) {
 		GroupBy("essays.id", "essay_replies.from_id", "users.name").
 		ToSql()
 
-	var essay models.EssayView
+	var essay domain.EssayView
 	err := pgxscan.Get(ctx, h.sharedDB, &essay, sql, args...)
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (h EssayH) ReadView(ctx context.Context) (*models.EssayView, error) {
 func (h EssayH) ID() int {
 	return h.id
 }
-func (h EssayH) CreateReport(ctx context.Context, rep models.Report, userH UserH) error {
+func (h EssayH) CreateReport(ctx context.Context, rep domain.Report, userH UserH) error {
 	if !h.essayPerms.Read {
 		return ErrPermDenied
 	}
@@ -109,7 +109,7 @@ func (h EssayH) DeleteVote(ctx context.Context, uH UserH) error {
 	_, err := h.sharedDB.Exec(ctx, sql, args...)
 	return err
 }
-func (h EssayH) CreateVote(ctx context.Context, uH UserH, vote models.VoteType) error {
+func (h EssayH) CreateVote(ctx context.Context, uH UserH, vote domain.VoteType) error {
 	if !h.essayPerms.Read {
 		return ErrPermDenied
 	}
@@ -125,7 +125,7 @@ func (h EssayH) CreateVote(ctx context.Context, uH UserH, vote models.VoteType) 
 	}
 
 	// Send notification
-	if vote == models.VoteTypeUpvote {
+	if vote == domain.VoteTypeUpvote {
 		essay, err := h.ReadView(ctx)
 		if err != nil {
 			return err
@@ -143,11 +143,11 @@ func (h EssayH) CreateVote(ctx context.Context, uH UserH, vote models.VoteType) 
 		if err != nil {
 			return err
 		}
-		return sendNotification(ctx, h.sharedDB, models.Notification{
+		return sendNotification(ctx, h.sharedDB, domain.Notification{
 			UserID:    essay.AttributedToID,
 			Title:     user.Name,
 			Text:      "Upvoted your essay",
-			NotifType: models.NotifTypeUpvote,
+			NotifType: domain.NotifTypeUpvote,
 			ActionURL: *url,
 		})
 	}
@@ -159,36 +159,36 @@ func (h EssayH) DeleteEssay(ctx context.Context) error {
 	}
 	return h.deleteEssay(ctx)
 }
-func (h EssayH) ListQuestions(ctx context.Context) ([]models.Question, error) {
+func (h EssayH) ListQuestions(ctx context.Context) ([]domain.Question, error) {
 	sql, args, _ := psql.Select("text").From("questions").Where(sq.Eq{
 		"essay_id": h.id,
 	}).ToSql()
-	questions := []models.Question{}
+	questions := []domain.Question{}
 	err := pgxscan.Select(ctx, h.sharedDB, questions, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 	return questions, nil
 }
-func (h EssayH) ListAnswers(ctx context.Context, questionID int) ([]models.Answer, error) {
+func (h EssayH) ListAnswers(ctx context.Context, questionID int) ([]domain.Answer, error) {
 	sql, args, _ := psql.Select("text", "correct").From("answers").Where(sq.Eq{
 		"question_id": h.id,
 	}).ToSql()
-	answer := []models.Answer{}
+	answer := []domain.Answer{}
 	err := pgxscan.Select(ctx, h.sharedDB, answer, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 	return answer, nil
 }
-func (h EssayH) GetUserDid(ctx context.Context, userH UserH) (*models.EssayUserDid, error) {
+func (h EssayH) GetUserDid(ctx context.Context, userH UserH) (*domain.EssayUserDid, error) {
 	sql, args, _ := psql.
 		Select("vote_type AS vote").
 		From("votes").
 		Where(sq.Eq{"user_id": userH.id, "essay_id": h.id}).
 		ToSql()
 
-	did := &models.EssayUserDid{}
+	did := &domain.EssayUserDid{}
 	err := pgxscan.Get(ctx, h.sharedDB, did, sql, args...)
 	if pgxscan.NotFound(err) {
 		return did, nil
