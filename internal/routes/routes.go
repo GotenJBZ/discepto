@@ -138,7 +138,7 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 }
 func NewSessionManager(config *models.EnvConfig) *scs.SessionManager {
 	sessionManager := scs.New()
-	sessionManager.Lifetime = 30 * 24 * time.Hour
+	sessionManager.Lifetime = 7 * 24 * time.Hour
 	sessionManager.Cookie.HttpOnly = true
 	sessionManager.Cookie.Path = "/"
 	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
