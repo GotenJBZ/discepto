@@ -75,7 +75,12 @@ func (h EssayH) ReadView(ctx context.Context) (*models.EssayView, error) {
 }
 
 func (h EssayH) CountReplies(ctx context.Context) (map[string]int, error) {
-	sql, args, _ := psql.Select("reply_type","COUNT(reply_type)").From("essay_replies").
+	if !h.essayPerms.Read {
+		return nil, ErrPermDenied
+	}
+	sql, args, _ := psql.Select("reply_type","COUNT(reply_type)").
+		From("essay_replies").
+		Where(sq.Eq{"to_id": h.id}).
 		GroupBy("reply_type").
 		ToSql()
 	
