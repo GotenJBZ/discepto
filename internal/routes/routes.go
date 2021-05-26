@@ -77,11 +77,12 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 
 	if !config.Debug {
 		r.Use(httprate.LimitByIP(LimitGlobalCount, LimitGlobalDuration))
+		limiter := httprate.Limit(LimitPostCount, LimitPostDuration, httprate.KeyByIP)
 		r.Use(func(next http.Handler) http.Handler {
-			limiter := httprate.Limit(LimitPostCount, LimitPostDuration, httprate.KeyByIP)
+			limitedHandler := limiter(next)
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method == "POST" || r.Method == "DELETE" || r.Method == "PUT" {
-					limiter(next)
+					limitedHandler.ServeHTTP(w, r)
 				} else {
 					next.ServeHTTP(w, r)
 				}
