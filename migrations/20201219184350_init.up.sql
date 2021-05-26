@@ -129,8 +129,8 @@ CREATE TYPE flag_type as ENUM ('offensive', 'fake', 'spam', 'inaccurate');
 CREATE TABLE reports (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	description varchar(500),
-	essay_id int REFERENCES essays(id) NOT NULL,
-	from_user_id int REFERENCES users(id) NOT NULL,
+	essay_id int REFERENCES essays(id) ON DELETE CASCADE NOT NULL,
+	from_user_id int REFERENCES users(id) ON DELETE CASCADE NOT NULL,
 	UNIQUE(essay_id, from_user_id)
 );
 
