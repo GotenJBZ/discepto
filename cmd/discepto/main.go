@@ -98,7 +98,7 @@ func (ds *DisceptoServer) setupDB() {
 	ds.database = db
 }
 func (ds *DisceptoServer) setupHttpServer() {
-	ds.addr = fmt.Sprintf("localhost:%s", ds.EnvConfig.Port)
+	ds.addr = fmt.Sprintf("127.0.0.1:%s", ds.EnvConfig.Port)
 	ds.httpServer = &http.Server{
 		Addr:         ds.addr,
 		Handler:      ds.router,
