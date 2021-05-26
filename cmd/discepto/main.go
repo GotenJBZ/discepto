@@ -31,9 +31,9 @@ func main() {
 	envConfig := models.ReadEnvConfig()
 	switch os.Args[1] {
 	case "start":
-		server := DisceptoServer{EnvConfig: envConfig}
-		server.Setup()
-		server.Run()
+		ds := DisceptoServer{EnvConfig: envConfig}
+		ds.Setup()
+		ds.Run()
 	case "migrate":
 		var err error
 		switch os.Args[2] {
@@ -68,67 +68,67 @@ type DisceptoServer struct {
 	cancelBaseContext context.Context
 }
 
-func (server *DisceptoServer) setupLogger() {
+func (ds *DisceptoServer) setupLogger() {
 	var writer io.Writer
-	if server.Debug {
+	if ds.Debug {
 		writer = zerolog.ConsoleWriter{Out: os.Stdout}
 	} else {
 		writer = os.Stdout
 	}
 	log := zerolog.New(writer).With().Timestamp().Logger()
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	server.logger = log
+	ds.logger = log
 }
-func (server *DisceptoServer) setupTemplates() {
-	server.templates = render.GetTemplates(&server.EnvConfig)
-	server.templates.SetFS(web.FS)
+func (ds *DisceptoServer) setupTemplates() {
+	ds.templates = render.GetTemplates(&ds.EnvConfig)
+	ds.templates.SetFS(web.FS)
 }
-func (server *DisceptoServer) setupRouter() {
-	server.router = routes.NewRouter(&server.EnvConfig, &server.database, server.logger, &server.templates)
+func (ds *DisceptoServer) setupRouter() {
+	ds.router = routes.NewRouter(&ds.EnvConfig, &ds.database, ds.logger, &ds.templates)
 }
-func (server *DisceptoServer) setupDB() {
-	err := db.MigrateUp(server.DatabaseURL)
+func (ds *DisceptoServer) setupDB() {
+	err := db.MigrateUp(ds.DatabaseURL)
 	if err != nil {
-		server.logger.Fatal().Err(err).Send()
+		ds.logger.Fatal().Err(err).Send()
 	}
-	db, err := db.Connect(&server.EnvConfig)
+	db, err := db.Connect(&ds.EnvConfig)
 	if err != nil {
-		server.logger.Fatal().AnErr("Connecting to db", err).Send()
+		ds.logger.Fatal().AnErr("Connecting to db", err).Send()
 	}
-	server.database = db
+	ds.database = db
 }
-func (server *DisceptoServer) setupHttpServer() {
-	server.addr = fmt.Sprintf("http://localhost:%s", server.EnvConfig.Port)
-	server.httpServer = &http.Server{
-		Addr:         server.addr,
-		Handler:      server.router,
+func (ds *DisceptoServer) setupHttpServer() {
+	ds.addr = fmt.Sprintf("http://localhost:%s", ds.EnvConfig.Port)
+	ds.httpServer = &http.Server{
+		Addr:         ds.addr,
+		Handler:      ds.router,
 		ReadTimeout:  1 * time.Minute,
 		WriteTimeout: 1 * time.Minute,
 	}
 }
-func (server *DisceptoServer) Setup() {
-	server.setupLogger()
-	server.setupTemplates()
-	server.setupRouter()
-	server.setupDB()
-	server.setupHttpServer()
+func (ds *DisceptoServer) Setup() {
+	ds.setupLogger()
+	ds.setupTemplates()
+	ds.setupRouter()
+	ds.setupDB()
+	ds.setupHttpServer()
 }
-func (server *DisceptoServer) Shutdown() {
-	if err := server.httpServer.Shutdown(context.Background()); err != nil {
-		server.logger.Error().
+func (ds *DisceptoServer) Shutdown() {
+	if err := ds.httpServer.Shutdown(context.Background()); err != nil {
+		ds.logger.Error().
 			Err(err).
 			Msg("Error shutting down")
 	}
 }
-func (server *DisceptoServer) Run() {
-	server.logger.Info().Str("server_address", server.addr).Msg("Server is starting")
+func (ds *DisceptoServer) Run() {
+	ds.logger.Info().Str("server_address", ds.addr).Msg("Server is starting")
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	go server.httpServer.ListenAndServe()
-	server.logger.Info().Msg("Ready")
+	go ds.httpServer.ListenAndServe()
+	ds.logger.Info().Msg("Ready")
 
 	<-ctx.Done()
 	stop() // Stop listening for signals
-	server.logger.Info().Msg("Shutting down gracefully")
-	server.Shutdown()
+	ds.logger.Info().Msg("Shutting down gracefully")
+	ds.Shutdown()
 }
