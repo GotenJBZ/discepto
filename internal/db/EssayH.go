@@ -73,6 +73,28 @@ func (h EssayH) ReadView(ctx context.Context) (*models.EssayView, error) {
 	}
 	return &essay, nil
 }
+
+func (h EssayH) CountReplies(ctx context.Context) (map[string]int, error) {
+	sql, args, _ := psql.Select("reply_type","COUNT(reply_type)").From("essay_replies").
+		GroupBy("reply_type").
+		ToSql()
+	
+	rows, err := h.sharedDB.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	res := map[string]int{}
+	for rows.Next() {
+		replyType := ""
+		c := 0
+		err = rows.Scan(&replyType, &c)
+		if err != nil {
+			return nil, err
+		}
+		res[replyType] = c
+	}
+	return res, nil
+}
 func (h EssayH) ID() int {
 	return h.id
 }

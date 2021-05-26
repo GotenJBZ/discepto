@@ -73,6 +73,11 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 	disceptoH := GetDisceptoH(r)
 	esH, _ := r.Context().Value(EssayHCtxKey).(*db.EssayH)
 
+	repliesCount, err := esH.CountReplies(r.Context())
+	if err != nil {
+		return &ErrInternal{Cause: err}
+	}
+
 	subData, err := subH.ReadView(r.Context(), userH)
 	if err != nil {
 		return &ErrInternal{Cause: err}
@@ -114,6 +119,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		Subdiscepto     *models.SubdisceptoView
 		Essay           *models.EssayView
 		Replies         []models.EssayView
+		RepliesCount    map[string]int
 		FilterReplyType string
 		Sources         []string
 		EssayUserDid    *models.EssayUserDid
@@ -127,6 +133,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) AppError 
 		SubdisceptoList: subs,
 		Sources:         []string{},
 		Replies:         replies,
+		RepliesCount:    repliesCount,
 		FilterReplyType: filter,
 		Perms:           esH.Perms(),
 		User:            user,
