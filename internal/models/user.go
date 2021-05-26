@@ -14,7 +14,7 @@ type User struct {
 
 type UserView struct {
 	User
-	Karma int
+	Karma     int
 	CreatedAt time.Time
 }
 
