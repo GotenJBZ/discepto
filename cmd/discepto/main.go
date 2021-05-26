@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"os/signal"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
@@ -29,7 +32,8 @@ func main() {
 	switch os.Args[1] {
 	case "start":
 		server := DisceptoServer{EnvConfig: envConfig}
-		server.Start()
+		server.Setup()
+		server.Run()
 	case "migrate":
 		var err error
 		switch os.Args[2] {
@@ -55,10 +59,13 @@ func main() {
 
 type DisceptoServer struct {
 	models.EnvConfig
-	logger    zerolog.Logger
-	router    chi.Router
-	database  db.SharedDB
-	templates render.Templates
+	addr              string
+	logger            zerolog.Logger
+	router            chi.Router
+	httpServer        *http.Server
+	database          db.SharedDB
+	templates         render.Templates
+	cancelBaseContext context.Context
 }
 
 func (server *DisceptoServer) setupLogger() {
@@ -90,17 +97,38 @@ func (server *DisceptoServer) setupDB() {
 	}
 	server.database = db
 }
-func (server *DisceptoServer) listen() {
-	addr := fmt.Sprintf("http://localhost:%s", server.EnvConfig.Port)
-	server.logger.Info().Str("server_address", addr).Msg("Server is starting")
-	server.logger.Error().
-		Err(http.ListenAndServe(fmt.Sprintf(":%s", server.EnvConfig.Port), server.router)).
-		Msg("Server startup failed")
+func (server *DisceptoServer) setupHttpServer() {
+	server.addr = fmt.Sprintf("http://localhost:%s", server.EnvConfig.Port)
+	server.httpServer = &http.Server{
+		Addr:         server.addr,
+		Handler:      server.router,
+		ReadTimeout:  1 * time.Minute,
+		WriteTimeout: 1 * time.Minute,
+	}
 }
-func (server *DisceptoServer) Start() {
+func (server *DisceptoServer) Setup() {
 	server.setupLogger()
 	server.setupTemplates()
 	server.setupRouter()
 	server.setupDB()
-	server.listen()
+	server.setupHttpServer()
+}
+func (server *DisceptoServer) Shutdown() {
+	if err := server.httpServer.Shutdown(context.Background()); err != nil {
+		server.logger.Error().
+			Err(err).
+			Msg("Error shutting down")
+	}
+}
+func (server *DisceptoServer) Run() {
+	server.logger.Info().Str("server_address", server.addr).Msg("Server is starting")
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	go server.httpServer.ListenAndServe()
+	server.logger.Info().Msg("Ready")
+
+	<-ctx.Done()
+	stop() // Stop listening for signals
+	server.logger.Info().Msg("Shutting down gracefully")
+	server.Shutdown()
 }
