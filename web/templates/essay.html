@@ -166,7 +166,9 @@
                     </nav>
                 </div>
 
-                <br> {{ template "subdisceptoCard" .Subdiscepto }}
+                <br> 
+                {{ template "userCard" . }}
+                {{ template "subdisceptoCard" .Subdiscepto }}
 
                 <div class="card">
                     <nav class="panel is-primary">
@@ -176,8 +178,6 @@
                         <a href="/s/{{ . }} " class="panel-block ">s/{{ . }}</a> {{ end }} {{end}}
                     </nav>
                 </div>
-                <br> 
-                {{ template "userCard" . }}
             </div>
 
             {{ template "footer" }} {{ end }}
