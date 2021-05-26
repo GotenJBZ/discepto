@@ -75,13 +75,13 @@ func (tmpls *Templates) loadFromDisk() {
 	tmpls.templates = template.Must(
 		template.New("").
 			Funcs(tmpls.funcMap).
-			ParseGlob("web/templates/*"),
+			ParseGlob("web/templates/*.html"),
 	)
 }
 func (tmpls *Templates) SetFS(fs fs.FS) {
 	tmpls.templates = template.Must(template.New("").
 		Funcs(tmpls.funcMap).
-		ParseFS(fs, "templates/*html"),
+		ParseFS(fs, "templates/*.html"),
 	)
 }
 func GetTemplates(envConfig *models.EnvConfig) Templates {
