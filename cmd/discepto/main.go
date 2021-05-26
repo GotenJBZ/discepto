@@ -98,7 +98,7 @@ func (ds *DisceptoServer) setupDB() {
 	ds.database = db
 }
 func (ds *DisceptoServer) setupHttpServer() {
-	ds.addr = fmt.Sprintf("http://localhost:%s", ds.EnvConfig.Port)
+	ds.addr = fmt.Sprintf("localhost:%s", ds.EnvConfig.Port)
 	ds.httpServer = &http.Server{
 		Addr:         ds.addr,
 		Handler:      ds.router,
@@ -122,13 +122,19 @@ func (ds *DisceptoServer) Shutdown() {
 }
 func (ds *DisceptoServer) Run() {
 	ds.logger.Info().Str("server_address", ds.addr).Msg("Server is starting")
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
-	go ds.httpServer.ListenAndServe()
+	go func() {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		defer stop()
+		<-ctx.Done()
+		stop() // Stop listening for signals
+		ds.logger.Info().Msg("Shutting down gracefully")
+		ds.Shutdown()
+	}()
+	if err := ds.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		ds.logger.Error().
+			Err(err).
+			Msg("Error starting server")
+	}
 	ds.logger.Info().Msg("Ready")
 
-	<-ctx.Done()
-	stop() // Stop listening for signals
-	ds.logger.Info().Msg("Shutting down gracefully")
-	ds.Shutdown()
 }
