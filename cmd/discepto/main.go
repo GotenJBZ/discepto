@@ -121,7 +121,6 @@ func (ds *DisceptoServer) Shutdown() {
 	}
 }
 func (ds *DisceptoServer) Run() {
-	ds.logger.Info().Str("server_address", ds.addr).Msg("Server is starting")
 	go func() {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 		defer stop()
@@ -130,11 +129,11 @@ func (ds *DisceptoServer) Run() {
 		ds.logger.Info().Msg("Shutting down gracefully")
 		ds.Shutdown()
 	}()
+	ds.logger.Info().Str("server_address", ds.addr).Msg("Server listening")
 	if err := ds.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		ds.logger.Error().
 			Err(err).
 			Msg("Error starting server")
 	}
-	ds.logger.Info().Msg("Ready")
 
 }
