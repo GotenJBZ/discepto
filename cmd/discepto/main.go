@@ -131,7 +131,7 @@ func (ds *DisceptoServer) Run() {
 	}()
 	ds.logger.Info().Str("server_address", ds.addr).Msg("Server listening")
 	if err := ds.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		ds.logger.Error().
+		ds.logger.Fatal().
 			Err(err).
 			Msg("Error starting server")
 	}
