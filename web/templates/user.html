@@ -4,24 +4,22 @@
     <body class="body">
         {{ template "navbar" .}}
     <div class="container is-max-widescreen">
-        <div class="columns is-vcentered">
-            <div class="hero">
-                <div class="hero-body is-flex">
-                    <p class="media-left image is-64x64">
-                        <img src="https://bulma.io/images/placeholders/128x128.png" class="is-rounded">
-                    </p>
-                    <h1 class="title" style="padding-top: 10px;">u/{{ .User.Name}}</h1>
-                </div>
+        <div class="hero ml-4 mr-4">
+            <div class="hero-body is-flex">
+                <p class="media-left image is-64x64">
+                    <img src="https://bulma.io/images/placeholders/128x128.png" class="is-rounded">
+                </p>
+                <h1 class="title" style="padding-top: 10px;">u/{{ .User.Name}}</h1>
             </div>
         </div>
 
-        <div class="columns">
-            <div class="column is-8 is-fluid mr-2 ml-2">
+        <div class="columns ml-2 mr-2">
+            <div class="column is-8 is-fluid">
                 {{ range .Essays}}
                 {{ template "essayCard" . }} 
                 {{ end }}
             </div>
-            <div class="column is-4 is-fluid mr-2 ml-2">
+            <div class="column is-4 is-fluid">
                 {{ template "userCard" . }}
                 
                 <div class="card events-card block">
