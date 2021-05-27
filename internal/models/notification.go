@@ -1,6 +1,9 @@
 package models
 
-import "net/url"
+import (
+	"context"
+	"net/url"
+)
 
 type NotifType string
 
@@ -10,7 +13,6 @@ const (
 )
 
 type Notification struct {
-	UserID    int
 	NotifType string
 	Title     string
 	Text      string
@@ -22,4 +24,10 @@ type NotifView struct {
 	Title     string
 	Text      string
 	ActionURL string
+}
+
+type NotificationService interface {
+	Send(ctx context.Context, notif *Notification, toUserID int) error
+	List(ctx context.Context, userID int) ([]NotifView, error)
+	Delete(ctx context.Context, userID int, id int) error
 }

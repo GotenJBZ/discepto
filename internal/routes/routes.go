@@ -418,8 +418,9 @@ func (routes *Routes) GetNewSubdiscepto(w http.ResponseWriter, r *http.Request) 
 	routes.tmpls.RenderHTML(w, "newSubdiscepto", nil)
 }
 func (routes *Routes) GetNotifications(w http.ResponseWriter, r *http.Request) AppError {
+	disceptoH := GetDisceptoH(r)
 	userH := GetUserH(r)
-	notifs, err := userH.ListNotifications(r.Context())
+	notifs, err := disceptoH.ListNotifs(r.Context(), userH)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}
@@ -427,12 +428,13 @@ func (routes *Routes) GetNotifications(w http.ResponseWriter, r *http.Request) A
 	return nil
 }
 func (routes *Routes) ViewDeleteNotif(w http.ResponseWriter, r *http.Request) AppError {
+	disceptoH := GetDisceptoH(r)
 	userH := GetUserH(r)
 	notifID, err := strconv.Atoi(chi.URLParam(r, "notifID"))
 	if err != nil {
 		return &ErrBadRequest{Cause: err}
 	}
-	err = userH.DeleteNotif(r.Context(), notifID)
+	err = disceptoH.DeleteNotif(r.Context(), userH, notifID)
 	if err != nil {
 		return &ErrInternal{Cause: err}
 	}

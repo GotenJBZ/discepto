@@ -13,8 +13,9 @@ import (
 
 type DisceptoH struct {
 	RolesH
-	sharedDB    DBTX
-	globalPerms models.GlobalPerms
+	sharedDB     DBTX
+	globalPerms  models.GlobalPerms
+	notifService models.NotificationService
 }
 
 func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) (*DisceptoH, error) {
@@ -37,7 +38,8 @@ func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) (*DisceptoH, e
 		domain:   RoleDomain("discepto"),
 		sharedDB: sdb.db,
 	}
-	return &DisceptoH{globalPerms: globalPerms, RolesH: rolesH, sharedDB: sdb.db}, nil
+	notifService := NewNotificationService(sdb.db)
+	return &DisceptoH{globalPerms: globalPerms, RolesH: rolesH, sharedDB: sdb.db, notifService: notifService}, nil
 }
 
 func (h *DisceptoH) Perms() models.GlobalPerms {
@@ -98,6 +100,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			sharedDB:     h.sharedDB,
 		},
 		subPerms: models.SubPermsOwner,
+		notifService: h.notifService,
 	}
 	err := execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
 		err := createSubdiscepto(ctx, tx, subd)
@@ -282,6 +285,18 @@ func (h *DisceptoH) SearchByThesis(ctx context.Context, title string) ([]models.
 }
 func (h *DisceptoH) ListUserEssays(ctx context.Context, userID int) ([]models.EssayView, error) {
 	return listUserEssays(ctx, h.sharedDB, userID)
+}
+func (h *DisceptoH) ListNotifs(ctx context.Context, userH *UserH) ([]models.NotifView, error) {
+	if !userH.perms.Read {
+		return nil, ErrPermDenied
+	}
+	return h.notifService.List(ctx, userH.id)
+}
+func (h *DisceptoH) DeleteNotif(ctx context.Context, userH *UserH, notifID int) error {
+	if !userH.perms.Read {
+		return ErrPermDenied
+	}
+	return h.notifService.Delete(ctx, userH.id, notifID)
 }
 func readPublicUser(ctx context.Context, db DBTX, userID int) (*models.UserView, error) {
 	user := &models.UserView{}

@@ -23,7 +23,8 @@ type SubdisceptoH struct {
 	sharedDB DBTX
 	name     string
 	RolesH
-	subPerms models.SubPerms
+	subPerms     models.SubPerms
+	notifService models.NotificationService
 }
 
 func (dH *DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH *UserH) (*SubdisceptoH, error) {
@@ -71,7 +72,7 @@ func (dH *DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH
 		domain:   roleDomain,
 		sharedDB: dH.sharedDB,
 	}
-	h := &SubdisceptoH{dH.sharedDB, subdiscepto, rolesH, *subPerms}
+	h := &SubdisceptoH{dH.sharedDB, subdiscepto, rolesH, *subPerms, dH.notifService}
 	return h, nil
 }
 func (h *SubdisceptoH) Perms() models.SubPerms {
@@ -143,13 +144,12 @@ func (h *SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH
 	if err != nil {
 		return nil, err
 	}
-	err = sendNotification(ctx, h.sharedDB, models.Notification{
-		UserID:    parentEssay.AttributedToID,
+	err = h.notifService.Send(ctx, &models.Notification{
 		Title:     user.Name,
 		Text:      fmt.Sprintf("replied to your essay"),
 		NotifType: models.NotifTypeReply,
 		ActionURL: *url,
-	})
+	}, parentEssay.AttributedToID)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +295,7 @@ func (h *SubdisceptoH) getEssayH(ctx context.Context, id int, uH *UserH) (*Essay
 		DeleteEssay:   h.subPerms.DeleteEssay || isOwner,
 		ChangeRanking: false, // TODO: to implement in future
 	}
-	e := &EssayH{h.sharedDB, id, essayPerms}
+	e := &EssayH{h.sharedDB, id, essayPerms, h.notifService}
 	return e, nil
 }
 func (h *SubdisceptoH) ListEssays(ctx context.Context) ([]models.EssayView, error) {
@@ -367,7 +367,7 @@ func (h *SubdisceptoH) createEssay(ctx context.Context, tx DBTX, essay *models.E
 		DeleteEssay:   true,
 		ChangeRanking: false,
 	}
-	return &EssayH{h.sharedDB, essay.ID, essayPerms}, err
+	return &EssayH{h.sharedDB, essay.ID, essayPerms, h.notifService}, err
 }
 func insertEssay(ctx context.Context, tx DBTX, essay *models.Essay) error {
 	// Insert essay

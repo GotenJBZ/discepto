@@ -12,9 +12,10 @@ import (
 )
 
 type EssayH struct {
-	sharedDB   DBTX
-	id         int
-	essayPerms models.EssayPerms
+	sharedDB     DBTX
+	id           int
+	essayPerms   models.EssayPerms
+	notifService models.NotificationService
 }
 
 func isEssayOwner(ctx context.Context, db DBTX, essayID int, userID int) bool {
@@ -78,12 +79,12 @@ func (h EssayH) CountReplies(ctx context.Context) (map[string]int, error) {
 	if !h.essayPerms.Read {
 		return nil, ErrPermDenied
 	}
-	sql, args, _ := psql.Select("reply_type","COUNT(reply_type)").
+	sql, args, _ := psql.Select("reply_type", "COUNT(reply_type)").
 		From("essay_replies").
 		Where(sq.Eq{"to_id": h.id}).
 		GroupBy("reply_type").
 		ToSql()
-	
+
 	rows, err := h.sharedDB.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
@@ -170,13 +171,12 @@ func (h EssayH) CreateVote(ctx context.Context, uH UserH, vote models.VoteType) 
 		if err != nil {
 			return err
 		}
-		return sendNotification(ctx, h.sharedDB, models.Notification{
-			UserID:    essay.AttributedToID,
+		return h.notifService.Send(ctx, &models.Notification{
 			Title:     user.Name,
 			Text:      "Upvoted your essay",
 			NotifType: models.NotifTypeUpvote,
 			ActionURL: *url,
-		})
+		}, essay.AttributedToID)
 	}
 	return nil
 }
