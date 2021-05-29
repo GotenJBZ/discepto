@@ -24,14 +24,16 @@ stages:
   - build
   - staging
 
-format:
+test:
   stage: test
   extends: .go-cache
   script:
     - make test
 
-compile:
+build:
   stage: build
+  needs:
+    - test
   extends: .go-cache
   script:
     - make pack
@@ -40,6 +42,8 @@ compile:
       - ./build/discepto.tar.gz
 
 deploy-to-staging:
+  needs:
+    - build
   image: alpine
   stage: staging
   environment:
