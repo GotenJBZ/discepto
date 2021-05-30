@@ -24,11 +24,11 @@ func (routes *Routes) SubRoleRouter(r chi.Router) {
 }
 func (routes *Routes) roleRouter(r chi.Router) {
 	r.Use(routes.EnforceCtx(UserHCtxKey))
-	r.Get("/", routes.AppHandler(routes.listRoles))
-	r.Get("/{roleName}", routes.AppHandler(routes.getRolePerms))
-	r.Post("/", routes.AppHandler(routes.postNewRole))
-	r.Put("/{roleName}", routes.AppHandler(routes.putRolePerms))
-	r.Delete("/{roleName}", routes.AppHandler(routes.deleteRole))
+	r.Get("/", routes.listRoles)
+	r.Get("/{roleName}", routes.getRolePerms)
+	r.Post("/", routes.postNewRole)
+	r.Put("/{roleName}", routes.putRolePerms)
+	r.Delete("/{roleName}", routes.deleteRole)
 }
 
 func GetRoleManagerDiscepto(r *http.Request) RoleManager {
@@ -60,51 +60,61 @@ type RoleManager interface {
 	CreateRole(ctx context.Context, roleName string) (*db.RoleH, error)
 }
 
-func (routes *Routes) assignRole(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) assignRole(w http.ResponseWriter, r *http.Request) {
 	roleManager := GetRoleManager(r)
 	userID, err := strconv.Atoi(chi.URLParam(r, "userID"))
 	if err != nil {
-		return &ErrBadRequest{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	roleH, err := roleManager.GetRoleH(r.Context(), r.FormValue("roleName"))
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	err = roleManager.Assign(r.Context(), userID, *roleH)
 	pgErr := &pgconn.PgError{}
 	if err != nil && !(errors.As(err, &pgErr) && pgErr.Code == "23505") {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
-	return routes.renderMembers(w, r)
+	routes.renderMembers(w, r)
+	return
 }
 
-func (routes *Routes) unassignRole(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) unassignRole(w http.ResponseWriter, r *http.Request) {
 	roleManager := GetRoleManager(r)
 	userID, err := strconv.Atoi(chi.URLParam(r, "userID"))
 	if err != nil {
-		return &ErrBadRequest{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	roleH, err := roleManager.GetRoleH(r.Context(), chi.URLParam(r, "roleName"))
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	err = roleManager.Unassign(r.Context(), userID, *roleH)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
-	return routes.renderMembers(w, r)
+	routes.renderMembers(w, r)
+	return
 }
 
-func (routes *Routes) getRolePerms(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) getRolePerms(w http.ResponseWriter, r *http.Request) {
 	roleManager := GetRoleManager(r)
 	roleName := chi.URLParam(r, "roleName")
 	roleH, err := roleManager.GetRoleH(r.Context(), roleName)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	activePerms, err := roleH.ListActivePerms(r.Context())
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	availablePerms := roleManager.ListAvailablePerms()
 	routes.tmpls.RenderHTML(w, "permissions", struct {
@@ -118,9 +128,9 @@ func (routes *Routes) getRolePerms(w http.ResponseWriter, r *http.Request) AppEr
 		ActivePerms:    activePerms,
 		RolePerms:      roleH.Perms(),
 	})
-	return nil
+	return
 }
-func (routes *Routes) putRolePerms(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) putRolePerms(w http.ResponseWriter, r *http.Request) {
 	roleManager := GetRoleManager(r)
 
 	r.ParseForm()
@@ -132,13 +142,16 @@ func (routes *Routes) putRolePerms(w http.ResponseWriter, r *http.Request) AppEr
 	}
 	roleH, err := roleManager.GetRoleH(r.Context(), chi.URLParam(r, "roleName"))
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	err = roleH.UpdatePerms(r.Context(), perms)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
-	return routes.getRolePerms(w, r)
+	routes.getRolePerms(w, r)
+	return
 }
 
 // Should use better number
@@ -147,11 +160,12 @@ const RoleManagerKey = disceptoCtxKey(100)
 func GetRoleManager(r *http.Request) RoleManager {
 	return r.Context().Value(RoleManagerKey).(RoleManager)
 }
-func (routes *Routes) listRoles(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) listRoles(w http.ResponseWriter, r *http.Request) {
 	roleManager := GetRoleManager(r)
 	roles, err := roleManager.ListRoles(r.Context())
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	data := struct {
 		Subdiscepto *models.SubdisceptoView
@@ -161,37 +175,42 @@ func (routes *Routes) listRoles(w http.ResponseWriter, r *http.Request) AppError
 		Roles:       roles,
 	}
 	routes.tmpls.RenderHTML(w, "roles", data)
-	return nil
+	return
 }
-func (routes *Routes) deleteRole(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) deleteRole(w http.ResponseWriter, r *http.Request) {
 	roleManager := GetRoleManager(r)
 	roleName := chi.URLParam(r, "roleName")
 	roleH, err := roleManager.GetRoleH(r.Context(), roleName)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	err = roleH.DeleteRole(r.Context())
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	path := path.Dir(r.URL.Path)
 	w.Header().Add("HX-Redirect", path)
 	http.Redirect(w, r, path, http.StatusAccepted)
-	return nil
+	return
 }
-func (routes *Routes) postNewRole(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) postNewRole(w http.ResponseWriter, r *http.Request) {
 	roleManager := GetRoleManager(r)
 	roleName := r.FormValue("roleName")
 	if roleName == "" {
-		return &ErrBadRequest{Cause: errors.New("Fill required inputs")}
+		err := &ErrBadRequest{Cause: errors.New("Fill required inputs")}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	_, err := roleManager.CreateRole(r.Context(), roleName)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	path := path.Join(r.URL.Path, roleName)
 	fmt.Println(path)
 	w.Header().Add("HX-Redirect", path)
 	http.Redirect(w, r, path, http.StatusSeeOther)
-	return nil
+	return
 }

@@ -10,15 +10,16 @@ import (
 )
 
 func (routes *Routes) SubReportsRouter(r chi.Router) {
-	r.Get("/", routes.AppHandler(routes.GetReports))
-	r.Delete("/{reportID}", routes.AppHandler(routes.DeleteReport))
+	r.Get("/", routes.GetReports)
+	r.Delete("/{reportID}", routes.DeleteReport)
 }
-func (routes *Routes) GetReports(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetReports(w http.ResponseWriter, r *http.Request) {
 	subH := GetSubdisceptoH(r)
 	reports, err := subH.ListReports(r.Context())
 	if err != nil {
 		fmt.Println(subH.Perms(), err)
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	routes.tmpls.RenderHTML(w, "reports", struct {
 		Reports  []models.ReportView
@@ -27,18 +28,21 @@ func (routes *Routes) GetReports(w http.ResponseWriter, r *http.Request) AppErro
 		reports,
 		subH.Perms(),
 	})
-	return nil
+	return
 }
-func (routes *Routes) DeleteReport(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) DeleteReport(w http.ResponseWriter, r *http.Request) {
 	subH := GetSubdisceptoH(r)
 	reportID, err := strconv.Atoi(chi.URLParam(r, "reportID"))
 	if err != nil {
-		return &ErrBadRequest{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	err = subH.DeleteReport(r.Context(), reportID)
 	fmt.Println(err)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
-	return routes.GetReports(w, r)
+	routes.GetReports(w, r)
+	return
 }

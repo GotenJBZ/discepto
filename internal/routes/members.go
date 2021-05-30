@@ -16,20 +16,22 @@ func (routes *Routes) SubMembersRouter(r chi.Router) {
 	routes.membersRouter(r)
 }
 func (routes *Routes) membersRouter(r chi.Router) {
-	r.Get("/", routes.AppHandler(routes.renderMembers))
-	r.Post("/{userID}", routes.AppHandler(routes.assignRole))
-	r.Delete("/{userID}/{roleName}", routes.AppHandler(routes.unassignRole))
+	r.Get("/", routes.renderMembers)
+	r.Post("/{userID}", routes.assignRole)
+	r.Delete("/{userID}/{roleName}", routes.unassignRole)
 }
 
-func (routes *Routes) renderMembers(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) renderMembers(w http.ResponseWriter, r *http.Request) {
 	roleManager := GetRoleManager(r)
 	roles, err := roleManager.ListRoles(r.Context())
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	members, err := roleManager.ListMembers(r.Context())
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	data := struct {
 		Members []models.Member
@@ -39,5 +41,5 @@ func (routes *Routes) renderMembers(w http.ResponseWriter, r *http.Request) AppE
 		Roles:   roles,
 	}
 	routes.tmpls.RenderHTML(w, "members", data)
-	return nil
+	return
 }

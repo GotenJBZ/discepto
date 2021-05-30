@@ -11,23 +11,23 @@ import (
 )
 
 func (routes *Routes) SubdisceptoRouter(r chi.Router) {
-	r.Get("/", routes.AppHandler(routes.GetSubdisceptos))
-	r.With(routes.EnforceCtx(UserHCtxKey)).Post("/", routes.AppHandler(routes.PostSubdiscepto))
+	r.Get("/", routes.GetSubdisceptos)
+	r.With(routes.EnforceCtx(UserHCtxKey)).Post("/", routes.PostSubdiscepto)
 
 	specificSub := r.With(routes.SubdiscpetoCtx)
-	specificSub.Get("/{subdiscepto}", routes.AppHandler(routes.GetSubdiscepto))
-	specificSub.Put("/{subdiscepto}", routes.AppHandler(routes.PutSubdiscepto))
+	specificSub.Get("/{subdiscepto}", routes.GetSubdiscepto)
+	specificSub.Put("/{subdiscepto}", routes.PutSubdiscepto)
 	specificSub.Route("/{subdiscepto}/", routes.EssaysRouter)
 
 	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Route("/{subdiscepto}/settings", routes.SubSettingsRouter)
 	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Route("/{subdiscepto}/roles", routes.SubRoleRouter)
 	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Route("/{subdiscepto}/members", routes.SubMembersRouter)
-	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Post("/{subdiscepto}/leave", routes.AppHandler(routes.LeaveSubdiscepto))
-	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Post("/{subdiscepto}/join", routes.AppHandler(routes.JoinSubdiscepto))
+	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Post("/{subdiscepto}/leave", routes.LeaveSubdiscepto)
+	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Post("/{subdiscepto}/join", routes.JoinSubdiscepto)
 	specificSub.With(routes.EnforceCtx(UserHCtxKey)).Route("/{subdiscepto}/reports", routes.SubReportsRouter)
 }
 func (routes *Routes) SubdiscpetoCtx(next http.Handler) http.Handler {
-	return routes.AppHandler(func(w http.ResponseWriter, r *http.Request) AppError {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userH := GetUserH(r)
 		disceptoH := GetDisceptoH(r)
 
@@ -35,50 +35,56 @@ func (routes *Routes) SubdiscpetoCtx(next http.Handler) http.Handler {
 		subH, err := disceptoH.GetSubdisceptoH(r.Context(), subName, userH)
 
 		if err != nil {
-			return &ErrInternal{Cause: err}
+			routes.HandleErr(w, r, err)
+			return
 		}
 		ctx := context.WithValue(r.Context(), SubdisceptoHCtxKey, subH)
 		next.ServeHTTP(w, r.WithContext(ctx))
-		return nil
+		return
 	})
 }
-func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
 	subH := GetSubdisceptoH(r)
 
 	err := subH.RemoveMember(r.Context(), *userH)
 	if err != nil {
-		return &ErrInternal{Message: "Error leaving", Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 
 	sub, err := subH.ReadView(r.Context(), userH)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	routes.tmpls.RenderHTML(w, "subdisceptoCard", sub)
-	return nil
+	return
 }
-func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
 	subH := GetSubdisceptoH(r)
 
 	err := subH.AddMember(r.Context(), *userH)
 	if err != nil {
-		return &ErrInternal{Message: "Error joining", Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	sub, err := subH.ReadView(r.Context(), userH)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	routes.tmpls.RenderHTML(w, "subdisceptoCard", sub)
-	return nil
+	return
 }
-func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) {
 	disceptoH := GetDisceptoH(r)
 	userH := GetUserH(r)
 	subs, err := routes.db.ListSubdisceptos(r.Context(), userH)
 	if err != nil {
-		return &ErrNotFound{Cause: err, Thing: "subdisceptos"}
+		routes.HandleErr(w, r, err)
+		return
 	}
 
 	data := struct {
@@ -90,23 +96,26 @@ func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) Ap
 	}
 
 	if err != nil {
-		return &ErrNotFound{Cause: err, Thing: "subdisceptos"}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	routes.tmpls.RenderHTML(w, "subdisceptos", data)
-	return nil
+	return
 }
-func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
 	subH := GetSubdisceptoH(r)
 
 	subData, err := subH.ReadView(r.Context(), userH)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 
 	essays, err := subH.ListEssays(r.Context())
 	if err != nil {
-		return &ErrInternal{Cause: err, Message: "Can't list essays"}
+		routes.HandleErr(w, r, err)
+		return
 	}
 
 	isMember := false
@@ -115,7 +124,8 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 		var err error
 		subs, err = userH.ListMySubdisceptos(r.Context())
 		if err != nil {
-			return &ErrInternal{Cause: err, Message: "Error getting sub membership"}
+			routes.HandleErr(w, r, err)
+			return
 		}
 		for _, s := range subs {
 			if s == subH.Name() {
@@ -139,40 +149,44 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) App
 		SubPerms:        subH.Perms(),
 	}
 	routes.tmpls.RenderHTML(w, "subdiscepto", data)
-	return nil
+	return
 }
-func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
 	disceptoH := GetDisceptoH(r)
 
 	subReq := models.SubdisceptoReq{}
 	err := utils.ParseFormStruct(r, &subReq)
 	if err != nil {
-		return &ErrBadRequest{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 
 	_, err = disceptoH.CreateSubdiscepto(r.Context(), *userH, &subReq)
 	if err != nil {
-		return &ErrInternal{Message: "Error creating subdiscepto", Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/s/%s", subReq.Name), http.StatusSeeOther)
-	return nil
+	return
 }
 
-func (routes *Routes) PutSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) PutSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	subH := GetSubdisceptoH(r)
 
 	subReq := &models.SubdisceptoReq{}
 	err := utils.ParseFormStruct(r, subReq)
 	if err != nil {
-		return &ErrBadRequest{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	subReq.Name = subH.Name()
 
 	err = subH.Update(r.Context(), subReq)
 	if err != nil {
-		return &ErrInternal{Message: "Error updating subdiscepto data", Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	routes.tmpls.RenderHTML(w, "subdisceptoForm", struct{ Subdiscepto *models.SubdisceptoReq }{subReq})
-	return nil
+	return
 }

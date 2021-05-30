@@ -109,26 +109,26 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 	})
 
 	// Serve dynamic routes
-	r.Get("/", routes.AppHandler(routes.GetHome))
+	r.Get("/", routes.GetHome)
 	r.Get("/signup", routes.GetSignup)
-	r.Post("/signup", routes.AppHandler(routes.PostSignup))
+	r.Post("/signup", routes.PostSignup)
 	r.Get("/login", routes.GetLogin)
-	r.Post("/login", routes.AppHandler(routes.PostLogin))
+	r.Post("/login", routes.PostLogin)
 	r.Route("/s", routes.SubdisceptoRouter)
 
 	loggedIn := r.With(routes.EnforceCtx(UserHCtxKey))
-	loggedIn.Get("/u", routes.AppHandler(routes.GetUserSelf))
-	loggedIn.Get("/u/{viewingUserID}", routes.AppHandler(routes.GetUser))
-	loggedIn.Post("/signout", routes.AppHandler(routes.PostSignout))
-	loggedIn.Get("/newessay", routes.AppHandler(routes.GetNewEssay))
-	loggedIn.Post("/newessay", routes.AppHandler(routes.PostEssay))
+	loggedIn.Get("/u", routes.GetUserSelf)
+	loggedIn.Get("/u/{viewingUserID}", routes.GetUser)
+	loggedIn.Post("/signout", routes.PostSignout)
+	loggedIn.Get("/newessay", routes.GetNewEssay)
+	loggedIn.Post("/newessay", routes.PostEssay)
 	loggedIn.Route("/roles", routes.GlobalRolesRouter)
 	loggedIn.Route("/members", routes.GlobalMembersRouter)
 	loggedIn.Route("/settings", routes.GlobalSettingsRouter)
-	loggedIn.Get("/search", routes.AppHandler(routes.GetSearch))
+	loggedIn.Get("/search", routes.GetSearch)
 	loggedIn.Get("/newsubdiscepto", routes.GetNewSubdiscepto)
-	loggedIn.Get("/notifications", routes.AppHandler(routes.GetNotifications))
-	loggedIn.Post("/notifications/{notifID}", routes.AppHandler(routes.ViewDeleteNotif))
+	loggedIn.Get("/notifications", routes.GetNotifications)
+	loggedIn.Post("/notifications/{notifID}", routes.ViewDeleteNotif)
 
 	// Fallback
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -166,27 +166,30 @@ func (routes *Routes) UserCtx(next http.Handler) http.Handler {
 }
 
 func (routes *Routes) DisceptoCtx(next http.Handler) http.Handler {
-	return routes.AppHandler(func(w http.ResponseWriter, r *http.Request) AppError {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userH := GetUserH(r)
 
 		disceptoH, err := routes.db.GetDisceptoH(r.Context(), userH)
 		if err != nil {
-			return &ErrInternal{Cause: err}
+			routes.HandleErr(w, r, err)
+			return
 		}
 
 		ctx := context.WithValue(r.Context(), DisceptoHCtxKey, disceptoH)
 		next.ServeHTTP(w, r.WithContext(ctx))
-		return nil
+		return
 	})
 }
 func (routes *Routes) EnforceCtx(ctxValue disceptoCtxKey) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		return routes.AppHandler(func(w http.ResponseWriter, r *http.Request) AppError {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Context().Value(ctxValue) == nil {
-				return &ErrInsuffPerms{}
+				err := &ErrInsuffPerms{Action: fmt.Sprintf("retrieving context value %d", ctxValue)}
+				routes.HandleErr(w, r, err)
+				return
 			}
 			next.ServeHTTP(w, r)
-			return nil
+			return
 		})
 	}
 }
@@ -270,6 +273,10 @@ type ErrBadRequest struct {
 	Motivation string
 }
 
+func (err *ErrBadRequest) Error() string {
+	return fmt.Sprintf("Bad request: %s", err.Cause)
+}
+
 func (err *ErrBadRequest) Respond(w http.ResponseWriter, r *http.Request, routes *Routes) LoggableErr {
 	loggableErr := LoggableErr{
 		Cause:   err.Cause,
@@ -284,9 +291,13 @@ type ErrInsuffPerms struct {
 	Action string
 }
 
+func (err *ErrInsuffPerms) Error() string {
+	return fmt.Sprintf("Insufficient permissions: %s", err.Action)
+}
+
 func (err *ErrInsuffPerms) Respond(w http.ResponseWriter, r *http.Request, routes *Routes) LoggableErr {
 	loggableErr := LoggableErr{
-		Cause:   errors.New(fmt.Sprintf("Insufficient permissions for action %v)", err.Action)),
+		Cause:   errors.New(fmt.Sprintf("Insufficient permissions: %s", err.Action)),
 		Message: "Insufficient permissions to execute this action",
 		Status:  http.StatusBadRequest,
 	}
@@ -294,16 +305,6 @@ func (err *ErrInsuffPerms) Respond(w http.ResponseWriter, r *http.Request, route
 	return loggableErr
 }
 
-// Wrapper to handle errors returned by routes
-func (routes *Routes) AppHandler(handler func(w http.ResponseWriter, r *http.Request) AppError) http.HandlerFunc {
-	res := func(w http.ResponseWriter, r *http.Request) {
-		err := handler(w, r)
-		if err != nil {
-			routes.RenderErr(w, r, err)
-		}
-	}
-	return res
-}
 func (routes *Routes) RenderErr(w http.ResponseWriter, r *http.Request, err AppError) {
 	loggableErr := err.Respond(w, r, routes)
 
@@ -314,8 +315,36 @@ func (routes *Routes) RenderErr(w http.ResponseWriter, r *http.Request, err AppE
 		Send()
 }
 
+func (routes *Routes) HandleErr(w http.ResponseWriter, r *http.Request, err error) {
+	appErr := TranslateErr(err)
+	routes.RenderErr(w, r, appErr)
+}
+func TranslateErr(err error) AppError {
+	if appErr, ok := err.(AppError); ok {
+		return appErr
+	}
+	badReqErr := []error{
+		db.ErrTooManyTags,
+		db.ErrBadContentLen,
+		db.ErrEmailAlreadyUsed,
+		db.ErrInvalidFormat,
+		db.ErrPermDenied,
+		db.ErrWeakPasswd,
+		strconv.ErrSyntax,
+	}
+	for _, dbErr := range badReqErr {
+		if err == dbErr {
+			return &ErrBadRequest{Cause: dbErr}
+		}
+	}
+	if err != nil {
+		return &ErrNotFound{Cause: err}
+	}
+	return nil
+}
+
 // Routes
-func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) {
 	type homeData struct {
 		LoggedIn       bool
 		MySubdisceptos []string
@@ -328,43 +357,48 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) AppError {
 	if data.LoggedIn {
 		mySubs, err := userH.ListMySubdisceptos(r.Context())
 		if err != nil {
-			return &ErrInternal{Message: "Can't list joined communities", Cause: err}
+			routes.HandleErr(w, r, err)
+			return
 		}
 		data.MySubdisceptos = mySubs
 
 		recentEssays, err := disceptoH.ListRecentEssaysIn(r.Context(), mySubs)
 
 		if err != nil {
-			return &ErrInternal{Message: "Can't list recent essays", Cause: err}
+			routes.HandleErr(w, r, err)
+			return
 		}
 		data.RecentEssays = recentEssays
 	}
 
 	routes.tmpls.RenderHTML(w, "home", data)
-	return nil
+	return
 }
-func (routes *Routes) PostSignout(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) PostSignout(w http.ResponseWriter, r *http.Request) {
 	routes.sessionManager.RenewToken(r.Context())
 	routes.sessionManager.Remove(r.Context(), "userID")
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
-	return nil
+	return
 }
-func (routes *Routes) GetUser(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetUser(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
 	disceptoH := GetDisceptoH(r)
 	vUserID, err := strconv.Atoi(chi.URLParam(r, "viewingUserID"))
 	if err != nil {
-		return &ErrBadRequest{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	essays, err := disceptoH.ListUserEssays(r.Context(), vUserID)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 
 	userData, err := disceptoH.ReadPublicUser(r.Context(), vUserID)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 
 	mySubs, err := userH.ListMySubdisceptos(r.Context())
@@ -379,19 +413,21 @@ func (routes *Routes) GetUser(w http.ResponseWriter, r *http.Request) AppError {
 		FilterReplyType: "general",
 		MySubdisceptos:  mySubs,
 	})
-	return nil
+	return
 }
-func (routes *Routes) GetUserSelf(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetUserSelf(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
 	disceptoH := GetDisceptoH(r)
 	essays, err := disceptoH.ListUserEssays(r.Context(), userH.ID())
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 
 	userData, err := disceptoH.ReadPublicUser(r.Context(), userH.ID())
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 
 	mySubs, err := userH.ListMySubdisceptos(r.Context())
@@ -406,7 +442,7 @@ func (routes *Routes) GetUserSelf(w http.ResponseWriter, r *http.Request) AppErr
 		FilterReplyType: "general",
 		MySubdisceptos:  mySubs,
 	})
-	return nil
+	return
 }
 func (routes *Routes) GetSignup(w http.ResponseWriter, r *http.Request) {
 	routes.tmpls.RenderHTML(w, "signup", nil)
@@ -417,50 +453,56 @@ func (routes *Routes) GetLogin(w http.ResponseWriter, r *http.Request) {
 func (routes *Routes) GetNewSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	routes.tmpls.RenderHTML(w, "newSubdiscepto", nil)
 }
-func (routes *Routes) GetNotifications(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetNotifications(w http.ResponseWriter, r *http.Request) {
 	disceptoH := GetDisceptoH(r)
 	userH := GetUserH(r)
 	notifs, err := disceptoH.ListNotifs(r.Context(), userH)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	routes.tmpls.RenderHTML(w, "notifications", notifs)
-	return nil
+	return
 }
-func (routes *Routes) ViewDeleteNotif(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) ViewDeleteNotif(w http.ResponseWriter, r *http.Request) {
 	disceptoH := GetDisceptoH(r)
 	userH := GetUserH(r)
 	notifID, err := strconv.Atoi(chi.URLParam(r, "notifID"))
 	if err != nil {
-		return &ErrBadRequest{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	err = disceptoH.DeleteNotif(r.Context(), userH, notifID)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	actionURL := r.URL.Query().Get("action_url")
 	w.Header().Add("HX-Redirect", actionURL)
 	http.Redirect(w, r, actionURL, http.StatusAccepted)
-	return nil
+	return
 }
-func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) {
 	userH, err := routes.db.Login(r.Context(), r.FormValue("email"), r.FormValue("password"))
 	if err != nil {
-		return &ErrBadRequest{
+		err := &ErrBadRequest{
 			Cause:      err,
 			Motivation: "Bad email or password",
 		}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	err = routes.sessionManager.RenewToken(r.Context())
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	routes.sessionManager.Put(r.Context(), "userID", userH.ID())
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
-	return nil
+	return
 }
-func (routes *Routes) PostSignup(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) PostSignup(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	_, err := routes.db.CreateUser(r.Context(), &models.User{
 		Name:  r.FormValue("name"),
@@ -487,9 +529,11 @@ The password must:
 		default:
 			errorMessage = "Internal error"
 		}
-		return &ErrBadRequest{Cause: err, Motivation: errorMessage}
+		err := &ErrBadRequest{Cause: err, Motivation: errorMessage}
+		routes.HandleErr(w, r, err)
+		return
 	}
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
-	return nil
+	return
 }

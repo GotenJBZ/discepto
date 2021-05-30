@@ -8,21 +8,22 @@ import (
 )
 
 func (routes *Routes) SubSettingsRouter(r chi.Router) {
-	r.Get("/", routes.AppHandler(routes.GetSubSettings))
+	r.Get("/", routes.GetSubSettings)
 }
 func (routes *Routes) GlobalSettingsRouter(r chi.Router) {
-	r.Get("/", routes.AppHandler(routes.GetGlobalSettings))
+	r.Get("/", routes.GetGlobalSettings)
 }
-func (routes *Routes) GetSubSettings(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetSubSettings(w http.ResponseWriter, r *http.Request) {
 	subH := GetSubdisceptoH(r)
 	sub, err := subH.ReadRaw(r.Context())
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 	routes.tmpls.RenderHTML(w, "subsettings", struct{ Subdiscepto *models.Subdiscepto }{sub})
-	return nil
+	return
 }
-func (routes *Routes) GetGlobalSettings(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetGlobalSettings(w http.ResponseWriter, r *http.Request) {
 	routes.tmpls.RenderHTML(w, "subsettings", nil)
-	return nil
+	return
 }

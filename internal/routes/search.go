@@ -8,7 +8,7 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
-func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) AppError {
+func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	disceptoH := GetDisceptoH(r)
 	userH := GetUserH(r)
@@ -27,12 +27,14 @@ func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) AppError
 		fmt.Println(tags)
 	}
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 
 	mySubs, err := userH.ListMySubdisceptos(ctx)
 	if err != nil {
-		return &ErrInternal{Cause: err}
+		routes.HandleErr(w, r, err)
+		return
 	}
 
 	routes.tmpls.RenderHTML(w, "search", struct {
@@ -48,5 +50,5 @@ func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) AppError
 		FilterType:     filterType,
 		SearchBy:       searchBy,
 	})
-	return nil
+	return
 }
