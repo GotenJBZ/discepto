@@ -45,7 +45,7 @@ func (s *notificationService) List(ctx context.Context, userID int) ([]models.No
 
 func (s *notificationService) Delete(ctx context.Context, userID int, notifID int) error {
 	sql, args, _ := psql.Delete("notifications").
-	Where(sq.Eq{"user_id": userID, "id": notifID}).
+		Where(sq.Eq{"user_id": userID, "id": notifID}).
 		ToSql()
 
 	_, err := s.db.Exec(ctx, sql, args...)

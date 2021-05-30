@@ -15,24 +15,31 @@ import (
 
 const SubRolePrefix = "subdisceptos"
 
-func subRoleDomain(subdiscepto string) RoleDomain {
-	return RoleDomain(fmt.Sprintf("%s/%s", SubRolePrefix, subdiscepto))
-}
-
 type SubdisceptoH struct {
-	sharedDB DBTX
-	name     string
 	RolesH
+	sharedDB     DBTX
+	rawSub       *models.Subdiscepto
 	subPerms     models.SubPerms
 	notifService models.NotificationService
 }
 
 func (dH *DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH *UserH) (*SubdisceptoH, error) {
+	rawSub, err := readRawSub(ctx, dH.sharedDB, subdiscepto)
+	if err != nil {
+		return nil, err
+	}
+
+	h := &SubdisceptoH{
+		sharedDB:     dH.sharedDB,
+		rawSub:       rawSub,
+		notifService: dH.notifService,
+	}
+
 	subPerms := &models.SubPerms{}
-	roleDomain := subRoleDomain(subdiscepto)
+
 	if uH != nil {
 		// First, try getting user's permissions
-		subPermsMap, err := getUserPerms(ctx, dH.sharedDB, string(roleDomain), uH.id)
+		subPermsMap, err := getUserPerms(ctx, dH.sharedDB, h.rawSub.RoledomainID, uH.id)
 		if err != nil {
 			return nil, err
 		}
@@ -57,22 +64,22 @@ func (dH *DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH
 
 	if !subPerms.ReadSubdiscepto {
 		// Check if the subdiscepto is publicly readable
-		public := isSubPublic(ctx, dH.sharedDB, subdiscepto)
-		subPerms.ReadSubdiscepto = public
+		subPerms.ReadSubdiscepto = h.rawSub.Public
 		if !subPerms.ReadSubdiscepto {
 			return nil, ErrPermDenied
 		}
 	}
+	h.subPerms = *subPerms
 
 	rolesH := RolesH{
 		contextPerms: subPerms.ToBoolMap(),
 		rolesPerms: struct {
 			ManageRoles bool
 		}{subPerms.ManageRole},
-		domain:   roleDomain,
+		domain:   h.rawSub.RoledomainID,
 		sharedDB: dH.sharedDB,
 	}
-	h := &SubdisceptoH{dH.sharedDB, subdiscepto, rolesH, *subPerms, dH.notifService}
+	h.RolesH = rolesH
 	return h, nil
 }
 func (h *SubdisceptoH) Perms() models.SubPerms {
@@ -163,9 +170,9 @@ func (h *SubdisceptoH) AddMember(ctx context.Context, userH UserH) error {
 	if !h.subPerms.ReadSubdiscepto || !userH.perms.Read {
 		return ErrPermDenied
 	}
-	err := addMember(ctx, h.sharedDB, h.name, userH.id)
+	err := addMember(ctx, h.sharedDB, h.rawSub, userH.id)
 	if err != nil {
-		return rejoin(ctx, h.sharedDB, h.name, userH.id, h.subPerms)
+		return rejoin(ctx, h.sharedDB, h.rawSub, userH.id, h.subPerms)
 	}
 	return nil
 }
@@ -175,7 +182,7 @@ func (h *SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
 		return ErrPermDenied
 	}
 	return execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
-		err := removeMember(ctx, h.sharedDB, h.name, userH.id)
+		err := removeMember(ctx, h.sharedDB, h.rawSub, userH.id)
 		if err != nil {
 			return err
 		}
@@ -210,7 +217,7 @@ func (h *SubdisceptoH) ListReports(ctx context.Context) ([]models.ReportView, er
 	).
 		FromSelect(selectEssayWithJoins.
 			GroupBy("essays.id", "users.name", "essay_replies.to_id", "essay_replies.reply_type").
-			Where(sq.Eq{"essays.posted_in": h.name}),
+			Where(sq.Eq{"essays.posted_in": h.rawSub.Name}),
 			"essay_view",
 		).
 		Join("reports ON essay_view.id = reports.essay_id").
@@ -238,18 +245,18 @@ func (h *SubdisceptoH) DeleteReport(ctx context.Context, id int) error {
 	}
 	return nil
 }
-func (h *SubdisceptoH) Update(ctx context.Context, sub models.Subdiscepto) error {
+func (h *SubdisceptoH) Update(ctx context.Context, subReq *models.SubdisceptoReq) error {
 	if !h.subPerms.UpdateSubdiscepto {
 		return ErrPermDenied
 	}
 	sql, args, _ := psql.
 		Update("subdisceptos").
-		Set("description", sub.Description).
-		Set("questions_required", sub.QuestionsRequired).
-		Set("nsfw", sub.Nsfw).
-		Set("public", sub.Public).
-		Set("min_length", sub.MinLength).
-		Where(sq.Eq{"name": h.name}).
+		Set("description", subReq.Description).
+		Set("questions_required", subReq.QuestionsRequired).
+		Set("nsfw", subReq.Nsfw).
+		Set("public", subReq.Public).
+		Set("min_length", subReq.MinLength).
+		Where(sq.Eq{"name": h.rawSub.Name}).
 		ToSql()
 
 	_, err := h.sharedDB.Exec(ctx, sql, args...)
@@ -272,7 +279,7 @@ func (h *SubdisceptoH) getEssayH(ctx context.Context, id int, uH *UserH) (*Essay
 	sql, args, _ := psql.
 		Select("1").
 		From("essays").
-		Where(sq.Eq{"posted_in": h.name, "id": id}).
+		Where(sq.Eq{"posted_in": h.rawSub.Name, "id": id}).
 		ToSql()
 
 	row := h.sharedDB.QueryRow(ctx, sql, args...)
@@ -311,7 +318,10 @@ func (h *SubdisceptoH) ListReplies(ctx context.Context, e EssayH, replyType *str
 	return h.listReplies(ctx, e, replyType)
 }
 func (h *SubdisceptoH) Name() string {
-	return h.name
+	return h.rawSub.Name
+}
+func (h *SubdisceptoH) RoleDomain() models.RoleDomain {
+	return h.rawSub.RoledomainID
 }
 
 func (h *SubdisceptoH) ListMembers(ctx context.Context) ([]models.Member, error) {
@@ -324,7 +334,7 @@ func (h *SubdisceptoH) ListMembers(ctx context.Context) ([]models.Member, error)
 		Select("subdiscepto_users.user_id", "subdiscepto_users.left_at", "users.name").
 		From("subdiscepto_users").
 		Join("users ON subdiscepto_users.user_id = users.id").
-		Where(sq.Eq{"subdiscepto_users.subdiscepto": h.name}).
+		Where(sq.Eq{"subdiscepto_users.subdiscepto": h.rawSub.Name}).
 		OrderBy("subdiscepto_users.user_id").
 		ToSql()
 
@@ -350,7 +360,7 @@ func (h *SubdisceptoH) createEssay(ctx context.Context, tx DBTX, essay *models.E
 	if clen > LimitMaxContentLen || clen < subData.MinLength {
 		return nil, ErrBadContentLen
 	}
-	essay.PostedIn = h.name
+	essay.PostedIn = h.rawSub.Name
 	essay.Published = time.Now()
 
 	err = insertEssay(ctx, tx, essay)
@@ -444,7 +454,7 @@ func (h *SubdisceptoH) readView(ctx context.Context, userH *UserH) (*models.Subd
 		userID = &userH.id
 	}
 	sql, args, _ := selectSubdiscepto(userID).
-		Where(sq.Eq{"subdisceptos.name": h.name}).
+		Where(sq.Eq{"subdisceptos.name": h.rawSub.Name}).
 		ToSql()
 
 	err := pgxscan.Get(ctx, h.sharedDB, &sub, sql, args...)
@@ -454,19 +464,17 @@ func (h *SubdisceptoH) readView(ctx context.Context, userH *UserH) (*models.Subd
 	return &sub, nil
 }
 func (h *SubdisceptoH) ReadRaw(ctx context.Context) (*models.Subdiscepto, error) {
-	var sub models.Subdiscepto
-	err := pgxscan.Get(ctx, h.sharedDB, &sub, "SELECT * FROM subdisceptos WHERE name = $1", h.name)
-	if err != nil {
-		return nil, err
+	if !h.subPerms.ReadSubdiscepto {
+		return nil, ErrPermDenied
 	}
-	return &sub, nil
+	return readRawSub(ctx, h.sharedDB, h.rawSub.Name)
 }
 func (h *SubdisceptoH) listEssays(ctx context.Context) ([]models.EssayView, error) {
 	var essays []models.EssayView
 
 	sql, args, _ := selectEssayWithJoins.
 		GroupBy("essays.id", "users.name", "essay_replies.to_id", "essay_replies.reply_type").
-		Where(sq.Eq{"posted_in": h.name}).
+		Where(sq.Eq{"posted_in": h.rawSub.Name}).
 		OrderBy("essays.id DESC").
 		ToSql()
 
@@ -504,7 +512,7 @@ func (h *SubdisceptoH) deleteSubdiscepto(ctx context.Context) error {
 	return execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
 		sql, args, _ := psql.
 			Delete("subdisceptos").
-			Where(sq.Eq{"name": h.name}).
+			Where(sq.Eq{"name": h.rawSub.Name}).
 			ToSql()
 
 		_, err := tx.Exec(ctx, sql, args...)
@@ -513,8 +521,8 @@ func (h *SubdisceptoH) deleteSubdiscepto(ctx context.Context) error {
 		}
 
 		sql, args, _ = psql.
-			Delete("roles").
-			Where("domain = $1", subRoleDomain(h.name)).
+			Delete("roledomains").
+			Where("id = $1", h.rawSub.RoledomainID).
 			ToSql()
 
 		_, err = tx.Exec(ctx, sql, args...)
@@ -525,28 +533,12 @@ func (h *SubdisceptoH) deleteSubdiscepto(ctx context.Context) error {
 	})
 }
 
-func isSubPublic(ctx context.Context, db DBTX, subdiscepto string) bool {
-	sql, args, _ := psql.
-		Select("1").
-		From("subdisceptos").
-		Where(sq.Eq{"name": subdiscepto, "public": true}).
-		ToSql()
-
-	row := db.QueryRow(ctx, sql, args...)
-	var dumb int
-	err := row.Scan(&dumb)
-	if err != nil {
-		return false
-	}
-
-	return true
-}
-func addMember(ctx context.Context, db DBTX, subdiscepto string, userID int) error {
+func addMember(ctx context.Context, db DBTX, rawSub *models.Subdiscepto, userID int) error {
 	err := execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
 		sql, args, _ := psql.
 			Insert("subdiscepto_users").
 			Columns("subdiscepto", "user_id").
-			Values(subdiscepto, userID).
+			Values(rawSub.Name, userID).
 			ToSql()
 
 		_, err := tx.Exec(ctx, sql, args...)
@@ -554,7 +546,7 @@ func addMember(ctx context.Context, db DBTX, subdiscepto string, userID int) err
 			return err
 		}
 
-		commonRole, err := findRoleByName(ctx, tx, string(subRoleDomain(subdiscepto)), "common")
+		commonRole, err := findRoleByName(ctx, tx, rawSub.RoledomainID, "common")
 		if err != nil {
 			return err
 		}
@@ -562,11 +554,11 @@ func addMember(ctx context.Context, db DBTX, subdiscepto string, userID int) err
 	})
 	return err
 }
-func rejoin(ctx context.Context, db DBTX, subdiscepto string, userID int, perms models.SubPerms) error {
+func rejoin(ctx context.Context, db DBTX, rawSub *models.Subdiscepto, userID int, perms models.SubPerms) error {
 	sql, args, _ := psql.
 		Update("subdiscepto_users").
 		Set("left_at", nil).
-		Where(sq.Eq{"user_id": userID, "subdiscepto": subdiscepto}).
+		Where(sq.Eq{"user_id": userID, "subdiscepto": rawSub.Name}).
 		ToSql()
 
 	return execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
@@ -579,7 +571,7 @@ func rejoin(ctx context.Context, db DBTX, subdiscepto string, userID int, perms 
 		}
 
 		if perms.CommonAfterRejoin {
-			roles, err := listUserRoles(ctx, tx, userID, string(subRoleDomain(subdiscepto)))
+			roles, err := listUserRoles(ctx, tx, userID, rawSub.RoledomainID)
 			if err != nil {
 				return err
 			}
@@ -594,7 +586,7 @@ func rejoin(ctx context.Context, db DBTX, subdiscepto string, userID int, perms 
 				}
 			}
 			if _, ok := rolesMap["common"]; !ok {
-				commonRole, err := findRoleByName(ctx, tx, string(subRoleDomain(subdiscepto)), "common")
+				commonRole, err := findRoleByName(ctx, tx, rawSub.RoledomainID, "common")
 				if err != nil {
 					return err
 				}
@@ -604,11 +596,11 @@ func rejoin(ctx context.Context, db DBTX, subdiscepto string, userID int, perms 
 		return nil
 	})
 }
-func removeMember(ctx context.Context, db DBTX, subdiscepto string, userID int) error {
+func removeMember(ctx context.Context, db DBTX, sub *models.Subdiscepto, userID int) error {
 	sql, args, _ := psql.
 		Update("subdiscepto_users").
 		Set("left_at", "now()").
-		Where(sq.Eq{"subdiscepto": subdiscepto, "user_id": userID}).
+		Where(sq.Eq{"subdiscepto": sub.Name, "user_id": userID}).
 		ToSql()
 
 	_, err := db.Exec(ctx, sql, args...)
@@ -617,13 +609,33 @@ func removeMember(ctx context.Context, db DBTX, subdiscepto string, userID int) 
 	}
 	return nil
 }
-func createSubdiscepto(ctx context.Context, db DBTX, sub models.Subdiscepto) error {
+func insertSubdiscepto(ctx context.Context, db DBTX, sub models.Subdiscepto) error {
 	// Insert subdiscepto
 	sql, args, _ := psql.
 		Insert("subdisceptos").
-		Columns("name", "description", "min_length", "questions_required", "nsfw", "public").
-		Values(sub.Name, sub.Description, sub.MinLength, sub.QuestionsRequired, sub.Nsfw, sub.Public).
+		Columns("name",
+			"description",
+			"min_length",
+			"questions_required",
+			"nsfw",
+			"public",
+			"roledomain_id").
+		Values(sub.Name,
+			sub.Description,
+			sub.MinLength,
+			sub.QuestionsRequired,
+			sub.Nsfw,
+			sub.Public,
+			sub.RoledomainID).
 		ToSql()
 	_, err := db.Exec(ctx, sql, args...)
 	return err
+}
+func readRawSub(ctx context.Context, db DBTX, name string) (*models.Subdiscepto, error) {
+	var sub models.Subdiscepto
+	err := pgxscan.Get(ctx, db, &sub, "SELECT * FROM subdisceptos WHERE name = $1", name)
+	if err != nil {
+		return nil, err
+	}
+	return &sub, nil
 }

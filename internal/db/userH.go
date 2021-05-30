@@ -13,9 +13,9 @@ type userPerms struct {
 	Read   bool
 }
 type UserH struct {
-	id           int
-	perms        userPerms
-	sharedDB     DBTX
+	id       int
+	perms    userPerms
+	sharedDB DBTX
 }
 
 func ToUserH(t interface{}) (*UserH, bool) {

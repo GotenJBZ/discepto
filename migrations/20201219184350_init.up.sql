@@ -6,9 +6,15 @@ CREATE TABLE users (
 	created_at timestamp NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE roledomains (
+	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	domain_type varchar(50) NOT NULL
+);
+
 CREATE TABLE subdisceptos (
 	name varchar(50) PRIMARY KEY,
 	description varchar(500) NOT NULL,
+	roledomain_id int NOT NULL REFERENCES roledomains(id) ON DELETE CASCADE,
 	min_length int NOT NULL,
 	questions_required boolean NOT NULL,
 	public boolean NOT NULL,
@@ -22,7 +28,6 @@ CREATE TABLE subdiscepto_users (
 	PRIMARY KEY(subdiscepto, user_id)
 );
 
-
 -- Authorization:
 -- There are multiple roles inside a domain
 -- A role has multiple permissions
@@ -30,10 +35,10 @@ CREATE TABLE subdiscepto_users (
 
 CREATE TABLE roles (
 	id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-	domain varchar(100) NOT NULL,
+	roledomain_id int REFERENCES roledomains(id) ON DELETE CASCADE,
 	name varchar(100) NOT NULL,
 	preset boolean NOT NULL,
-	UNIQUE (domain, name)
+	UNIQUE (roledomain_id, name)
 );
 
 CREATE TABLE role_perms (
@@ -48,10 +53,14 @@ CREATE TABLE user_roles (
 	PRIMARY KEY (user_id, role_id)
 );
 
-INSERT INTO roles (id, domain, name, preset)
+INSERT INTO roledomains (id, domain_type)
 OVERRIDING SYSTEM VALUE VALUES
-(-123, 'discepto', 'admin', true),
-(-100, 'discepto', 'common', false);
+(-123, 'discepto');
+
+INSERT INTO roles (id, roledomain_id, name, preset)
+OVERRIDING SYSTEM VALUE VALUES
+(-123, -123, 'admin', true),
+(-100, -123, 'common', false);
 
 INSERT INTO role_perms (role_id, permission)
 VALUES

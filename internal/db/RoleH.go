@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+
+	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
 type RolePerms struct {
@@ -12,7 +14,7 @@ type RolePerms struct {
 type RoleH struct {
 	id        int
 	name      string
-	domain    RoleDomain
+	domain    models.RoleDomain
 	rolePerms RolePerms
 	sharedDB  DBTX
 }

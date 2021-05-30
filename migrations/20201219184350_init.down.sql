@@ -14,4 +14,5 @@ DROP TABLE role_perms;
 DROP TABLE roles;
 DROP TABLE subdiscepto_users;
 DROP TABLE subdisceptos;
+DROP TABLE roledomains;
 DROP TABLE users;

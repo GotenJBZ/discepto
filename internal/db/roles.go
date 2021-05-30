@@ -12,10 +12,23 @@ var (
 	RoleDisceptoCommon = models.Role{ID: -100, Name: "common", Preset: true}
 )
 
-func listRoles(ctx context.Context, db DBTX, domain string) ([]models.Role, error) {
+func createRoledomain(ctx context.Context, db DBTX, domain_type string) (models.RoleDomain, error) {
+	sql, args, _ := psql.
+		Insert("roledomains").
+		Columns("domain_type").
+		Values(domain_type).
+		Suffix("RETURNING id").
+		ToSql()
+
+	row := db.QueryRow(ctx, sql, args...)
+	var id int
+	err := row.Scan(&id)
+	return models.RoleDomain(id), err
+}
+func listRoles(ctx context.Context, db DBTX, domain models.RoleDomain) ([]models.Role, error) {
 	sql, args, _ := psql.Select("id", "name", "preset").
 		From("roles").
-		Where(sq.Eq{"domain": domain}).
+		Where(sq.Eq{"roledomain_id": domain}).
 		ToSql()
 
 	rows, err := db.Query(ctx, sql, args...)
@@ -34,11 +47,11 @@ func listRoles(ctx context.Context, db DBTX, domain string) ([]models.Role, erro
 	}
 	return roles, err
 }
-func listUserRoles(ctx context.Context, db DBTX, userID int, domain string) ([]models.Role, error) {
+func listUserRoles(ctx context.Context, db DBTX, userID int, domain models.RoleDomain) ([]models.Role, error) {
 	sql, args, _ := psql.Select("id", "name", "preset").
 		From("roles").
 		Join("user_roles ON roles.id = user_roles.role_id").
-		Where(sq.Eq{"domain": domain, "user_id": userID}).
+		Where(sq.Eq{"roledomain_id": domain, "user_id": userID}).
 		ToSql()
 
 	rows, err := db.Query(ctx, sql, args...)
@@ -57,10 +70,10 @@ func listUserRoles(ctx context.Context, db DBTX, userID int, domain string) ([]m
 	}
 	return roles, err
 }
-func findRoleByName(ctx context.Context, db DBTX, domain string, name string) (*models.Role, error) {
+func findRoleByName(ctx context.Context, db DBTX, domain models.RoleDomain, name string) (*models.Role, error) {
 	sql, args, _ := psql.Select("id", "name", "preset").
 		From("roles").
-		Where(sq.Eq{"domain": domain, "name": name}).
+		Where(sq.Eq{"roledomain_id": domain, "name": name}).
 		ToSql()
 
 	row := db.QueryRow(ctx, sql, args...)
@@ -95,12 +108,12 @@ func listRolePerms(ctx context.Context, db DBTX, roleID int) (map[string]bool, e
 	return roles, err
 }
 
-func getUserPerms(ctx context.Context, db DBTX, domain string, userID int) (map[string]bool, error) {
+func getUserPerms(ctx context.Context, db DBTX, domain models.RoleDomain, userID int) (map[string]bool, error) {
 	sql, args, _ := psql.Select("permission").
 		From("user_roles").
 		Join("role_perms ON user_roles.role_id = role_perms.role_id").
 		Join("roles ON user_roles.role_id = roles.id").
-		Where(sq.Eq{"domain": domain, "user_id": userID}).
+		Where(sq.Eq{"roledomain_id": domain, "user_id": userID}).
 		ToSql()
 
 	rows, err := db.Query(ctx, sql, args...)
@@ -137,12 +150,12 @@ func unassignRole(ctx context.Context, db DBTX, userID int, roleID int) error {
 	return nil
 }
 
-func createRole(ctx context.Context, db DBTX, domain string, name string, preset bool, m map[string]bool) (int, error) {
+func createRole(ctx context.Context, db DBTX, domain models.RoleDomain, name string, preset bool, m map[string]bool) (int, error) {
 	rowID := -1
 	err := execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
 		sql, args, _ := psql.
 			Insert("roles").
-			Columns("domain", "name", "preset").
+			Columns("roledomain_id", "name", "preset").
 			Values(domain, name, preset).
 			Suffix("RETURNING id").
 			ToSql()

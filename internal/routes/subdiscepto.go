@@ -145,37 +145,34 @@ func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) Ap
 	userH := GetUserH(r)
 	disceptoH := GetDisceptoH(r)
 
-	sub := models.Subdiscepto{}
-	err := utils.ParseFormStruct(r, &sub)
+	subReq := models.SubdisceptoReq{}
+	err := utils.ParseFormStruct(r, &subReq)
 	if err != nil {
-		return &ErrBadRequest{}
+		return &ErrBadRequest{Cause: err}
 	}
 
-	_, err = disceptoH.CreateSubdiscepto(r.Context(), *userH, sub)
+	_, err = disceptoH.CreateSubdiscepto(r.Context(), *userH, &subReq)
 	if err != nil {
 		return &ErrInternal{Message: "Error creating subdiscepto", Cause: err}
 	}
-	http.Redirect(w, r, fmt.Sprintf("/s/%s", sub.Name), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/s/%s", subReq.Name), http.StatusSeeOther)
 	return nil
 }
 
 func (routes *Routes) PutSubdiscepto(w http.ResponseWriter, r *http.Request) AppError {
 	subH := GetSubdisceptoH(r)
 
-	sub := &models.Subdiscepto{}
-	err := utils.ParseFormStruct(r, sub)
+	subReq := &models.SubdisceptoReq{}
+	err := utils.ParseFormStruct(r, subReq)
 	if err != nil {
-		return &ErrBadRequest{}
+		return &ErrBadRequest{Cause: err}
 	}
+	subReq.Name = subH.Name()
 
-	err = subH.Update(r.Context(), *sub)
+	err = subH.Update(r.Context(), subReq)
 	if err != nil {
 		return &ErrInternal{Message: "Error updating subdiscepto data", Cause: err}
 	}
-	sub, err = subH.ReadRaw(r.Context())
-	if err != nil {
-		return &ErrInternal{Cause: err}
-	}
-	routes.tmpls.RenderHTML(w, "subdisceptoForm", struct{ Subdiscepto *models.Subdiscepto }{sub})
+	routes.tmpls.RenderHTML(w, "subdisceptoForm", struct{ Subdiscepto *models.SubdisceptoReq }{subReq})
 	return nil
 }

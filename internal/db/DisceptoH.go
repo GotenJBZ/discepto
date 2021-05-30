@@ -21,7 +21,7 @@ type DisceptoH struct {
 func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) (*DisceptoH, error) {
 	globalPerms := models.GlobalPerms{}
 	if uH != nil {
-		perms, err := getUserPerms(ctx, sdb.db, "discepto", uH.id)
+		perms, err := getUserPerms(ctx, sdb.db, models.RoleDomainDiscepto, uH.id)
 		if err != nil {
 			return nil, err
 		}
@@ -35,7 +35,7 @@ func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) (*DisceptoH, e
 		rolesPerms: struct {
 			ManageRoles bool
 		}{globalPerms.ManageGlobalRole},
-		domain:   RoleDomain("discepto"),
+		domain:   models.RoleDomainDiscepto,
 		sharedDB: sdb.db,
 	}
 	notifService := NewNotificationService(sdb.db)
@@ -75,35 +75,52 @@ func (h *DisceptoH) ReadPublicUser(ctx context.Context, userID int) (*models.Use
 	return readPublicUser(ctx, h.sharedDB, userID)
 }
 
-func (h *DisceptoH) CreateSubdiscepto(ctx context.Context, uH UserH, subd models.Subdiscepto) (*SubdisceptoH, error) {
+func (h *DisceptoH) CreateSubdiscepto(ctx context.Context, uH UserH, sub *models.SubdisceptoReq) (*SubdisceptoH, error) {
 	if !h.globalPerms.CreateSubdiscepto {
 		return nil, ErrPermDenied
 	}
 	r := regexp.MustCompile("^\\w+$")
-	if !r.Match([]byte(subd.Name)) {
+	if !r.Match([]byte(sub.Name)) {
 		return nil, ErrInvalidFormat
 	}
-	return h.createSubdiscepto(ctx, uH, subd)
+	return h.createSubdiscepto(ctx, uH, sub)
 }
 func (h *DisceptoH) ListAvailablePerms() map[string]bool {
 	return models.GlobalPerms{}.ToBoolMap()
 }
-func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models.Subdiscepto) (*SubdisceptoH, error) {
+func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd *models.SubdisceptoReq) (*SubdisceptoH, error) {
 	firstUserID := uH.id
+
+	// Retrieve real roledomain
+	roledomain, err := createRoledomain(ctx, h.sharedDB, "subdiscepto")
+	if err != nil {
+		return nil, err
+	}
+	rawSub := &models.Subdiscepto{
+		Name:              subd.Name,
+		Description:       subd.Description,
+		RoledomainID:      roledomain,
+		MinLength:         subd.MinLength,
+		QuestionsRequired: subd.QuestionsRequired,
+		Nsfw:              subd.Nsfw,
+		Public:            subd.Public,
+	}
+
+	// Init subH
 	subH := &SubdisceptoH{
 		sharedDB: h.sharedDB,
-		name:     subd.Name,
+		rawSub:   rawSub,
 		RolesH: RolesH{
 			contextPerms: models.SubPermsOwner.ToBoolMap(),
 			rolesPerms:   struct{ ManageRoles bool }{true},
-			domain:       subRoleDomain(subd.Name),
+			domain:       roledomain,
 			sharedDB:     h.sharedDB,
 		},
-		subPerms: models.SubPermsOwner,
+		subPerms:     models.SubPermsOwner,
 		notifService: h.notifService,
 	}
-	err := execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
-		err := createSubdiscepto(ctx, tx, subd)
+	err = execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
+		err := insertSubdiscepto(ctx, tx, *rawSub)
 		if err != nil {
 			return err
 		}
@@ -121,7 +138,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			CommonAfterRejoin: true,
 		}
 		p := subPerms.ToBoolMap()
-		_, err = createRole(ctx, tx, string(subH.RolesH.domain), "common", false, p)
+		_, err = createRole(ctx, tx, rawSub.RoledomainID, "common", false, p)
 		if err != nil {
 			return err
 		}
@@ -131,7 +148,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			CommonAfterRejoin: true,
 		}
 		p = subPerms.ToBoolMap()
-		_, err = createRole(ctx, tx, string(subH.RolesH.domain), "common-after-rejoin", false, p)
+		_, err = createRole(ctx, tx, rawSub.RoledomainID, "common-after-rejoin", false, p)
 		if err != nil {
 			return err
 		}
@@ -149,13 +166,13 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd models
 			ViewReport:        true,
 			DeleteReport:      true,
 		}
-		adminRoleID, err := createRole(ctx, tx, string(subH.RolesH.domain), "admin", true, subPerms.ToBoolMap())
+		adminRoleID, err := createRole(ctx, tx, subH.domain, "admin", true, subPerms.ToBoolMap())
 		if err != nil {
 			return err
 		}
 
 		// Insert first user of subdiscepto
-		err = addMember(ctx, tx, subd.Name, firstUserID)
+		err = addMember(ctx, tx, rawSub, firstUserID)
 		if err != nil {
 			return err
 		}
@@ -202,7 +219,7 @@ func (sdb *SharedDB) ListSubdisceptos(ctx context.Context, userH *UserH) ([]mode
 	if userH != nil {
 		userID = &userH.id
 	}
-	sql, args, _ := selectSubdiscepto(userID).ToSql()
+	sql, args, _ := selectSubdiscepto(userID).Where(sq.Eq{"public": true}).ToSql()
 	err := pgxscan.Select(ctx, sdb.db, &subs, sql, args...)
 	if err != nil {
 		return nil, err
