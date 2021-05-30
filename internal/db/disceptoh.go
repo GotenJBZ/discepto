@@ -90,97 +90,93 @@ func (h *DisceptoH) ListAvailablePerms() map[string]bool {
 }
 func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd *models.SubdisceptoReq) (*SubdisceptoH, error) {
 	firstUserID := uH.id
+	var subH *SubdisceptoH
+	err := execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
+		// Retrieve real roledomain
+		roledomain, err := createRoledomain(ctx, tx, "subdiscepto")
+		if err != nil {
+			return err
+		}
+		rawSub := &models.Subdiscepto{
+			Name:              subd.Name,
+			Description:       subd.Description,
+			RoledomainID:      roledomain,
+			MinLength:         subd.MinLength,
+			QuestionsRequired: subd.QuestionsRequired,
+			Nsfw:              subd.Nsfw,
+			Public:            subd.Public,
+		}
 
-	// Retrieve real roledomain
-	roledomain, err := createRoledomain(ctx, h.sharedDB, "subdiscepto")
-	if err != nil {
-		return nil, err
-	}
-	rawSub := &models.Subdiscepto{
-		Name:              subd.Name,
-		Description:       subd.Description,
-		RoledomainID:      roledomain,
-		MinLength:         subd.MinLength,
-		QuestionsRequired: subd.QuestionsRequired,
-		Nsfw:              subd.Nsfw,
-		Public:            subd.Public,
-	}
-
-	// Init subH
-	subH := &SubdisceptoH{
-		sharedDB: h.sharedDB,
-		rawSub:   rawSub,
-		RolesH: RolesH{
+		// Init subH
+		rolesH := RolesH{
 			contextPerms: models.SubPermsOwner.ToBoolMap(),
 			rolesPerms:   struct{ ManageRoles bool }{true},
 			domain:       roledomain,
 			sharedDB:     h.sharedDB,
-		},
-		subPerms:     models.SubPermsOwner,
-		notifService: h.notifService,
-	}
-	err = execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
-		err := insertSubdiscepto(ctx, tx, *rawSub)
+		}
+		subH = &SubdisceptoH{
+			sharedDB:     h.sharedDB,
+			rawSub:       rawSub,
+			RolesH:       rolesH,
+			subPerms:     models.SubPermsOwner,
+			notifService: h.notifService,
+		}
+
+		err = insertSubdiscepto(ctx, tx, *rawSub)
 		if err != nil {
 			return err
 		}
-
-		// Create a "common" role, added to every user of the subdiscepto
-		subPerms := models.SubPerms{
-			ReadSubdiscepto:   true,
-			CreateEssay:       true,
-			UpdateSubdiscepto: false,
-			DeleteEssay:       false,
-			BanUser:           false,
-			ChangeRanking:     false,
-			DeleteSubdiscepto: false,
-			ManageRole:        false,
-			CommonAfterRejoin: true,
-		}
-		p := subPerms.ToBoolMap()
-		_, err = createRole(ctx, tx, rawSub.RoledomainID, "common", false, p)
-		if err != nil {
-			return err
-		}
-
-		// Create a "common-after-rejoin" role, added to every user while away from the subdiscepto
-		subPerms = models.SubPerms{
-			CommonAfterRejoin: true,
-		}
-		p = subPerms.ToBoolMap()
-		_, err = createRole(ctx, tx, rawSub.RoledomainID, "common-after-rejoin", false, p)
-		if err != nil {
-			return err
-		}
-
-		// Create an "admin" role, added to the first user
-		subPerms = models.SubPerms{
-			ReadSubdiscepto:   true,
-			CreateEssay:       true,
-			UpdateSubdiscepto: true,
-			DeleteEssay:       true,
-			BanUser:           true,
-			ChangeRanking:     true,
-			DeleteSubdiscepto: true,
-			ManageRole:        true,
-			ViewReport:        true,
-			DeleteReport:      true,
-		}
-		adminRoleID, err := createRole(ctx, tx, subH.domain, "admin", true, subPerms.ToBoolMap())
-		if err != nil {
-			return err
-		}
-
 		// Insert first user of subdiscepto
-		err = addMember(ctx, tx, rawSub, firstUserID)
+		err = insertMember(ctx, tx, rawSub, firstUserID)
 		if err != nil {
 			return err
 		}
 
-		err = assignRole(ctx, tx, firstUserID, adminRoleID)
-		fmt.Println(err)
-		return err
+		// init roles
+		roles := []struct {
+			roleData models.Role
+			perms    models.SubPerms
+			assign   bool
+		}{
+			{
+				models.Role{Name: "common", Preset: false},
+				models.SubPerms{
+					ReadSubdiscepto:   true,
+					CreateEssay:       true,
+					CommonAfterRejoin: true,
+				},
+				true,
+			},
+			{
+				models.Role{Name: "common-after-rejoin", Preset: true},
+				models.SubPerms{
+					CommonAfterRejoin: true,
+				},
+				false,
+			},
+			{
+				models.Role{Name: "admin", Preset: true},
+				models.SubPermsOwner,
+				true,
+			},
+		}
+
+		for _, r := range roles {
+			r.roleData.Domain = roledomain
+			roleID, err := createRole(ctx, tx, r.roleData, r.perms.ToBoolMap())
+			if err != nil {
+				return err
+			}
+			if r.assign {
+				err = assignRole(ctx, tx, firstUserID, roleID)
+			}
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 	})
+
 	if err != nil {
 		return nil, err
 	}

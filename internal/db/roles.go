@@ -150,13 +150,13 @@ func unassignRole(ctx context.Context, db DBTX, userID int, roleID int) error {
 	return nil
 }
 
-func createRole(ctx context.Context, db DBTX, domain models.RoleDomain, name string, preset bool, m map[string]bool) (int, error) {
+func createRole(ctx context.Context, db DBTX, role models.Role, m map[string]bool) (int, error) {
 	rowID := -1
 	err := execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
 		sql, args, _ := psql.
 			Insert("roles").
 			Columns("roledomain_id", "name", "preset").
-			Values(domain, name, preset).
+			Values(role.Domain, role.Name, role.Preset).
 			Suffix("RETURNING id").
 			ToSql()
 

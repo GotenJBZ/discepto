@@ -79,8 +79,12 @@ func (h *RolesH) CreateRole(ctx context.Context, roleName string) (*RoleH, error
 	if !h.rolesPerms.ManageRoles {
 		return nil, ErrPermDenied
 	}
-	preset := false
-	id, err := createRole(ctx, h.sharedDB, h.domain, roleName, preset, map[string]bool{})
+	role := models.Role{
+		Domain: h.domain,
+		Name:   roleName,
+		Preset: false,
+	}
+	id, err := createRole(ctx, h.sharedDB, role, map[string]bool{})
 	if err != nil {
 		return nil, err
 	}
@@ -91,8 +95,8 @@ func (h *RolesH) CreateRole(ctx context.Context, roleName string) (*RoleH, error
 		sharedDB: h.sharedDB,
 		rolePerms: RolePerms{
 			ManageRole: true,
-			UpdateRole: !preset,
-			DeleteRole: !preset,
+			UpdateRole: !role.Preset,
+			DeleteRole: !role.Preset,
 		},
 	}, nil
 }

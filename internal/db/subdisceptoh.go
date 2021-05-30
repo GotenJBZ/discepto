@@ -533,15 +533,23 @@ func (h *SubdisceptoH) deleteSubdiscepto(ctx context.Context) error {
 	})
 }
 
+func insertMember(ctx context.Context, db DBTX, rawSub *models.Subdiscepto, userID int) error {
+	sql, args, _ := psql.
+		Insert("subdiscepto_users").
+		Columns("subdiscepto", "user_id").
+		Values(rawSub.Name, userID).
+		ToSql()
+
+	_, err := db.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func addMember(ctx context.Context, db DBTX, rawSub *models.Subdiscepto, userID int) error {
 	err := execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
-		sql, args, _ := psql.
-			Insert("subdiscepto_users").
-			Columns("subdiscepto", "user_id").
-			Values(rawSub.Name, userID).
-			ToSql()
-
-		_, err := tx.Exec(ctx, sql, args...)
+		err := insertMember(ctx, db, rawSub, userID)
 		if err != nil {
 			return err
 		}
