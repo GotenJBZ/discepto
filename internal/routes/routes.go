@@ -132,7 +132,7 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 
 	// Fallback
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		routes.tmpls.RenderHTML(w, "404", nil)
+		routes.RenderErr(w,r, &ErrNotFound{})
 	})
 	return r
 }
