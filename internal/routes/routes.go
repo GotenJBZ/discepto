@@ -184,7 +184,7 @@ func (routes *Routes) EnforceCtx(ctxValue disceptoCtxKey) func(http.Handler) htt
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Context().Value(ctxValue) == nil {
-				err := &ErrInsuffPerms{Action: fmt.Sprintf("retrieving context value %d", ctxValue)}
+				err := &ErrInsuffPerms{Cause: fmt.Errorf("can't retrieve context value %d", ctxValue)}
 				routes.HandleErr(w, r, err)
 				return
 			}
@@ -288,16 +288,16 @@ func (err *ErrBadRequest) Respond(w http.ResponseWriter, r *http.Request, routes
 }
 
 type ErrInsuffPerms struct {
-	Action string
+	Cause error
 }
 
 func (err *ErrInsuffPerms) Error() string {
-	return fmt.Sprintf("Insufficient permissions: %s", err.Action)
+	return fmt.Sprintf("Insufficient permissions: %s", err.Cause)
 }
 
 func (err *ErrInsuffPerms) Respond(w http.ResponseWriter, r *http.Request, routes *Routes) LoggableErr {
 	loggableErr := LoggableErr{
-		Cause:   errors.New(fmt.Sprintf("Insufficient permissions: %s", err.Action)),
+		Cause:   errors.New(fmt.Sprintf("Insufficient permissions: %s", err.Cause)),
 		Message: "Insufficient permissions to execute this action",
 		Status:  http.StatusBadRequest,
 	}
@@ -336,6 +336,9 @@ func TranslateErr(err error) AppError {
 		if err == brErr {
 			return &ErrBadRequest{Cause: brErr}
 		}
+	}
+	if err == models.ErrPermDenied {
+		return &ErrInsuffPerms{Cause: err}
 	}
 	if err != nil {
 		return &ErrNotFound{Cause: err}
