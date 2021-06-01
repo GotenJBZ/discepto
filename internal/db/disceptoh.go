@@ -46,10 +46,6 @@ func (h *DisceptoH) Perms() models.GlobalPerms {
 	return h.globalPerms
 }
 func (h *DisceptoH) ListMembers(ctx context.Context) ([]models.Member, error) {
-	if !h.globalPerms.Login {
-		return nil, ErrPermDenied
-	}
-
 	sqlquery, args, _ := psql.
 		Select("users.id AS user_id", "users.name").
 		From("users").
@@ -69,9 +65,6 @@ func (h *DisceptoH) ListMembers(ctx context.Context) ([]models.Member, error) {
 	return members, nil
 }
 func (h *DisceptoH) ReadPublicUser(ctx context.Context, userID int) (*models.UserView, error) {
-	if !h.globalPerms.Login {
-		return nil, ErrPermDenied
-	}
 	return readPublicUser(ctx, h.sharedDB, userID)
 }
 

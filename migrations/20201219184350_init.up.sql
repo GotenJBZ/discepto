@@ -71,7 +71,6 @@ VALUES
 (-123, 'delete_subdiscepto'),
 (-123, 'ban_user_globally'),
 (-123, 'manage_global_role'),
-(-123, 'login'),
 (-123, 'delete_user'),
 (-123, 'create_essay'),
 (-123, 'delete_essay'),
@@ -83,7 +82,6 @@ VALUES
 (-123, 'delete_report'),
 (-123, 'use_local_permissions'),
 -- common
-(-100, 'login'),
 (-100, 'use_local_permissions');
 
 

@@ -345,7 +345,6 @@ func TestRoles(t *testing.T) {
 	globalPerms, err := getUserPerms(context.Background(), db.db, models.RoleDomainDiscepto, userH.id)
 	require.Nil(err)
 	require.Equal(models.GlobalPerms{
-		Login:               true,
 		CreateSubdiscepto:   true,
 		UseLocalPermissions: true,
 		DeleteUser:          true,
@@ -370,7 +369,6 @@ func TestRoles(t *testing.T) {
 	globalPerms2, err := getUserPerms(context.Background(), db.db, models.RoleDomainDiscepto, user2H.id)
 	require.Nil(err)
 	require.Equal(models.GlobalPerms{
-		Login:               true,
 		UseLocalPermissions: true,
 		CreateSubdiscepto:   false,
 		DeleteUser:          false,

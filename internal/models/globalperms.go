@@ -5,7 +5,6 @@ import (
 )
 
 type GlobalPerms struct {
-	Login               bool
 	CreateSubdiscepto   bool
 	BanUserGlobally     bool
 	UseLocalPermissions bool
