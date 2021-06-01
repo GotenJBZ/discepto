@@ -24,7 +24,7 @@ func (h *RoleH) ListActivePerms(ctx context.Context) (map[string]bool, error) {
 }
 func (h *RoleH) UpdatePerms(ctx context.Context, perms map[string]bool) error {
 	if !h.rolePerms.UpdateRole {
-		return ErrPermDenied
+		return models.ErrPermDenied
 	}
 	return setPermissions(ctx, h.sharedDB, h.id, perms)
 }
@@ -33,7 +33,7 @@ func (h *RoleH) Perms() RolePerms {
 }
 func (h *RoleH) DeleteRole(ctx context.Context) error {
 	if !h.rolePerms.DeleteRole {
-		return ErrPermDenied
+		return models.ErrPermDenied
 	}
 	return deleteRole(ctx, h.sharedDB, h.id)
 }

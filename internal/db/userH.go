@@ -39,7 +39,7 @@ func (h UserH) ID() int {
 }
 func (h UserH) Read(ctx context.Context) (*models.User, error) {
 	if !h.perms.Read {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	user := &models.User{}
 	sql, args, _ := psql.
@@ -60,7 +60,7 @@ func (h UserH) Read(ctx context.Context) (*models.User, error) {
 }
 func (h UserH) Delete(ctx context.Context) error {
 	if !h.perms.Delete {
-		return ErrPermDenied
+		return models.ErrPermDenied
 	}
 	return h.deleteUser(ctx)
 }

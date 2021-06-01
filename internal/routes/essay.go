@@ -208,7 +208,7 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) {
 		_, err = subH.CreateEssay(r.Context(), &essay)
 	}
 
-	if err == db.ErrBadContentLen {
+	if err == models.ErrBadContentLen {
 		err := &ErrBadRequest{
 			Cause:      err,
 			Motivation: "You must respect required content length",

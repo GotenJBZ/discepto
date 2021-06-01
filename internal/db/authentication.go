@@ -16,11 +16,11 @@ import (
 func (sdb *SharedDB) CreateUser(ctx context.Context, user *models.User, passwd string) (uH *UserH, err error) {
 	// Check email format
 	if !utils.ValidateEmail(user.Email) {
-		return nil, ErrInvalidFormat
+		return nil, models.ErrInvalidFormat
 	}
 
 	if !validatePasswd(passwd, []string{user.Email, user.Name}) {
-		return nil, ErrWeakPasswd
+		return nil, models.ErrWeakPasswd
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(passwd), sdb.bcryptCost)
@@ -29,7 +29,7 @@ func (sdb *SharedDB) CreateUser(ctx context.Context, user *models.User, passwd s
 		err = insertUser(ctx, sdb.db, user, hash)
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.ConstraintName == "users_email_key" {
-			return ErrEmailAlreadyUsed
+			return models.ErrEmailAlreadyUsed
 		} else if err != nil {
 			return err
 		}

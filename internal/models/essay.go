@@ -2,10 +2,15 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 	"net/url"
 	"time"
 )
 
+var (
+	ErrTooManyTags   = errors.New("Too many tags")
+	ErrBadContentLen = errors.New("Bad content length")
+)
 var (
 	ReplyTypeSupports = sql.NullString{String: "supports", Valid: true}
 	ReplyTypeRefutes  = sql.NullString{String: "refutes", Valid: true}

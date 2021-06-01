@@ -1,8 +1,12 @@
 package models
 
 import (
+	"errors"
+
 	"gitlab.com/ranfdev/discepto/internal/utils"
 )
+
+var ErrPermDenied = errors.New("Missing permissions to execute action")
 
 type GlobalPerms struct {
 	CreateSubdiscepto   bool

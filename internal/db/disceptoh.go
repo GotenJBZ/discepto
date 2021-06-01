@@ -70,11 +70,11 @@ func (h *DisceptoH) ReadPublicUser(ctx context.Context, userID int) (*models.Use
 
 func (h *DisceptoH) CreateSubdiscepto(ctx context.Context, uH UserH, sub *models.SubdisceptoReq) (*SubdisceptoH, error) {
 	if !h.globalPerms.CreateSubdiscepto {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	r := regexp.MustCompile("^\\w+$")
 	if !r.Match([]byte(sub.Name)) {
-		return nil, ErrInvalidFormat
+		return nil, models.ErrInvalidFormat
 	}
 	return h.createSubdiscepto(ctx, uH, sub)
 }
@@ -294,13 +294,13 @@ func (h *DisceptoH) ListUserEssays(ctx context.Context, userID int) ([]models.Es
 }
 func (h *DisceptoH) ListNotifs(ctx context.Context, userH *UserH) ([]models.NotifView, error) {
 	if !userH.perms.Read {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	return h.notifService.List(ctx, userH.id)
 }
 func (h *DisceptoH) DeleteNotif(ctx context.Context, userH *UserH, notifID int) error {
 	if !userH.perms.Read {
-		return ErrPermDenied
+		return models.ErrPermDenied
 	}
 	return h.notifService.Delete(ctx, userH.id, notifID)
 }

@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -27,13 +26,6 @@ const (
 )
 
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-
-var ErrTooManyTags error = errors.New("You have inserted too many tags")
-var ErrBadContentLen error = errors.New("You have to respect the imposed content length limits")
-var ErrEmailAlreadyUsed error = errors.New("The email is already used")
-var ErrInvalidFormat error = errors.New("Invalid format")
-var ErrPermDenied = errors.New("Not enough permissions to execute this action")
-var ErrWeakPasswd = errors.New("Password too weak")
 
 type DBTX interface {
 	Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error)

@@ -2,7 +2,14 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 	"time"
+)
+
+var (
+	ErrEmailAlreadyUsed = errors.New("Email already used")
+	ErrInvalidFormat    = errors.New("Invalid email format")
+	ErrWeakPasswd       = errors.New("Weak password")
 )
 
 type User struct {

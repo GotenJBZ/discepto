@@ -66,7 +66,7 @@ func (dH *DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH
 		// Check if the subdiscepto is publicly readable
 		subPerms.ReadSubdiscepto = h.rawSub.Public
 		if !subPerms.ReadSubdiscepto {
-			return nil, ErrPermDenied
+			return nil, models.ErrPermDenied
 		}
 	}
 	h.subPerms = *subPerms
@@ -87,20 +87,20 @@ func (h *SubdisceptoH) Perms() models.SubPerms {
 }
 func (h *SubdisceptoH) ReadView(ctx context.Context, userH *UserH) (*models.SubdisceptoView, error) {
 	if !h.subPerms.ReadSubdiscepto {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	return h.readView(ctx, userH)
 }
 func (h *SubdisceptoH) Delete(ctx context.Context) error {
 	fmt.Println(h.subPerms)
 	if h.subPerms != models.SubPermsOwner {
-		return ErrPermDenied
+		return models.ErrPermDenied
 	}
 	return h.deleteSubdiscepto(ctx)
 }
 func (h *SubdisceptoH) CreateEssay(ctx context.Context, e *models.Essay) (*EssayH, error) {
 	if !h.subPerms.CreateEssay || e.InReplyTo.Valid {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	var essay *EssayH
 	return essay, execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
@@ -111,7 +111,7 @@ func (h *SubdisceptoH) CreateEssay(ctx context.Context, e *models.Essay) (*Essay
 }
 func (h *SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH EssayH) (*EssayH, error) {
 	if !h.subPerms.CreateEssay {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	e.InReplyTo.Int32 = int32(pH.id)
 	e.InReplyTo.Valid = true
@@ -168,7 +168,7 @@ func (h *SubdisceptoH) ListAvailablePerms() map[string]bool {
 }
 func (h *SubdisceptoH) AddMember(ctx context.Context, userH UserH) error {
 	if !h.subPerms.ReadSubdiscepto || !userH.perms.Read {
-		return ErrPermDenied
+		return models.ErrPermDenied
 	}
 	err := addMember(ctx, h.sharedDB, h.rawSub, userH.id)
 	if err != nil {
@@ -179,7 +179,7 @@ func (h *SubdisceptoH) AddMember(ctx context.Context, userH UserH) error {
 func (h *SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
 	// TODO: should check for specific permission to remove other users
 	if !h.subPerms.ReadSubdiscepto || !userH.perms.Read {
-		return ErrPermDenied
+		return models.ErrPermDenied
 	}
 	return execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
 		err := removeMember(ctx, h.sharedDB, h.rawSub, userH.id)
@@ -202,7 +202,7 @@ func (h *SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
 }
 func (h *SubdisceptoH) ListReports(ctx context.Context) ([]models.ReportView, error) {
 	if !h.subPerms.ViewReport {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	sql, args, _ := psql.Select(
 		"reports.id",
@@ -232,7 +232,7 @@ func (h *SubdisceptoH) ListReports(ctx context.Context) ([]models.ReportView, er
 }
 func (h *SubdisceptoH) DeleteReport(ctx context.Context, id int) error {
 	if !h.subPerms.DeleteReport {
-		return ErrPermDenied
+		return models.ErrPermDenied
 	}
 	sql, args, _ := psql.
 		Delete("reports").
@@ -247,7 +247,7 @@ func (h *SubdisceptoH) DeleteReport(ctx context.Context, id int) error {
 }
 func (h *SubdisceptoH) Update(ctx context.Context, subReq *models.SubdisceptoReq) error {
 	if !h.subPerms.UpdateSubdiscepto {
-		return ErrPermDenied
+		return models.ErrPermDenied
 	}
 	sql, args, _ := psql.
 		Update("subdisceptos").
@@ -270,7 +270,7 @@ func createReply(ctx context.Context, db DBTX, fromID int, toID int, replyType s
 }
 func (h *SubdisceptoH) GetEssayH(ctx context.Context, id int, uH *UserH) (*EssayH, error) {
 	if !h.subPerms.ReadSubdiscepto {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	return h.getEssayH(ctx, id, uH)
 }
@@ -307,13 +307,13 @@ func (h *SubdisceptoH) getEssayH(ctx context.Context, id int, uH *UserH) (*Essay
 }
 func (h *SubdisceptoH) ListEssays(ctx context.Context) ([]models.EssayView, error) {
 	if !h.subPerms.ReadSubdiscepto {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	return h.listEssays(ctx)
 }
 func (h *SubdisceptoH) ListReplies(ctx context.Context, e EssayH, replyType *string) ([]models.EssayView, error) {
 	if !h.subPerms.ReadSubdiscepto {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	return h.listReplies(ctx, e, replyType)
 }
@@ -327,7 +327,7 @@ func (h *SubdisceptoH) RoleDomain() models.RoleDomain {
 func (h *SubdisceptoH) ListMembers(ctx context.Context) ([]models.Member, error) {
 	// Everyone with read access has the right to see who are the moderators
 	if !h.subPerms.ReadSubdiscepto {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 
 	sqlquery, args, _ := psql.
@@ -358,7 +358,7 @@ func (h *SubdisceptoH) createEssay(ctx context.Context, tx DBTX, essay *models.E
 		return nil, err
 	}
 	if clen > LimitMaxContentLen || clen < subData.MinLength {
-		return nil, ErrBadContentLen
+		return nil, models.ErrBadContentLen
 	}
 	essay.PostedIn = h.rawSub.Name
 	essay.Published = time.Now()
@@ -407,7 +407,7 @@ func insertEssay(ctx context.Context, tx DBTX, essay *models.Essay) error {
 func insertTags(ctx context.Context, db DBTX, essayID int, tags []string) error {
 	// Insert essay tags
 	if len(tags) > LimitMaxTags {
-		return ErrTooManyTags
+		return models.ErrTooManyTags
 	}
 
 	// Track and skip duplicate tags
@@ -465,7 +465,7 @@ func (h *SubdisceptoH) readView(ctx context.Context, userH *UserH) (*models.Subd
 }
 func (h *SubdisceptoH) ReadRaw(ctx context.Context) (*models.Subdiscepto, error) {
 	if !h.subPerms.ReadSubdiscepto {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	return readRawSub(ctx, h.sharedDB, h.rawSub.Name)
 }

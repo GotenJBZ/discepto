@@ -324,17 +324,17 @@ func TranslateErr(err error) AppError {
 		return appErr
 	}
 	badReqErr := []error{
-		db.ErrTooManyTags,
-		db.ErrBadContentLen,
-		db.ErrEmailAlreadyUsed,
-		db.ErrInvalidFormat,
-		db.ErrPermDenied,
-		db.ErrWeakPasswd,
+		models.ErrTooManyTags,
+		models.ErrBadContentLen,
+		models.ErrEmailAlreadyUsed,
+		models.ErrInvalidFormat,
+		models.ErrPermDenied,
+		models.ErrWeakPasswd,
 		strconv.ErrSyntax,
 	}
-	for _, dbErr := range badReqErr {
-		if err == dbErr {
-			return &ErrBadRequest{Cause: dbErr}
+	for _, brErr := range badReqErr {
+		if err == brErr {
+			return &ErrBadRequest{Cause: brErr}
 		}
 	}
 	if err != nil {
@@ -512,11 +512,11 @@ func (routes *Routes) PostSignup(w http.ResponseWriter, r *http.Request) {
 	errorMessage := ""
 	if err != nil {
 		switch err {
-		case db.ErrInvalidFormat:
+		case models.ErrInvalidFormat:
 			errorMessage = "Invalid email syntax"
-		case db.ErrEmailAlreadyUsed:
+		case models.ErrEmailAlreadyUsed:
 			errorMessage = "Email already used"
-		case db.ErrWeakPasswd:
+		case models.ErrWeakPasswd:
 			errorMessage =
 				`The password is too weak.
 The password must:

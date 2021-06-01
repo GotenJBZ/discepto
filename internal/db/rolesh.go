@@ -19,42 +19,42 @@ func (h *RolesH) Assign(ctx context.Context, toUser int, roleH RoleH) error {
 	if !h.rolesPerms.ManageRoles ||
 		!roleH.rolePerms.ManageRole ||
 		roleH.domain != h.domain {
-		return ErrPermDenied
+		return models.ErrPermDenied
 	}
 	newRolePerms, err := roleH.ListActivePerms(ctx)
 	if err != nil {
 		return err
 	}
 	if !isLowerRole(HigherRole(h.contextPerms), newRolePerms) {
-		return ErrPermDenied
+		return models.ErrPermDenied
 	}
 	return assignRole(ctx, h.sharedDB, toUser, roleH.id)
 }
 
 func (h *RolesH) Unassign(ctx context.Context, toUser int, roleH RoleH) error {
 	if !h.rolesPerms.ManageRoles || !roleH.rolePerms.ManageRole || roleH.domain != h.domain {
-		return ErrPermDenied
+		return models.ErrPermDenied
 	}
 	newRolePerms, err := roleH.ListActivePerms(ctx)
 	if err != nil {
 		return err
 	}
 	if !isLowerRole(HigherRole(h.contextPerms), newRolePerms) {
-		return ErrPermDenied
+		return models.ErrPermDenied
 	}
 	return unassignRole(ctx, h.sharedDB, toUser, roleH.id)
 }
 
 func (h *RolesH) ListRoles(ctx context.Context) ([]models.Role, error) {
 	if !h.rolesPerms.ManageRoles {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	return listRoles(ctx, h.sharedDB, h.domain)
 }
 
 func (h *RolesH) ListUserRoles(ctx context.Context, userID int) ([]models.Role, error) {
 	if !h.rolesPerms.ManageRoles {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	return listUserRoles(ctx, h.sharedDB, userID, h.domain)
 }
@@ -77,7 +77,7 @@ func (h *RolesH) UnassignAll(ctx context.Context, userID int) error {
 
 func (h *RolesH) CreateRole(ctx context.Context, roleName string) (*RoleH, error) {
 	if !h.rolesPerms.ManageRoles {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	role := models.Role{
 		Domain: h.domain,
@@ -103,7 +103,7 @@ func (h *RolesH) CreateRole(ctx context.Context, roleName string) (*RoleH, error
 
 func (h *RolesH) GetRoleH(ctx context.Context, roleName string) (*RoleH, error) {
 	if !h.rolesPerms.ManageRoles {
-		return nil, ErrPermDenied
+		return nil, models.ErrPermDenied
 	}
 	role, err := findRoleByName(ctx, h.sharedDB, h.domain, roleName)
 	if err != nil {

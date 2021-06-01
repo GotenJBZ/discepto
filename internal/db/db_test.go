@@ -103,8 +103,8 @@ func TestUser(t *testing.T) {
 		user *models.User
 		err  error
 	}{
-		{mockUser(), ErrEmailAlreadyUsed},
-		{user2, ErrInvalidFormat},
+		{mockUser(), models.ErrEmailAlreadyUsed},
+		{user2, models.ErrInvalidFormat},
 	}
 
 	for _, td := range testData {
