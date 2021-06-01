@@ -5,11 +5,12 @@ import (
 )
 
 type GlobalPerms struct {
-	Login             bool
-	CreateSubdiscepto bool
-	BanUserGlobally   bool
-	DeleteUser        bool
-	ManageGlobalRole  bool
+	Login               bool
+	CreateSubdiscepto   bool
+	BanUserGlobally     bool
+	UseLocalPermissions bool
+	DeleteUser          bool
+	ManageGlobalRole    bool
 	SubPerms
 }
 

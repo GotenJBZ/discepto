@@ -37,7 +37,7 @@ func (dH *DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH
 
 	subPerms := &models.SubPerms{}
 
-	if uH != nil {
+	if uH != nil && dH.globalPerms.UseLocalPermissions {
 		// First, try getting user's permissions
 		subPermsMap, err := getUserPerms(ctx, dH.sharedDB, h.rawSub.RoledomainID, uH.id)
 		if err != nil {

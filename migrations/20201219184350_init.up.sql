@@ -81,8 +81,10 @@ VALUES
 (-123, 'common_after_rejoin'),
 (-123, 'view_report'),
 (-123, 'delete_report'),
+(-123, 'use_local_permissions'),
 -- common
-(-100, 'login');
+(-100, 'login'),
+(-100, 'use_local_permissions');
 
 
 CREATE TABLE essays (
