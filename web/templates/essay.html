@@ -52,8 +52,10 @@
                                         </div>
                                         <div class="dropdown-menu" id="dropdown-menu">
                                             <div class="dropdown-content is-small">
+                                                {{ if .Perms.Check "delete_essay" }}
                                                 <a href="#" hx-post="/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}/report" class="dropdown-item has-text-danger">Report</a>
-                                                {{ if .Perms.DeleteEssay }}
+                                                {{ end }}
+                                                {{ if .Perms.Check "delete_essay" }}
                                                 <a href="#" hx-delete="/s/{{ .Essay.PostedIn }}/{{.Essay.ID}}" class="dropdown-item has-text-danger">Delete</a>
                                                 {{ end }}
                                             </div>
@@ -88,13 +90,25 @@
                                                 <i class="fa fa-heart " aria-hidden="true"></i>
                                             </span>
                                         </button>
-                                        <button hx-post="/s/{{.Essay.PostedIn}}/{{.Essay.ID}}/vote" hx-vals='{"vote": "upvote"}' hx-target="#essay-btns" hx-select="#essay-btns" hx-swap="outerHTML" class="button mr-3 is-white">
+                                        <button 
+                                        {{ if and .EssayUserDid.Vote.Valid (not (.Perms.Check "delete_vote")) }}
+                                            disabled
+                                        {{ else if not (.Perms.Check "create_vote")}}
+                                            disabled
+                                        {{ end }}
+                                        hx-post="/s/{{.Essay.PostedIn}}/{{.Essay.ID}}/vote" hx-vals='{"vote": "upvote"}' hx-target="#essay-btns" hx-select="#essay-btns" hx-swap="outerHTML" class="button mr-3 is-white">
                                             <span class="icon is-small">
                                                 <i class="fa fa-arrow-up {{ if eq .EssayUserDid.Vote.String "upvote" }} has-text-primary {{ end }} " aria-hidden="true"></i>
                                                 <p class="has-text-black">&nbsp;{{ .Essay.Upvotes }}</p>
                                             </span>
                                         </button>
-                                        <button hx-post="/s/{{.Essay.PostedIn}}/{{.Essay.ID}}/vote" hx-vals='{"vote": "downvote"}' hx-target="#essay-btns" hx-select="#essay-btns" hx-swap="outerHTML" class="button mr-3 is-white">
+                                        <button
+                                        {{ if and .EssayUserDid.Vote.Valid (not (.Perms.Check "delete_vote")) }}
+                                            disabled
+                                        {{ else if not (.Perms.Check "create_vote")}}
+                                            disabled
+                                        {{ end }}
+                                        hx-post="/s/{{.Essay.PostedIn}}/{{.Essay.ID}}/vote" hx-vals='{"vote": "downvote"}' hx-target="#essay-btns" hx-select="#essay-btns" hx-swap="outerHTML" class="button mr-3 is-white">
                                             <span class="icon is-small">
                                                 <i class="fa fa-arrow-down {{ if eq .EssayUserDid.Vote.String "downvote" }} has-text-primary {{ end }}" aria-hidden="true"></i>
                                                 <p class="has-text-black">&nbsp;{{ .Essay.Downvotes }}</p>
