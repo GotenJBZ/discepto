@@ -61,8 +61,6 @@ func (dH *DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH
 		return nil, err
 	}
 
-	subPerms = subPerms.Intersect(models.PermsSubAdmin) // remove unnecessary perms
-
 	rolesH := RolesH{
 		contextPerms: subPerms,
 		rolesPerms:   subPerms, // TODO: fix subPerms may contain only ManageGlobalRole

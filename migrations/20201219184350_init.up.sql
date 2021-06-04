@@ -85,6 +85,8 @@ VALUES
 (-123, 'create_vote'),
 (-123, 'delete_vote'),
 -- common
+(-100, 'create_vote'),
+(-100, 'delete_vote'),
 (-100, 'use_local_permissions');
 
 

@@ -120,7 +120,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd *model
 			sharedDB:     h.sharedDB,
 			rawSub:       rawSub,
 			RolesH:       rolesH,
-			subPerms:     models.PermsSubAdmin,
+			subPerms:     models.PermsSubAdmin.Union(h.Perms()),
 			notifService: h.notifService,
 		}
 

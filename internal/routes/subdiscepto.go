@@ -104,7 +104,7 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) {
 		routes.HandleErr(w, r, err)
 		return
 	}
-	
+
 	subName := chi.URLParam(r, "subdiscepto")
 	subH, err = disceptoH.GetSubdisceptoH(r.Context(), subName, userH)
 	if err != nil {

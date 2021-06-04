@@ -54,8 +54,6 @@ var PermsSubAdmin = NewPerms(
 	PermCreateReport,
 	PermViewReport,
 	PermDeleteReport,
-	PermCreateVote,
-	PermDeleteVote,
 )
 
 var PermsGlobalAdmin = NewPerms(
@@ -84,6 +82,8 @@ var PermsGlobalAdmin = NewPerms(
 
 var PermsGlobalCommon = NewPerms(
 	PermUseLocalPermissions,
+	PermCreateVote,
+	PermDeleteVote,
 )
 
 var PermsSubCommon = NewPerms(
@@ -91,8 +91,6 @@ var PermsSubCommon = NewPerms(
 	PermCreateEssay,
 	PermCommonAfterRejoin,
 	PermCreateReport,
-	PermCreateVote,
-	PermDeleteVote,
 )
 
 type MissingPerms struct {

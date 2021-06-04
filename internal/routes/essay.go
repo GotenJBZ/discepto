@@ -255,7 +255,7 @@ func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) {
 	esH := GetEssayH(r)
 	userDid, err := esH.GetUserDid(r.Context(), *userH)
 	if err != nil {
-		routes.HandleErr(w,r,err)
+		routes.HandleErr(w, r, err)
 	}
 
 	var vote models.VoteType
