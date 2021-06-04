@@ -253,6 +253,10 @@ func (routes *Routes) UpdateEssay(w http.ResponseWriter, r *http.Request) {
 func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
 	esH := GetEssayH(r)
+	userDid, err := esH.GetUserDid(r.Context(), *userH)
+	if err != nil {
+		routes.HandleErr(w,r,err)
+	}
 
 	var vote models.VoteType
 	switch r.FormValue("vote") {
@@ -262,11 +266,18 @@ func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) {
 		vote = models.VoteTypeDownvote
 	}
 
-	esH.DeleteVote(r.Context(), *userH)
-	err := esH.CreateVote(r.Context(), *userH, vote)
-	if err != nil {
-		routes.HandleErr(w, r, err)
-		return
+	if userDid.Vote.Valid {
+		err := esH.DeleteVote(r.Context(), *userH)
+		if err != nil {
+			routes.HandleErr(w, r, err)
+		}
+	}
+	if models.VoteType(userDid.Vote.String) != vote {
+		err = esH.CreateVote(r.Context(), *userH, vote)
+		if err != nil {
+			routes.HandleErr(w, r, err)
+			return
+		}
 	}
 
 	subdiscepto := chi.URLParam(r, "subdiscepto")
