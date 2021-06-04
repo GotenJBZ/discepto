@@ -344,54 +344,21 @@ func TestRoles(t *testing.T) {
 	// Check "admin" global role
 	globalPerms, err := getUserPerms(context.Background(), db.db, models.RoleDomainDiscepto, userH.id)
 	require.Nil(err)
-	require.Equal(models.GlobalPerms{
-		CreateSubdiscepto:   true,
-		UseLocalPermissions: true,
-		DeleteUser:          true,
-		BanUserGlobally:     true,
-		ManageGlobalRole:    true,
-		SubPerms: models.SubPerms{
-			ReadSubdiscepto:   true,
-			UpdateSubdiscepto: true,
-			CreateEssay:       true,
-			DeleteEssay:       true,
-			BanUser:           true,
-			DeleteSubdiscepto: true,
-			ChangeRanking:     true,
-			ManageRole:        true,
-			CommonAfterRejoin: true,
-			ViewReport:        true,
-			DeleteReport:      true,
-		},
-	}, models.GlobalPermsFromMap(globalPerms))
+	require.Equal(models.PermsGlobalAdmin, globalPerms)
 
 	// Check "common" global role
 	globalPerms2, err := getUserPerms(context.Background(), db.db, models.RoleDomainDiscepto, user2H.id)
 	require.Nil(err)
-	require.Equal(models.GlobalPerms{
-		UseLocalPermissions: true,
-		CreateSubdiscepto:   false,
-		DeleteUser:          false,
-		BanUserGlobally:     false,
-		ManageGlobalRole:    false,
-	}, models.GlobalPermsFromMap(globalPerms2))
+	require.Equal(models.PermsGlobalCommon, globalPerms2)
 
 	subPerms, err := getUserPerms(context.Background(), db.db, subH.RoleDomain(), userH.id)
-	require.Equal(models.SubPermsOwner, models.SubPermsFromMap(subPerms))
+	require.Equal(models.PermsSubAdmin, subPerms)
 	require.Nil(err)
 
 	// Check "common" sub role
 	subPerms2, err := getUserPerms(context.Background(), db.db, subH.RoleDomain(), user2H.id)
 	require.Nil(err)
-	require.Equal(models.SubPerms{
-		ReadSubdiscepto:   true,
-		CreateEssay:       true,
-		DeleteEssay:       false,
-		DeleteSubdiscepto: false,
-		BanUser:           false,
-		ManageRole:        false,
-		CommonAfterRejoin: true,
-	}, models.SubPermsFromMap(subPerms2))
+	require.Equal(models.PermsSubCommon, subPerms2)
 
 	// Remove "common" global role, banning the user
 	roleH, err := subH.GetRoleH(context.Background(), "common")
@@ -400,15 +367,7 @@ func TestRoles(t *testing.T) {
 	require.Nil(err)
 	subPerms2, err = getUserPerms(context.Background(), db.db, subH.RoleDomain(), user2H.id)
 	require.Nil(err)
-	require.Equal(models.SubPerms{
-		ReadSubdiscepto:   false,
-		CreateEssay:       false,
-		DeleteEssay:       false,
-		DeleteSubdiscepto: false,
-		BanUser:           false,
-		ManageRole:        false,
-		CommonAfterRejoin: false,
-	}, models.SubPermsFromMap(subPerms2))
+	require.Equal(models.NewPerms(), subPerms2)
 
 	// A banned user shouldn't be able to leave the subdiscepto without a trace.
 	// The membership track record must be kept, to ensure the user stays banned

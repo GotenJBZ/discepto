@@ -50,7 +50,7 @@
                                 <a href="{{.EssayView.ID}}">
                                     <button class="button is-info">View essay</button>
                                 </a>
-                                {{ if $.SubPerms.DeleteReport }}
+                                {{ if $.SubPerms.Check "delete_report" }}
                                 <button hx-delete="/s/{{.EssayView.PostedIn}}/reports/{{.ID}}" class="button is-danger is-outlined">Remove</button>
                                 {{ end }}
                             </div> 

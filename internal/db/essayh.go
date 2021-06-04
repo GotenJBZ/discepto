@@ -14,7 +14,7 @@ import (
 type EssayH struct {
 	sharedDB     DBTX
 	id           int
-	essayPerms   models.EssayPerms
+	essayPerms   models.Perms
 	notifService models.NotificationService
 }
 
@@ -55,12 +55,12 @@ var selectEssayWithJoins = selectEssay.
 	LeftJoin("votes ON votes.essay_id = essays.id").
 	LeftJoin("users ON essays.attributed_to_id = users.id")
 
-func (h *EssayH) Perms() models.EssayPerms {
+func (h *EssayH) Perms() models.Perms {
 	return h.essayPerms
 }
 func (h EssayH) ReadView(ctx context.Context) (*models.EssayView, error) {
-	if !h.essayPerms.Read {
-		return nil, models.ErrPermDenied
+	if err := h.essayPerms.Require(models.PermReadSubdiscepto); err != nil {
+		return nil, err
 	}
 	sql, args, _ := selectEssayWithJoins.
 		Where(sq.Eq{"essays.id": h.id}).
@@ -76,8 +76,8 @@ func (h EssayH) ReadView(ctx context.Context) (*models.EssayView, error) {
 }
 
 func (h EssayH) CountReplies(ctx context.Context) (map[string]int, error) {
-	if !h.essayPerms.Read {
-		return nil, models.ErrPermDenied
+	if err := h.essayPerms.Require(models.PermReadSubdiscepto); err != nil {
+		return nil, err
 	}
 	sql, args, _ := psql.Select("reply_type", "COUNT(reply_type)").
 		From("essay_replies").
@@ -105,8 +105,8 @@ func (h EssayH) ID() int {
 	return h.id
 }
 func (h EssayH) CreateReport(ctx context.Context, rep models.Report, userH UserH) error {
-	if !h.essayPerms.Read {
-		return models.ErrPermDenied
+	if err := h.essayPerms.Require(models.PermReadSubdiscepto); err != nil {
+		return err
 	}
 	if rep.EssayID != h.id || rep.FromUserID != userH.id {
 		return models.ErrPermDenied
@@ -126,8 +126,8 @@ func (h EssayH) CreateReport(ctx context.Context, rep models.Report, userH UserH
 	return nil
 }
 func (h EssayH) DeleteVote(ctx context.Context, uH UserH) error {
-	if !h.essayPerms.Read {
-		return models.ErrPermDenied
+	if err := h.essayPerms.Require(models.PermReadSubdiscepto); err != nil {
+		return err
 	}
 	sql, args, _ := psql.
 		Delete("votes").
@@ -138,9 +138,10 @@ func (h EssayH) DeleteVote(ctx context.Context, uH UserH) error {
 	return err
 }
 func (h EssayH) CreateVote(ctx context.Context, uH UserH, vote models.VoteType) error {
-	if !h.essayPerms.Read {
-		return models.ErrPermDenied
+	if err := h.essayPerms.Require(models.PermReadSubdiscepto); err != nil {
+		return err
 	}
+
 	sql, args, _ := psql.
 		Insert("votes").
 		Columns("user_id", "essay_id", "vote_type").
@@ -181,8 +182,8 @@ func (h EssayH) CreateVote(ctx context.Context, uH UserH, vote models.VoteType) 
 	return nil
 }
 func (h EssayH) DeleteEssay(ctx context.Context) error {
-	if !h.essayPerms.DeleteEssay {
-		return models.ErrPermDenied
+	if err := h.essayPerms.Require(models.PermDeleteEssay); err != nil {
+		return err
 	}
 	return h.deleteEssay(ctx)
 }

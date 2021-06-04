@@ -55,7 +55,7 @@ type RoleManager interface {
 	Unassign(ctx context.Context, toUser int, roleH db.RoleH) error
 	ListMembers(ctx context.Context) ([]models.Member, error)
 	ListRoles(ctx context.Context) ([]models.Role, error)
-	ListAvailablePerms() map[string]bool
+	ListAvailablePerms() models.Perms
 	GetRoleH(ctx context.Context, roleName string) (*db.RoleH, error)
 	CreateRole(ctx context.Context, roleName string) (*db.RoleH, error)
 }
@@ -119,14 +119,14 @@ func (routes *Routes) getRolePerms(w http.ResponseWriter, r *http.Request) {
 	availablePerms := roleManager.ListAvailablePerms()
 	routes.tmpls.RenderHTML(w, "permissions", struct {
 		RoleName       string
-		AvailablePerms map[string]bool
-		ActivePerms    map[string]bool
-		RolePerms      db.RolePerms
+		AvailablePerms models.Perms
+		ActivePerms    models.Perms
+		RoleH          *db.RoleH
 	}{
 		RoleName:       roleName,
 		AvailablePerms: availablePerms,
 		ActivePerms:    activePerms,
-		RolePerms:      roleH.Perms(),
+		RoleH:          roleH,
 	})
 	return
 }
@@ -134,11 +134,15 @@ func (routes *Routes) putRolePerms(w http.ResponseWriter, r *http.Request) {
 	roleManager := GetRoleManager(r)
 
 	r.ParseForm()
-	perms := map[string]bool{}
-	for k, v := range r.Form {
-		if v[0] == "on" {
-			perms[k] = true
+	var perms models.Perms
+	{
+		tmpPerms := []models.Perm{}
+		for k, v := range r.Form {
+			if v[0] == "on" {
+				tmpPerms = append(tmpPerms, models.Perm(k))
+			}
 		}
+		perms = models.NewPerms(tmpPerms...)
 	}
 	roleH, err := roleManager.GetRoleH(r.Context(), chi.URLParam(r, "roleName"))
 	if err != nil {

@@ -6,33 +6,28 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
-type RolePerms struct {
-	ManageRole bool
-	UpdateRole bool
-	DeleteRole bool
-}
 type RoleH struct {
-	id        int
-	name      string
-	domain    models.RoleDomain
-	rolePerms RolePerms
-	sharedDB  DBTX
+	id       int
+	name     string
+	preset   bool
+	domain   models.RoleDomain
+	sharedDB DBTX
 }
 
-func (h *RoleH) ListActivePerms(ctx context.Context) (map[string]bool, error) {
+func (h *RoleH) ListActivePerms(ctx context.Context) (models.Perms, error) {
 	return listRolePerms(ctx, h.sharedDB, h.id)
 }
-func (h *RoleH) UpdatePerms(ctx context.Context, perms map[string]bool) error {
-	if !h.rolePerms.UpdateRole {
-		return models.ErrPermDenied
+func (h *RoleH) UpdatePerms(ctx context.Context, perms models.Perms) error {
+	if h.preset {
+		return models.ErrRolePreset
 	}
 	return setPermissions(ctx, h.sharedDB, h.id, perms)
 }
-func (h *RoleH) Perms() RolePerms {
-	return h.rolePerms
+func (h *RoleH) CanEdit() bool {
+	return !h.preset
 }
 func (h *RoleH) DeleteRole(ctx context.Context) error {
-	if !h.rolePerms.DeleteRole {
+	if h.preset {
 		return models.ErrPermDenied
 	}
 	return deleteRole(ctx, h.sharedDB, h.id)

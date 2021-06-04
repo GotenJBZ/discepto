@@ -71,6 +71,7 @@ func formatTime(args ...interface{}) template.HTML {
 func now(args ...interface{}) time.Time {
 	return time.Now()
 }
+
 func (tmpls *Templates) loadFromDisk() {
 	tmpls.templates = template.Must(
 		template.New("").

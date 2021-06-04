@@ -85,7 +85,7 @@ func findRoleByName(ctx context.Context, db DBTX, domain models.RoleDomain, name
 	role.Domain = domain
 	return &role, nil
 }
-func listRolePerms(ctx context.Context, db DBTX, roleID int) (map[string]bool, error) {
+func listRolePerms(ctx context.Context, db DBTX, roleID int) (models.Perms, error) {
 	sql, args, _ := psql.Select("permission").
 		From("role_perms").
 		Where(sq.Eq{"role_id": roleID}).
@@ -96,19 +96,19 @@ func listRolePerms(ctx context.Context, db DBTX, roleID int) (map[string]bool, e
 		return nil, err
 	}
 
-	roles := map[string]bool{}
+	perms := []models.Perm{}
 	for rows.Next() {
 		perm := ""
 		err := rows.Scan(&perm)
 		if err != nil {
 			return nil, err
 		}
-		roles[perm] = true
+		perms = append(perms, models.Perm(perm))
 	}
-	return roles, err
+	return models.NewPerms(perms...), err
 }
 
-func getUserPerms(ctx context.Context, db DBTX, domain models.RoleDomain, userID int) (map[string]bool, error) {
+func getUserPerms(ctx context.Context, db DBTX, domain models.RoleDomain, userID int) (models.Perms, error) {
 	sql, args, _ := psql.Select("permission").
 		From("user_roles").
 		Join("role_perms ON user_roles.role_id = role_perms.role_id").
@@ -121,16 +121,16 @@ func getUserPerms(ctx context.Context, db DBTX, domain models.RoleDomain, userID
 		return nil, err
 	}
 
-	res := map[string]bool{}
+	arrPerms := []models.Perm{}
 	for rows.Next() {
 		perm := ""
 		err := rows.Scan(&perm)
 		if err != nil {
 			return nil, err
 		}
-		res[perm] = true
+		arrPerms = append(arrPerms, models.Perm(perm))
 	}
-	return res, nil
+	return models.NewPerms(arrPerms...), nil
 }
 
 func assignRole(ctx context.Context, db DBTX, userID int, roleID int) error {
@@ -150,7 +150,7 @@ func unassignRole(ctx context.Context, db DBTX, userID int, roleID int) error {
 	return nil
 }
 
-func createRole(ctx context.Context, db DBTX, role models.Role, m map[string]bool) (int, error) {
+func createRole(ctx context.Context, db DBTX, role models.Role, m models.Perms) (int, error) {
 	rowID := -1
 	err := execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
 		sql, args, _ := psql.
@@ -174,7 +174,7 @@ func createRole(ctx context.Context, db DBTX, role models.Role, m map[string]boo
 	})
 	return rowID, err
 }
-func setPermissions(ctx context.Context, db DBTX, roleID int, perms map[string]bool) error {
+func setPermissions(ctx context.Context, db DBTX, roleID int, perms models.Perms) error {
 	sql, args, _ := psql.
 		Delete("role_perms").
 		Where(sq.Eq{"role_id": roleID}).
@@ -188,10 +188,8 @@ func setPermissions(ctx context.Context, db DBTX, roleID int, perms map[string]b
 		Insert("role_perms").
 		Columns("role_id", "permission")
 
-	for perm, v := range perms {
-		if v {
-			q = q.Values(roleID, perm)
-		}
+	for perm := range perms {
+		q = q.Values(roleID, perm)
 	}
 	sql, args, _ = q.ToSql()
 	_, err = db.Exec(ctx, sql, args...)

@@ -23,7 +23,7 @@
                     <div class="level-right">
                         <div class="level-item">
                                 {{ with .SubPerms }}
-                                {{ if or .ManageRole .UpdateSubdiscepto }}
+                                {{ if or (.Check "manage_role") (.Check "update_subdiscepto") }}
                                 <a class="button is-fullwidth is-rounded" href="/s/{{ $.Name }}/settings">
                                     <span class="icon">
                                         <i class="fas fa-cog"></i>
@@ -55,7 +55,7 @@
                                 <a href="/newessay?subdiscepto={{ .Name}}">
                                     <input class="input is-primary" type="text" placeholder="Write an essay" 
                                     {{ with .SubPerms }}
-                                    {{ if not .CreateEssay }}disabled{{end}}
+                                    {{ if not (.Check "create_essay") }}disabled{{end}}
                                     {{ end }}
                                     >
                                 </a>

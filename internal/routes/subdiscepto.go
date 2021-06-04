@@ -88,7 +88,7 @@ func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		GlobalPerms models.GlobalPerms
+		GlobalPerms models.Perms
 		Subs        []models.SubdisceptoView
 	}{
 		GlobalPerms: disceptoH.Perms(),
@@ -140,7 +140,7 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) {
 		Essays          []models.EssayView
 		IsMember        bool
 		SubdisceptoList []string
-		SubPerms        models.SubPerms
+		SubPerms        models.Perms
 	}{
 		SubdisceptoView: subData,
 		Essays:          essays,

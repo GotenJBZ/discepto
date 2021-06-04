@@ -14,7 +14,7 @@ CREATE TABLE roledomains (
 CREATE TABLE subdisceptos (
 	name varchar(50) PRIMARY KEY,
 	description varchar(500) NOT NULL,
-	roledomain_id int NOT NULL REFERENCES roledomains(id) ON DELETE CASCADE,
+	roledomain_id int NOT NULL UNIQUE REFERENCES roledomains(id) ON DELETE CASCADE,
 	min_length int NOT NULL,
 	questions_required boolean NOT NULL,
 	public boolean NOT NULL,

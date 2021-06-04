@@ -23,7 +23,7 @@ func (routes *Routes) GetReports(w http.ResponseWriter, r *http.Request) {
 	}
 	routes.tmpls.RenderHTML(w, "reports", struct {
 		Reports  []models.ReportView
-		SubPerms models.SubPerms
+		SubPerms models.Perms
 	}{
 		reports,
 		subH.Perms(),

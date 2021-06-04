@@ -133,7 +133,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) {
 		Sources         []string
 		EssayUserDid    *models.EssayUserDid
 		SubdisceptoList []string
-		Perms           models.EssayPerms
+		Perms           models.Perms
 		User            *models.UserView
 	}{
 		Subdiscepto:     subData,

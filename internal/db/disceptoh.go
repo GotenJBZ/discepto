@@ -12,37 +12,46 @@ import (
 )
 
 type DisceptoH struct {
-	RolesH
+	*RolesH
 	sharedDB     DBTX
-	globalPerms  models.GlobalPerms
+	globalPerms  models.Perms
 	notifService models.NotificationService
 }
 
 func (sdb *SharedDB) GetDisceptoH(ctx context.Context, uH *UserH) (*DisceptoH, error) {
-	globalPerms := models.GlobalPerms{}
+	globalPerms := models.NewPerms()
 	if uH != nil {
 		perms, err := getUserPerms(ctx, sdb.db, models.RoleDomainDiscepto, uH.id)
 		if err != nil {
 			return nil, err
 		}
-		globalPerms = models.GlobalPermsFromMap(perms)
-		if err != nil {
-			return nil, err
-		}
+		globalPerms = perms
 	}
-	rolesH := RolesH{
-		contextPerms: globalPerms.ToBoolMap(),
-		rolesPerms: struct {
-			ManageRoles bool
-		}{globalPerms.ManageGlobalRole},
-		domain:   models.RoleDomainDiscepto,
-		sharedDB: sdb.db,
-	}
+
 	notifService := NewNotificationService(sdb.db)
-	return &DisceptoH{globalPerms: globalPerms, RolesH: rolesH, sharedDB: sdb.db, notifService: notifService}, nil
+	dH := &DisceptoH{globalPerms: globalPerms, sharedDB: sdb.db, notifService: notifService}
+	var err error
+	rolesH, err := dH.buildRolesH()
+	if err == nil {
+		dH.RolesH = rolesH
+	}
+	return dH, nil
 }
 
-func (h *DisceptoH) Perms() models.GlobalPerms {
+func (h *DisceptoH) buildRolesH() (*RolesH, error) {
+	if err := h.globalPerms.Require(models.PermManageGlobalRole); err != nil {
+		return nil, err
+	}
+	ps := models.NewPerms(models.PermManageRole)
+	rolesH := &RolesH{
+		contextPerms: h.globalPerms,
+		rolesPerms:   ps,
+		domain:       models.RoleDomainDiscepto,
+		sharedDB:     h.sharedDB,
+	}
+	return rolesH, nil
+}
+func (h *DisceptoH) Perms() models.Perms {
 	return h.globalPerms
 }
 func (h *DisceptoH) ListMembers(ctx context.Context) ([]models.Member, error) {
@@ -69,8 +78,8 @@ func (h *DisceptoH) ReadPublicUser(ctx context.Context, userID int) (*models.Use
 }
 
 func (h *DisceptoH) CreateSubdiscepto(ctx context.Context, uH UserH, sub *models.SubdisceptoReq) (*SubdisceptoH, error) {
-	if !h.globalPerms.CreateSubdiscepto {
-		return nil, models.ErrPermDenied
+	if err := h.globalPerms.Require(models.PermCreateSubdiscepto); err != nil {
+		return nil, err
 	}
 	r := regexp.MustCompile("^\\w+$")
 	if !r.Match([]byte(sub.Name)) {
@@ -78,8 +87,8 @@ func (h *DisceptoH) CreateSubdiscepto(ctx context.Context, uH UserH, sub *models
 	}
 	return h.createSubdiscepto(ctx, uH, sub)
 }
-func (h *DisceptoH) ListAvailablePerms() map[string]bool {
-	return models.GlobalPerms{}.ToBoolMap()
+func (h *DisceptoH) ListAvailablePerms() models.Perms {
+	return models.PermsGlobalAdmin
 }
 func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd *models.SubdisceptoReq) (*SubdisceptoH, error) {
 	firstUserID := uH.id
@@ -102,8 +111,8 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd *model
 
 		// Init subH
 		rolesH := RolesH{
-			contextPerms: models.SubPermsOwner.ToBoolMap(),
-			rolesPerms:   struct{ ManageRoles bool }{true},
+			contextPerms: models.PermsSubAdmin,
+			rolesPerms:   models.PermsSubAdmin,
 			domain:       roledomain,
 			sharedDB:     h.sharedDB,
 		}
@@ -111,7 +120,7 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd *model
 			sharedDB:     h.sharedDB,
 			rawSub:       rawSub,
 			RolesH:       rolesH,
-			subPerms:     models.SubPermsOwner,
+			subPerms:     models.PermsSubAdmin,
 			notifService: h.notifService,
 		}
 
@@ -128,35 +137,31 @@ func (h *DisceptoH) createSubdiscepto(ctx context.Context, uH UserH, subd *model
 		// init roles
 		roles := []struct {
 			roleData models.Role
-			perms    models.SubPerms
+			perms    models.Perms
 			assign   bool
 		}{
 			{
 				models.Role{Name: "common", Preset: false},
-				models.SubPerms{
-					ReadSubdiscepto:   true,
-					CreateEssay:       true,
-					CommonAfterRejoin: true,
-				},
+				models.PermsSubCommon,
 				true,
 			},
 			{
 				models.Role{Name: "common-after-rejoin", Preset: true},
-				models.SubPerms{
-					CommonAfterRejoin: true,
-				},
+				models.NewPerms(
+					models.PermCommonAfterRejoin,
+				),
 				false,
 			},
 			{
 				models.Role{Name: "admin", Preset: true},
-				models.SubPermsOwner,
+				models.PermsSubAdmin,
 				true,
 			},
 		}
 
 		for _, r := range roles {
 			r.roleData.Domain = roledomain
-			roleID, err := createRole(ctx, tx, r.roleData, r.perms.ToBoolMap())
+			roleID, err := createRole(ctx, tx, r.roleData, r.perms)
 			if err != nil {
 				return err
 			}

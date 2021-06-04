@@ -7,55 +7,59 @@ import (
 )
 
 type RolesH struct {
-	contextPerms map[string]bool
-	rolesPerms   struct {
-		ManageRoles bool
-	}
-	domain   models.RoleDomain
-	sharedDB DBTX
+	contextPerms models.Perms
+	rolesPerms   models.Perms
+	domain       models.RoleDomain
+	sharedDB     DBTX
 }
 
 func (h *RolesH) Assign(ctx context.Context, toUser int, roleH RoleH) error {
-	if !h.rolesPerms.ManageRoles ||
-		!roleH.rolePerms.ManageRole ||
-		roleH.domain != h.domain {
+	if err := h.rolesPerms.Require(models.PermManageRole); err != nil {
+		return err
+	}
+	if roleH.domain != h.domain {
 		return models.ErrPermDenied
 	}
 	newRolePerms, err := roleH.ListActivePerms(ctx)
 	if err != nil {
 		return err
 	}
-	if !isLowerRole(HigherRole(h.contextPerms), newRolePerms) {
-		return models.ErrPermDenied
+	if err := h.contextPerms.RequirePerms(newRolePerms); err != nil {
+		return err
 	}
 	return assignRole(ctx, h.sharedDB, toUser, roleH.id)
 }
 
 func (h *RolesH) Unassign(ctx context.Context, toUser int, roleH RoleH) error {
-	if !h.rolesPerms.ManageRoles || !roleH.rolePerms.ManageRole || roleH.domain != h.domain {
+	if err := h.rolesPerms.Require(models.PermManageRole); err != nil {
+		return err
+	}
+	if roleH.domain != h.domain {
 		return models.ErrPermDenied
 	}
 	newRolePerms, err := roleH.ListActivePerms(ctx)
 	if err != nil {
 		return err
 	}
-	if !isLowerRole(HigherRole(h.contextPerms), newRolePerms) {
-		return models.ErrPermDenied
+	if err := h.contextPerms.RequirePerms(newRolePerms); err != nil {
+		return err
 	}
 	return unassignRole(ctx, h.sharedDB, toUser, roleH.id)
 }
 
 func (h *RolesH) ListRoles(ctx context.Context) ([]models.Role, error) {
-	if !h.rolesPerms.ManageRoles {
-		return nil, models.ErrPermDenied
+	if err := h.rolesPerms.Require(models.PermManageRole); err != nil {
+		return nil, err
 	}
+
 	return listRoles(ctx, h.sharedDB, h.domain)
 }
 
 func (h *RolesH) ListUserRoles(ctx context.Context, userID int) ([]models.Role, error) {
-	if !h.rolesPerms.ManageRoles {
-		return nil, models.ErrPermDenied
+	if err := h.rolesPerms.Require(models.PermManageRole); err != nil {
+		return nil, err
 	}
+
 	return listUserRoles(ctx, h.sharedDB, userID, h.domain)
 }
 
@@ -76,15 +80,15 @@ func (h *RolesH) UnassignAll(ctx context.Context, userID int) error {
 }
 
 func (h *RolesH) CreateRole(ctx context.Context, roleName string) (*RoleH, error) {
-	if !h.rolesPerms.ManageRoles {
-		return nil, models.ErrPermDenied
+	if err := h.rolesPerms.Require(models.PermManageRole); err != nil {
+		return nil, err
 	}
 	role := models.Role{
 		Domain: h.domain,
 		Name:   roleName,
 		Preset: false,
 	}
-	id, err := createRole(ctx, h.sharedDB, role, map[string]bool{})
+	id, err := createRole(ctx, h.sharedDB, role, models.NewPerms())
 	if err != nil {
 		return nil, err
 	}
@@ -92,39 +96,30 @@ func (h *RolesH) CreateRole(ctx context.Context, roleName string) (*RoleH, error
 		id:       id,
 		name:     roleName,
 		domain:   h.domain,
+		preset:   false,
 		sharedDB: h.sharedDB,
-		rolePerms: RolePerms{
-			ManageRole: true,
-			UpdateRole: !role.Preset,
-			DeleteRole: !role.Preset,
-		},
 	}, nil
 }
 
 func (h *RolesH) GetRoleH(ctx context.Context, roleName string) (*RoleH, error) {
-	if !h.rolesPerms.ManageRoles {
-		return nil, models.ErrPermDenied
+	if err := h.rolesPerms.Require(models.PermManageRole); err != nil {
+		return nil, err
 	}
 	role, err := findRoleByName(ctx, h.sharedDB, h.domain, roleName)
 	if err != nil {
 		return nil, err
 	}
-	perms, err := listRolePerms(ctx, h.sharedDB, role.ID)
+	_, err = listRolePerms(ctx, h.sharedDB, role.ID)
 	if err != nil {
 		return nil, err
 	}
-	permManageRole := isLowerRole(HigherRole(h.contextPerms), perms)
 
 	return &RoleH{
 		id:       role.ID,
 		name:     role.Name,
+		preset:   role.Preset,
 		domain:   h.domain,
 		sharedDB: h.sharedDB,
-		rolePerms: RolePerms{
-			ManageRole: permManageRole,
-			UpdateRole: !role.Preset,
-			DeleteRole: !role.Preset,
-		},
 	}, nil
 }
 

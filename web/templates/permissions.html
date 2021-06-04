@@ -14,7 +14,7 @@
                         </div>
                     </div>
                     <div class="level-right">
-                        {{ if .RolePerms.DeleteRole }}
+                        {{ if .RoleH.CanEdit }}
                         <button hx-delete="{{ .RoleName }}" class="button is-danger is-outlined">
                             Delete role
                         </button>
@@ -33,8 +33,8 @@
                             <div class="field is-narrow">
                               <div class="control">
                                 <label class="radio">
-                                    <input type="radio" name="{{ $k }}" value="on" 
-                                    {{ if (index $.ActivePerms $k) }}
+                                    <input type="radio" name="{{ $k }}" value="on"
+                                    {{ if $.ActivePerms.Check $k }}
                                             checked
                                     {{ end }}
                                     >
@@ -42,7 +42,7 @@
                                 </label>
                                 <label class="radio">
                                     <input type="radio" name="{{ $k }}" value="off"
-                                    {{ if not (index $.ActivePerms $k) }}
+                                    {{ if not ($.ActivePerms.Check $k) }}
                                             checked
                                     {{ end }}
                                     >
@@ -53,7 +53,7 @@
                           </div>
                         </div>
                     {{ end }}
-                    {{ if .RolePerms.UpdateRole }}
+                    {{ if .RoleH.CanEdit }}
                     <div class="is-relative">
                         <style>
                             .htmx-indicator.is-overlay {

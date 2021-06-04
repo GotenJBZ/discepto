@@ -12,7 +12,7 @@
             </div>
             <div class="columns is-multiline">
                 {{ with .GlobalPerms }}
-                {{ if .CreateSubdiscepto }}
+                {{ if .Check "create_subdiscepto" }}
                 <div class="column is-4 is-flex">
                         <a href="/newsubdiscepto" style="min-height: 100px; height: 100%" class="button is-medium is-fullwidth">
                             <span class="icon">
