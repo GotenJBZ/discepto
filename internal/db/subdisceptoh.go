@@ -185,20 +185,22 @@ func (h *SubdisceptoH) RemoveMember(ctx context.Context, userH UserH) error {
 		if err != nil {
 			return err
 		}
-		rolesH := h.RolesH.withTx(tx)
+		rolesH := newUnsafeRolesH(h.sharedDB, h.subPerms, h.domain).withTx(tx)
 		err = rolesH.UnassignAll(ctx, userH.id)
 		if err != nil {
 			return err
 		}
 		if err := h.subPerms.Require(models.PermCommonAfterRejoin); err == nil {
-			commonRole, err := rolesH.GetRoleH(ctx, "common-after-rejoin")
-			if err == nil {
-				return rolesH.Assign(ctx, userH.id, *commonRole)
+			commonAfterRejoin, err := rolesH.GetRoleH(ctx, "common-after-rejoin")
+			if err != nil {
+				return err
 			}
+			return rolesH.Assign(ctx, userH.id, *commonAfterRejoin)
 		}
 		return nil
 	})
 }
+
 func (h *SubdisceptoH) ListReports(ctx context.Context) ([]models.ReportView, error) {
 	if err := h.subPerms.Require(models.PermViewReport); err != nil {
 		return nil, err

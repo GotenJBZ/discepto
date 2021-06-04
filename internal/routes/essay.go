@@ -144,7 +144,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) {
 		Replies:         replies,
 		RepliesCount:    repliesCount,
 		FilterReplyType: filter,
-		Perms:           esH.Perms(),
+		Perms:           esH.Perms().Union(subH.Perms()),
 		User:            user,
 	}
 

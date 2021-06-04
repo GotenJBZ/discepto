@@ -13,6 +13,15 @@ type RolesH struct {
 	sharedDB     DBTX
 }
 
+func newUnsafeRolesH(db DBTX, perms models.Perms, domain models.RoleDomain) *RolesH {
+	return &RolesH{
+		contextPerms: perms,
+		rolesPerms:   models.NewPerms(models.PermManageRole),
+		domain:       domain,
+		sharedDB:     db,
+	}
+}
+
 func (h *RolesH) Assign(ctx context.Context, toUser int, roleH RoleH) error {
 	if err := h.rolesPerms.Require(models.PermManageRole); err != nil {
 		return err
@@ -64,19 +73,10 @@ func (h *RolesH) ListUserRoles(ctx context.Context, userID int) ([]models.Role, 
 }
 
 func (h *RolesH) UnassignAll(ctx context.Context, userID int) error {
-	return execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
-		roles, err := listUserRoles(ctx, tx, userID, h.domain)
-		if err != nil {
-			return err
-		}
-		for _, role := range roles {
-			err := unassignRole(ctx, tx, userID, role.ID)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+	if err := h.rolesPerms.Require(models.PermManageRole); err != nil {
+		return err
+	}
+	return unassignAll(ctx, h.sharedDB, userID, h.domain)
 }
 
 func (h *RolesH) CreateRole(ctx context.Context, roleName string) (*RoleH, error) {

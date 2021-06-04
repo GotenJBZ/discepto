@@ -149,6 +149,21 @@ func unassignRole(ctx context.Context, db DBTX, userID int, roleID int) error {
 	}
 	return nil
 }
+func unassignAll(ctx context.Context, db DBTX, userID int, domain models.RoleDomain) error {
+	return execTx(ctx, db, func(ctx context.Context, tx DBTX) error {
+		roles, err := listUserRoles(ctx, tx, userID, domain)
+		if err != nil {
+			return err
+		}
+		for _, role := range roles {
+			err := unassignRole(ctx, tx, userID, role.ID)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
 
 func createRole(ctx context.Context, db DBTX, role models.Role, m models.Perms) (int, error) {
 	rowID := -1
