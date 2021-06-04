@@ -105,7 +105,7 @@ func (h EssayH) ID() int {
 	return h.id
 }
 func (h EssayH) CreateReport(ctx context.Context, rep models.Report, userH UserH) error {
-	if err := h.essayPerms.Require(models.PermReadSubdiscepto); err != nil {
+	if err := h.essayPerms.Require(models.PermCreateReport); err != nil {
 		return err
 	}
 	if rep.EssayID != h.id || rep.FromUserID != userH.id {
@@ -126,7 +126,7 @@ func (h EssayH) CreateReport(ctx context.Context, rep models.Report, userH UserH
 	return nil
 }
 func (h EssayH) DeleteVote(ctx context.Context, uH UserH) error {
-	if err := h.essayPerms.Require(models.PermReadSubdiscepto); err != nil {
+	if err := h.essayPerms.Require(models.PermDeleteVote); err != nil {
 		return err
 	}
 	sql, args, _ := psql.
@@ -138,7 +138,7 @@ func (h EssayH) DeleteVote(ctx context.Context, uH UserH) error {
 	return err
 }
 func (h EssayH) CreateVote(ctx context.Context, uH UserH, vote models.VoteType) error {
-	if err := h.essayPerms.Require(models.PermReadSubdiscepto); err != nil {
+	if err := h.essayPerms.Require(models.PermCreateVote); err != nil {
 		return err
 	}
 

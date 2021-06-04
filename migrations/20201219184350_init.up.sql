@@ -78,9 +78,12 @@ VALUES
 (-123, 'ban_user'),
 (-123, 'manage_role'),
 (-123, 'common_after_rejoin'),
+(-123, 'create_report'),
 (-123, 'view_report'),
 (-123, 'delete_report'),
 (-123, 'use_local_permissions'),
+(-123, 'create_vote'),
+(-123, 'delete_vote'),
 -- common
 (-100, 'use_local_permissions');
 

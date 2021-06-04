@@ -29,6 +29,7 @@ const (
 	PermDeleteEssay         Perm = "delete_essay"
 	PermChangeRanking       Perm = "change_ranking"
 	PermCommonAfterRejoin   Perm = "common_after_rejoin"
+	PermCreateReport        Perm = "create_report"
 	PermViewReport          Perm = "view_report"
 	PermDeleteReport        Perm = "delete_report"
 	PermUseLocalPermissions Perm = "use_local_permissions"
@@ -36,6 +37,8 @@ const (
 	PermManageRole          Perm = "manage_role"
 	PermBanUserGlobally     Perm = "ban_user_globally"
 	PermBanUser             Perm = "ban_user"
+	PermCreateVote          Perm = "create_vote"
+	PermDeleteVote          Perm = "delete_vote"
 )
 
 var PermsSubAdmin = NewPerms(
@@ -48,8 +51,11 @@ var PermsSubAdmin = NewPerms(
 	PermDeleteSubdiscepto,
 	PermManageRole,
 	PermCommonAfterRejoin,
+	PermCreateReport,
 	PermViewReport,
 	PermDeleteReport,
+	PermCreateVote,
+	PermDeleteVote,
 )
 
 var PermsGlobalAdmin = NewPerms(
@@ -64,6 +70,7 @@ var PermsGlobalAdmin = NewPerms(
 	PermDeleteSubdiscepto,
 	PermManageRole,
 	PermCommonAfterRejoin,
+	PermCreateReport,
 	PermViewReport,
 	PermDeleteReport,
 	PermManageGlobalRole,
@@ -71,6 +78,8 @@ var PermsGlobalAdmin = NewPerms(
 	PermManageGlobalRole,
 	PermDeleteUser,
 	PermUseLocalPermissions,
+	PermCreateVote,
+	PermDeleteVote,
 )
 
 var PermsGlobalCommon = NewPerms(
@@ -81,6 +90,9 @@ var PermsSubCommon = NewPerms(
 	PermReadSubdiscepto,
 	PermCreateEssay,
 	PermCommonAfterRejoin,
+	PermCreateReport,
+	PermCreateVote,
+	PermDeleteVote,
 )
 
 type MissingPerms struct {
