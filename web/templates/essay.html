@@ -153,7 +153,7 @@
                         <span id="tab-loader" style="right: 20px; left: auto" class="is-overlay icon is-medium htmx-indicator loader"></span>
                     </div>
 
-                    <div class="box block" id="newessay-btn">
+                    <div class="box block">
                         <article class="media">
                             <figure class="media-left">
                                 <p class="image is-64x64">
@@ -164,7 +164,11 @@
                                 <div class="content">
                                     <p class="title is-7"></p>
                                     <a href="/newessay?inReplyTo={{ .Essay.ID }}&subdiscepto={{ .Essay.PostedIn }}">
-                                        <input class="input is-primary" type="text" placeholder="Write an essay">
+                                        <input id="create-essay-input" class="input is-primary" type="text" placeholder="Write an essay"
+                                    {{ with .Perms }}
+                                    {{ if not (.Check "create_essay") }}disabled{{end}}
+                                    {{ end }}
+                                        >
                                     </a>
                                 </div>
 
@@ -198,7 +202,7 @@
                 {{ template "userCard" . }}
                 {{ template "subdisceptoCard" .Subdiscepto }}
 
-                <div class="card">
+                <div id="my-communities" class="card">
                     <nav class="panel is-primary">
                         <p class="panel-heading ">Your Communities</p>
                         {{ $length := len .SubdisceptoList }} {{ if eq $length 0 }}

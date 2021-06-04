@@ -42,7 +42,7 @@
 
         <div class="columns mr-2 ml-2">
             <div class="column is-8 is-fluid">
-                <div class="box block" id="newessay-btn">
+                <div class="box block" >
                     <article class="media">
                         <figure class="media-left">
                             <p class="image is-64x64">
@@ -53,7 +53,7 @@
                             <div class="content">
                                 <p class="title is-7"></p>
                                 <a href="/newessay?subdiscepto={{ .Name}}">
-                                    <input class="input is-primary" type="text" placeholder="Write an essay" 
+                                    <input id="create-essay-input" hx-swap-oob="true" class="input is-primary" type="text" placeholder="Write an essay" 
                                     {{ with .SubPerms }}
                                     {{ if not (.Check "create_essay") }}disabled{{end}}
                                     {{ end }}
@@ -70,7 +70,7 @@
             </div>
             <div class="column is-4 is-fluid">
                 {{ template "subdisceptoCard" . }}
-                <div class="card events-card">
+                <div id="my-communities" hx-swap-oob="true" class="card">
                     <nav class="panel is-primary">
                         <p class="panel-heading ">Your Communities</p>
 

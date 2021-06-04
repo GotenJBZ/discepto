@@ -10,6 +10,13 @@ import (
 	"gitlab.com/ranfdev/discepto/internal/utils"
 )
 
+type SubdisceptoPageData struct {
+	*models.SubdisceptoView
+	Essays          []models.EssayView
+	SubdisceptoList []string
+	SubPerms        models.Perms
+}
+
 func (routes *Routes) SubdisceptoRouter(r chi.Router) {
 	r.Get("/", routes.GetSubdisceptos)
 	r.With(routes.EnforceCtx(UserHCtxKey)).Post("/", routes.PostSubdiscepto)
@@ -45,6 +52,7 @@ func (routes *Routes) SubdiscpetoCtx(next http.Handler) http.Handler {
 }
 func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
+	disceptoH := GetDisceptoH(r)
 	subH := GetSubdisceptoH(r)
 
 	err := subH.RemoveMember(r.Context(), *userH)
@@ -58,11 +66,27 @@ func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) {
 		routes.HandleErr(w, r, err)
 		return
 	}
-	routes.tmpls.RenderHTML(w, "subdisceptoCard", sub)
+	subs, err := userH.ListMySubdisceptos(r.Context())
+	if err != nil {
+		routes.HandleErr(w, r, err)
+		return
+	}
+	subName := chi.URLParam(r, "subdiscepto")
+	subH, err = disceptoH.GetSubdisceptoH(r.Context(), subName, userH)
+	if err != nil {
+		routes.HandleErr(w, r, err)
+	}
+	routes.tmpls.RenderHTML(w, "subdiscepto", SubdisceptoPageData{
+		SubdisceptoView: sub,
+		Essays:          []models.EssayView{},
+		SubdisceptoList: subs,
+		SubPerms:        subH.Perms(),
+	})
 	return
 }
 func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
+	disceptoH := GetDisceptoH(r)
 	subH := GetSubdisceptoH(r)
 
 	err := subH.AddMember(r.Context(), *userH)
@@ -75,7 +99,23 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) {
 		routes.HandleErr(w, r, err)
 		return
 	}
-	routes.tmpls.RenderHTML(w, "subdisceptoCard", sub)
+	subs, err := userH.ListMySubdisceptos(r.Context())
+	if err != nil {
+		routes.HandleErr(w, r, err)
+		return
+	}
+	
+	subName := chi.URLParam(r, "subdiscepto")
+	subH, err = disceptoH.GetSubdisceptoH(r.Context(), subName, userH)
+	if err != nil {
+		routes.HandleErr(w, r, err)
+	}
+	routes.tmpls.RenderHTML(w, "subdiscepto", SubdisceptoPageData{
+		SubdisceptoView: sub,
+		Essays:          []models.EssayView{},
+		SubdisceptoList: subs,
+		SubPerms:        subH.Perms(),
+	})
 	return
 }
 func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) {
@@ -117,38 +157,17 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) {
 		routes.HandleErr(w, r, err)
 		return
 	}
-
-	isMember := false
-	var subs []string
-	if userH != nil {
-		var err error
-		subs, err = userH.ListMySubdisceptos(r.Context())
-		if err != nil {
-			routes.HandleErr(w, r, err)
-			return
-		}
-		for _, s := range subs {
-			if s == subH.Name() {
-				isMember = true
-				break
-			}
-		}
+	subs, err := userH.ListMySubdisceptos(r.Context())
+	if err != nil {
+		routes.HandleErr(w, r, err)
+		return
 	}
-
-	data := struct {
-		*models.SubdisceptoView
-		Essays          []models.EssayView
-		IsMember        bool
-		SubdisceptoList []string
-		SubPerms        models.Perms
-	}{
+	routes.tmpls.RenderHTML(w, "subdiscepto", SubdisceptoPageData{
 		SubdisceptoView: subData,
 		Essays:          essays,
-		IsMember:        isMember,
 		SubdisceptoList: subs,
 		SubPerms:        subH.Perms(),
-	}
-	routes.tmpls.RenderHTML(w, "subdiscepto", data)
+	})
 	return
 }
 func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) {
