@@ -114,6 +114,7 @@ func NewRouter(config *models.EnvConfig, db *db.SharedDB, log zerolog.Logger, tm
 	r.Post("/signup", routes.PostSignup)
 	r.Get("/login", routes.GetLogin)
 	r.Post("/login", routes.PostLogin)
+	r.Get("/terms", routes.GetTerms)
 	r.Route("/s", routes.SubdisceptoRouter)
 
 	loggedIn := r.With(routes.EnforceCtx(UserHCtxKey))
@@ -376,6 +377,9 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) {
 
 	routes.tmpls.RenderHTML(w, "home", data)
 	return
+}
+func (routes *Routes) GetTerms(w http.ResponseWriter, r *http.Request) {
+	routes.tmpls.RenderHTML(w,"terms", nil)
 }
 func (routes *Routes) PostSignout(w http.ResponseWriter, r *http.Request) {
 	routes.sessionManager.RenewToken(r.Context())
