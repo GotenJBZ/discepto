@@ -13,8 +13,8 @@
     <div class="field">
         <label class="label">Name</label>
         <div class="control has-icons-left">
-            <input type="text" {{if .Subdiscepto}}disabled{{end}} placeholder="Name of the community" class="input is-primary" required name="name"
-             {{ with .Subdiscepto }}value="{{.Name}}"{{end}}
+            <input type="text" id="subdisceptoName" {{if .Subdiscepto}}disabled{{end}} placeholder="Name of the community" class="input is-primary" required name="name"
+             {{ with .Subdiscepto }} value="{{.Name}}" {{end}}
             >
             <span class="icon is-small is-left">
                 <i class="fa fa-home"></i>
@@ -75,7 +75,7 @@
                 pointer-events: inherit
             }
         </style>
-        <button class="submit button is-primary">
+        <button class="submit button is-primary" id="subdisceptoButton">
             {{ if .Subdiscepto }}
             Update
             {{ else }}
@@ -83,7 +83,7 @@
             {{ end }}
         </button>
         <span class="htmx-indicator is-overlay fast-indicator">
-            <button disabled class="button htmx-indicator is-primary is-focused is-loading">
+            <button disabled class="button htmx-indicator is-primary is-focused is-loading" >
             {{ if .Subdiscepto }}
             Update
             {{ else }}

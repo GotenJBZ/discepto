@@ -10,5 +10,25 @@
                 {{ template "subdisceptoForm" . }}
             </div>
         </div>
+
+        <script>
+            document.getElementById('subdisceptoName').addEventListener("keyup", function(evt) {
+            if (validateEmail(this.value)) {
+                this.classList.remove("is-danger")
+                this.classList.add("is-success")
+                document.getElementById("subdisceptoButton").disabled=false;
+            } else {
+                this.classList.add("is-danger")
+                document.getElementById("subdisceptoButton").disabled=true;
+            }
+            }, false);
+
+            function validateEmail(subdisceptoName) {
+                const re = /^\w+$/;
+                return re.test(subdisceptoName);
+            }
+        </script>
+        
+
     {{ template "footer" }}
 {{ end }}

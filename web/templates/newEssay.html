@@ -231,22 +231,6 @@ Maximum length of 300 chars.
                         }           
                     }    
 
-
-                    document.getElementById('thesis').addEventListener("keyup", function(evt) {
-                        if (validateThesis(this.value)) {
-                            this.classList.remove("is-danger")
-                            this.classList.add("is-success")
-                            document.getElementById("upload").disabled=false;
-                        } else {
-                            document.getElementById("upload").disabled=true;
-                            this.classList.add("is-danger")
-                        }
-                    }, false);
-
-                    function validateThesis(thesis) {
-                        const re = /^[a-zA-ZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽ∂ð ,.'-]+$/u;
-                        return re.test(thesis);
-                    }
                 </script>
                 
                 </form>
