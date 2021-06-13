@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/url"
+	"regexp"
 	"time"
 )
 
@@ -70,4 +71,23 @@ type EssayRow struct {
 type Replying struct {
 	InReplyTo sql.NullInt32  `db:"in_reply_to"`
 	ReplyType sql.NullString `db:"reply_type"`
+}
+
+type MDLink struct {
+	Text string
+	URL  string
+}
+
+func FindMDLinks(content string) []MDLink {
+	regex := regexp.MustCompile(`\[([\w\s\d]+)\]\((https?:\/\/[\w\d./?=#]+)\)`)
+	matches := regex.FindAllStringSubmatch(content, -1)
+	mdLinks := []MDLink{}
+	for _, m := range matches {
+		link := MDLink{
+			Text: m[1],
+			URL:  m[2],
+		}
+		mdLinks = append(mdLinks, link)
+	}
+	return mdLinks
 }

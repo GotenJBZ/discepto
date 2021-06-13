@@ -191,10 +191,10 @@
                 
                 <div class="card ">
                     <nav class="panel is-primary ">
-                        <p class="panel-heading ">Sources</p>
-                        {{ $length := len .Sources }} {{ if eq $length 0 }}
-                        <a class="panel-block ">The user didn't provide any resource</a> {{ else }} {{ range .Sources }}
-                        <a class="panel-block ">{{ . }}</a> {{ end }} {{end}}
+                        <p class="panel-heading ">Resources</p>
+                        {{ $length := len .Resources }} {{ if eq $length 0 }}
+                        <a class="panel-block ">The user didn't provide any resource</a> {{ else }} {{ range .Resources }}
+                        <a href="{{ .URL }}" class="panel-block ">{{ .URL }}</a> {{ end }} {{end}}
                     </nav>
                 </div>
 

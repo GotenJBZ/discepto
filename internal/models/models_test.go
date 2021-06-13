@@ -121,3 +121,28 @@ func TestSubset(t *testing.T) {
 		require.Equal(r.IsSubset, ok, fmt.Sprintf("p1=%v, p2=%v", p1, p2))
 	}
 }
+func TestMDLinks(t *testing.T) {
+	require := require.New(t)
+	tests := []struct {
+		text string
+		res  []MDLink
+	}{
+		{"[test](https://google.com)", []MDLink{{"test", "https://google.com"}}},
+		{"[test](https://example.com)", []MDLink{{"test", "https://example.com"}}},
+		{
+			`[a](https://example.com) [b](https://sr.ht)
+[c](https://gitlab.com)`, []MDLink{
+				{"a", "https://example.com"},
+				{"b", "https://sr.ht"},
+				{"c", "https://gitlab.com"},
+			}},
+		{"[testhttps://example.com)", []MDLink{}},
+		{"[adfkh](://google.com)", []MDLink{}},
+		{"[jkjs](htt://google.com)", []MDLink{}},
+		{"https://google.com", []MDLink{}},
+	}
+	for _, t := range tests {
+		links := FindMDLinks(t.text)
+		require.Equal(links, t.res)
+	}
+}

@@ -124,28 +124,30 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	links := models.FindMDLinks(essay.Content)
+
 	data := struct {
 		Subdiscepto     *models.SubdisceptoView
 		Essay           *models.EssayView
 		Replies         []models.EssayView
 		RepliesCount    map[string]int
 		FilterReplyType string
-		Sources         []string
 		EssayUserDid    *models.EssayUserDid
 		SubdisceptoList []string
 		Perms           models.Perms
 		User            *models.UserView
+		Resources       []models.MDLink
 	}{
 		Subdiscepto:     subData,
 		Essay:           essay,
 		EssayUserDid:    essayUserDid,
 		SubdisceptoList: subs,
-		Sources:         []string{},
 		Replies:         replies,
 		RepliesCount:    repliesCount,
 		FilterReplyType: filter,
 		Perms:           esH.Perms().Union(subH.Perms()),
 		User:            user,
+		Resources:       links,
 	}
 
 	routes.tmpls.RenderHTML(w, "essay", data)

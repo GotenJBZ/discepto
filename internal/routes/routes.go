@@ -379,7 +379,7 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) {
 	return
 }
 func (routes *Routes) GetTerms(w http.ResponseWriter, r *http.Request) {
-	routes.tmpls.RenderHTML(w,"terms", nil)
+	routes.tmpls.RenderHTML(w, "terms", nil)
 }
 func (routes *Routes) PostSignout(w http.ResponseWriter, r *http.Request) {
 	routes.sessionManager.RenewToken(r.Context())
