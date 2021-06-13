@@ -351,7 +351,7 @@ func TranslateErr(err error) AppError {
 func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) {
 	type homeData struct {
 		LoggedIn       bool
-		MySubdisceptos []string
+		MySubdisceptos []models.SubdisceptoView
 		RecentEssays   []models.EssayView
 	}
 	disceptoH := GetDisceptoH(r)
@@ -359,7 +359,7 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) {
 
 	data := homeData{LoggedIn: userH != nil}
 	if data.LoggedIn {
-		mySubs, err := userH.ListMySubdisceptos(r.Context())
+		mySubs, err := disceptoH.ListUserSubdisceptos(r.Context(), userH)
 		if err != nil {
 			routes.HandleErr(w, r, err)
 			return
@@ -408,12 +408,12 @@ func (routes *Routes) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mySubs, err := userH.ListMySubdisceptos(r.Context())
+	mySubs, err := disceptoH.ListUserSubdisceptos(r.Context(), userH)
 	routes.tmpls.RenderHTML(w, "user", struct {
 		User            *models.UserView
 		Essays          []models.EssayView
 		FilterReplyType string
-		MySubdisceptos  []string
+		MySubdisceptos  []models.SubdisceptoView
 	}{
 		User:            userData,
 		Essays:          essays,
@@ -437,12 +437,12 @@ func (routes *Routes) GetUserSelf(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mySubs, err := userH.ListMySubdisceptos(r.Context())
+	mySubs, err := disceptoH.ListUserSubdisceptos(r.Context(), userH)
 	routes.tmpls.RenderHTML(w, "user", struct {
 		User            *models.UserView
 		Essays          []models.EssayView
 		FilterReplyType string
-		MySubdisceptos  []string
+		MySubdisceptos  []models.SubdisceptoView
 	}{
 		User:            userData,
 		Essays:          essays,

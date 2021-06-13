@@ -43,7 +43,7 @@
 
                         {{ $length := len .MySubdisceptos }} {{ if eq $length 0 }}
                         <a href="/s" class="panel-block ">join in a comunity</a> {{ else }} {{ range .MySubdisceptos }}
-                        <a href="/s/{{ . }} " class="panel-block ">s/{{ . }}</a> {{ end }} {{end}}
+                        <a href="/s/{{ .Name }} " class="panel-block ">s/{{ .Name }}</a> {{ end }} {{end}}
                     </nav>
                 </div>
             </div>

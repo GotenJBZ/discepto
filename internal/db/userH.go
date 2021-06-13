@@ -69,19 +69,6 @@ func (h *UserH) deleteUser(ctx context.Context) error {
 	_, err := h.sharedDB.Exec(ctx, sql, args...)
 	return err
 }
-func (h UserH) ListMySubdisceptos(ctx context.Context) (subs []string, err error) {
-	sql, args, _ := psql.
-		Select("subdiscepto").
-		From("subdiscepto_users").
-		Where(sq.Eq{"user_id": h.id, "left_at": nil}).
-		ToSql()
-
-	err = pgxscan.Select(ctx, h.sharedDB, &subs, sql, args...)
-	if err != nil {
-		return nil, err
-	}
-	return subs, nil
-}
 func listUserEssays(ctx context.Context, db DBTX, userID int) ([]models.EssayView, error) {
 	essayPreviews := []models.EssayView{}
 	sql, args, _ := selectEssayWithJoins.

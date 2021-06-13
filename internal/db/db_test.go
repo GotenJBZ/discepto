@@ -193,7 +193,8 @@ func TestEssay(t *testing.T) {
 		require.Nil(err)
 
 		// list
-		subs := []string{mockSubName, mockSubName2}
+		subs, err := disceptoH.ListUserSubdisceptos(ctx, userH)
+		require.Nil(err)
 		recentEssays, err := disceptoH.ListRecentEssaysIn(ctx, subs)
 		require.Nil(err)
 		require.Len(recentEssays, 2)
@@ -290,10 +291,10 @@ func TestSubdiscepto(t *testing.T) {
 			err = subH.AddMember(ctx, *userH)
 			require.Nil(err)
 
-			mySubs, err := userH.ListMySubdisceptos(ctx)
+			mySubs, err := disceptoH.ListUserSubdisceptos(ctx, userH)
 			require.Nil(err)
 			require.Len(mySubs, 1)
-			require.Equal(mockSubName, mySubs[0])
+			require.Equal(mockSubName, mySubs[0].Name)
 
 			err = subH.RemoveMember(ctx, *userH)
 			require.Nil(err)
@@ -390,6 +391,7 @@ func TestRoles(t *testing.T) {
 			{"Check default permissions", testRolesDefaultPerms},
 			{"Ban user from subdiscepto", testRolesBanUserFromSub},
 			{"Ban user globally", testRolesBanUserGlobally},
+			{"List domains with perms", testListDomainsWithPerms},
 		}
 
 		for _, r := range table {
@@ -499,12 +501,43 @@ func testRolesBanUserGlobally(db SharedDB) func(t *testing.T) {
 			// User is banned, so it shouldn't have any permission
 			require.Equal(models.NewPerms(), disceptoH.Perms())
 
-			// The user doesn't have "use_local_permissions" so it shouldn't be able
-			// to do anything inside a subdiscepto
-			// TODO: the use should be able to get a subdisceptoh with the public permissions
-			_, err = disceptoH.GetSubdisceptoH(ctx, mockSubName, user2H)
-			require.IsType(models.ErrMissingPerms{}, err)
+			subH, _ := disceptoH.GetSubdisceptoH(ctx, mockSubName, user2H)
+
+			// It's readable because the subdiscepto is public
+			require.Nil(subH.subPerms.Require(models.PermReadSubdiscepto))
 		}
 
+	}
+}
+func testListDomainsWithPerms(db SharedDB) func(t *testing.T) {
+	return func(t *testing.T) {
+		require := require.New(t)
+		ctx := context.Background()
+
+		// Currently the first user is an admin inside a subdiscepto
+		{
+			userH, _ := db.Login(ctx, mockUser().Email, mockPasswd)
+			disceptoH, _ := db.GetDisceptoH(ctx, userH)
+			subs, err := disceptoH.ListUserSubdisceptos(ctx, userH)
+			require.Nil(err)
+
+			require.Len(subs, 1)
+		}
+		// Unassign all roles inside the sub
+		{
+			userH, _ := db.Login(ctx, mockUser().Email, mockPasswd)
+			disceptoH, _ := db.GetDisceptoH(ctx, userH)
+			subH, _ := disceptoH.GetSubdisceptoH(ctx, mockSubName, userH)
+			subH.UnassignAll(ctx, userH.id)
+		}
+		// Now check again
+		{
+			userH, _ := db.Login(ctx, mockUser().Email, mockPasswd)
+			disceptoH, _ := db.GetDisceptoH(ctx, userH)
+			subs, err := disceptoH.ListUserSubdisceptos(ctx, userH)
+			require.Nil(err)
+
+			require.Len(subs, 0)
+		}
 	}
 }

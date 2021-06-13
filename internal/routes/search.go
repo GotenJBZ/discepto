@@ -30,8 +30,8 @@ func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) {
 		routes.HandleErr(w, r, err)
 		return
 	}
+	mySubs, err := disceptoH.ListUserSubdisceptos(r.Context(), userH)
 
-	mySubs, err := userH.ListMySubdisceptos(ctx)
 	if err != nil {
 		routes.HandleErr(w, r, err)
 		return
@@ -39,7 +39,7 @@ func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) {
 
 	routes.tmpls.RenderHTML(w, "search", struct {
 		Essays         []models.EssayView
-		MySubdisceptos []string
+		MySubdisceptos []models.SubdisceptoView
 		Query          string
 		FilterType     string
 		SearchBy       string

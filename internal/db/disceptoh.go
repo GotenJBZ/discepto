@@ -193,7 +193,11 @@ func (h *DisceptoH) DeleteReport(ctx context.Context, report *models.Report) err
 	}
 	return nil
 }
-func (h *DisceptoH) ListRecentEssaysIn(ctx context.Context, subs []string) ([]models.EssayView, error) {
+func (h *DisceptoH) ListRecentEssaysIn(ctx context.Context, subsViews []models.SubdisceptoView) ([]models.EssayView, error) {
+	subs := []string{}
+	for _, s := range subsViews {
+		subs = append(subs, s.Name)
+	}
 	essayPreviews := []models.EssayView{}
 	sql, args, _ := selectEssayWithJoins.
 		Where(sq.Eq{"posted_in": subs}).
@@ -206,6 +210,34 @@ func (h *DisceptoH) ListRecentEssaysIn(ctx context.Context, subs []string) ([]mo
 		return nil, err
 	}
 	return essayPreviews, nil
+}
+func (h *DisceptoH) ListUserSubdisceptos(ctx context.Context, userH *UserH) ([]models.SubdisceptoView, error) {
+	if err := h.globalPerms.Require(models.PermUseLocalPermissions); err != nil {
+		// Intentionally return empty array
+		return []models.SubdisceptoView{}, nil
+	}
+	readableSubs, err := listDomainsWithPerms(ctx, h.sharedDB, userH.id, "subdiscepto", models.NewPerms(
+		models.PermReadSubdiscepto,
+	))
+	if err != nil {
+		return nil, err
+	}
+
+	var subs []models.SubdisceptoView
+	var userID *int
+	if userH != nil {
+		userID = &userH.id
+	}
+	sql, args, _ := selectSubdiscepto(userID).Where(sq.Eq{
+		"subdisceptos.roledomain_id": readableSubs,
+		"user_id":                    userH.id,
+		"left_at":                    nil,
+	}).ToSql()
+	err = pgxscan.Select(ctx, h.sharedDB, &subs, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return subs, nil
 }
 func (sdb *SharedDB) ListSubdisceptos(ctx context.Context, userH *UserH) ([]models.SubdisceptoView, error) {
 	var subs []models.SubdisceptoView

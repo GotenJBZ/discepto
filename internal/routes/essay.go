@@ -47,15 +47,16 @@ func (routes *Routes) EssayCtx(next http.Handler) http.Handler {
 func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) {
 	subdiscepto := r.URL.Query().Get("subdiscepto")
 
+	disceptoH := GetDisceptoH(r)
 	userH := GetUserH(r)
-	subs, err := userH.ListMySubdisceptos(r.Context())
+	mySubs, err := disceptoH.ListUserSubdisceptos(r.Context(), userH)
 
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
 
 	essay := struct {
 		*models.Essay
-		MySubdisceptos []string
+		MySubdisceptos []models.SubdisceptoView
 	}{
 		Essay: &models.Essay{
 			PostedIn: subdiscepto,
@@ -63,7 +64,7 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) {
 				InReplyTo: inReplyTo,
 			},
 		},
-		MySubdisceptos: subs,
+		MySubdisceptos: mySubs,
 	}
 
 	routes.tmpls.RenderHTML(w, "newEssay", essay)
@@ -103,7 +104,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	subs, err := userH.ListMySubdisceptos(r.Context())
+	mySubs, err := disceptoH.ListUserSubdisceptos(r.Context(), userH)
 	if err != nil {
 		routes.HandleErr(w, r, err)
 		return
@@ -133,7 +134,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) {
 		RepliesCount    map[string]int
 		FilterReplyType string
 		EssayUserDid    *models.EssayUserDid
-		SubdisceptoList []string
+		SubdisceptoList []models.SubdisceptoView
 		Perms           models.Perms
 		User            *models.UserView
 		Resources       []models.MDLink
@@ -141,7 +142,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) {
 		Subdiscepto:     subData,
 		Essay:           essay,
 		EssayUserDid:    essayUserDid,
-		SubdisceptoList: subs,
+		SubdisceptoList: mySubs,
 		Replies:         replies,
 		RepliesCount:    repliesCount,
 		FilterReplyType: filter,

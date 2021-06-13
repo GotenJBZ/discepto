@@ -207,7 +207,7 @@
                         <p class="panel-heading ">Your Communities</p>
                         {{ $length := len .SubdisceptoList }} {{ if eq $length 0 }}
                         <a href="/s" class="panel-block ">join in a comunity</a> {{ else }} {{ range .SubdisceptoList }}
-                        <a href="/s/{{ . }} " class="panel-block ">s/{{ . }}</a> {{ end }} {{end}}
+                        <a href="/s/{{ .Name }} " class="panel-block ">s/{{ .Name }}</a> {{ end }} {{end}}
                     </nav>
                 </div>
             </div>

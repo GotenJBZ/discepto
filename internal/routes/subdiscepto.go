@@ -13,7 +13,7 @@ import (
 type SubdisceptoPageData struct {
 	*models.SubdisceptoView
 	Essays          []models.EssayView
-	SubdisceptoList []string
+	SubdisceptoList []models.SubdisceptoView
 	SubPerms        models.Perms
 }
 
@@ -66,7 +66,7 @@ func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) {
 		routes.HandleErr(w, r, err)
 		return
 	}
-	subs, err := userH.ListMySubdisceptos(r.Context())
+	mySubs, err := disceptoH.ListUserSubdisceptos(r.Context(), userH)
 	if err != nil {
 		routes.HandleErr(w, r, err)
 		return
@@ -79,7 +79,7 @@ func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	routes.tmpls.RenderHTML(w, "subdiscepto", SubdisceptoPageData{
 		SubdisceptoView: sub,
 		Essays:          []models.EssayView{},
-		SubdisceptoList: subs,
+		SubdisceptoList: mySubs,
 		SubPerms:        subH.Perms(),
 	})
 	return
@@ -99,7 +99,7 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) {
 		routes.HandleErr(w, r, err)
 		return
 	}
-	subs, err := userH.ListMySubdisceptos(r.Context())
+	mySubs, err := disceptoH.ListUserSubdisceptos(r.Context(), userH)
 	if err != nil {
 		routes.HandleErr(w, r, err)
 		return
@@ -113,7 +113,7 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	routes.tmpls.RenderHTML(w, "subdiscepto", SubdisceptoPageData{
 		SubdisceptoView: sub,
 		Essays:          []models.EssayView{},
-		SubdisceptoList: subs,
+		SubdisceptoList: mySubs,
 		SubPerms:        subH.Perms(),
 	})
 	return
@@ -144,6 +144,7 @@ func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) {
 }
 func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
+	disceptoH := GetDisceptoH(r)
 	subH := GetSubdisceptoH(r)
 
 	subData, err := subH.ReadView(r.Context(), userH)
@@ -157,7 +158,7 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) {
 		routes.HandleErr(w, r, err)
 		return
 	}
-	subs, err := userH.ListMySubdisceptos(r.Context())
+	mySubs, err := disceptoH.ListUserSubdisceptos(r.Context(), userH)
 	if err != nil {
 		routes.HandleErr(w, r, err)
 		return
@@ -165,7 +166,7 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	routes.tmpls.RenderHTML(w, "subdiscepto", SubdisceptoPageData{
 		SubdisceptoView: subData,
 		Essays:          essays,
-		SubdisceptoList: subs,
+		SubdisceptoList: mySubs,
 		SubPerms:        subH.Perms(),
 	})
 	return

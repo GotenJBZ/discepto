@@ -2,8 +2,10 @@ package db
 
 import (
 	"context"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/georgysavva/scany/pgxscan"
 	"gitlab.com/ranfdev/discepto/internal/models"
 )
 
@@ -219,4 +221,31 @@ func deleteRole(ctx context.Context, db DBTX, roleID int) error {
 		return err
 	}
 	return nil
+}
+func listDomainsWithPerms(ctx context.Context,
+	db DBTX,
+	userID int,
+	domainType string,
+	perms models.Perms) ([]models.RoleDomain, error) {
+	sql, args, _ := psql.Select("roledomains.id").
+		From("role_perms").
+		Join("user_roles ON user_roles.role_id = role_perms.role_id").
+		Join("roles ON roles.id = role_perms.role_id").
+		Join("roledomains ON roles.roledomain_id = roledomains.id").
+		Where(
+			sq.Eq{"user_roles.user_id": userID,
+				"roledomains.domain_type": domainType,
+				"permission":              perms.List()},
+		).
+		GroupBy("user_roles.user_id", "roledomains.id").
+		Having(sq.Eq{"COUNT(DISTINCT permission)": len(perms.List())}).
+		ToSql()
+
+	res := []models.RoleDomain{}
+	fmt.Println(sql, args)
+	err := pgxscan.Select(ctx, db, &res, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
