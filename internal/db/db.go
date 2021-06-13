@@ -40,6 +40,11 @@ type SharedDB struct {
 	bcryptCost int
 }
 
+func (sdb SharedDB) withTx(tx DBTX) SharedDB {
+	sdb.db = tx
+	return sdb
+}
+
 func migrator(dbURL string) (*migrate.Migrate, error) {
 	dbURL = strings.Replace(dbURL, "postgres", "pgx", 1)
 	d, err := iofs.New(migrations.FS, ".")

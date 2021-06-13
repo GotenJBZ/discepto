@@ -18,10 +18,15 @@ const mockSubName2 = "mock2"
 
 func mockUser() *models.User {
 	return &models.User{
-		Name:  "Pippo",
+		Name:  "User1",
 		Email: "pippo@strana.com",
 	}
-
+}
+func mockUser2() *models.User {
+	return &models.User{
+		Name:  "User2",
+		Email: "asdfasdf@fasdf.com",
+	}
 }
 func mockUrl() url.URL {
 	url, _ := url.Parse("https://example.com")
@@ -87,205 +92,233 @@ func init() {
 }
 func TestUser(t *testing.T) {
 	require := require.New(t)
+	ctx := context.Background()
 
-	passwd := mockPasswd
-	userH, err := db.CreateUser(context.Background(), mockUser(), passwd)
-	require.Nil(err)
-	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
-	require.Nil(err)
-	users, err := disceptoH.ListMembers(context.Background())
-	require.Nil(err)
-	require.Len(users, 1)
+	err := execTx(ctx, db.db, func(ctx context.Context, tx DBTX) error {
+		db := db.withTx(tx)
+		passwd := mockPasswd
+		userH, err := db.CreateUser(context.Background(), mockUser(), passwd)
+		require.Nil(err)
+		disceptoH, err := db.GetDisceptoH(context.Background(), userH)
+		require.Nil(err)
+		users, err := disceptoH.ListMembers(context.Background())
+		require.Nil(err)
+		require.Len(users, 1)
 
-	user2 := mockUser()
-	user2.Email = "asdasdasdfjh"
-	testData := []struct {
-		user *models.User
-		err  error
-	}{
-		{mockUser(), models.ErrEmailAlreadyUsed},
-		{user2, models.ErrInvalidFormat},
-	}
+		user2 := mockUser2()
+		user2.Email = "asdfhkjhhuiu"
+		testData := []struct {
+			user *models.User
+			err  error
+		}{
+			{mockUser(), models.ErrEmailAlreadyUsed},
+			{user2, models.ErrInvalidFormat},
+		}
 
-	for _, td := range testData {
-		_, err := db.CreateUser(context.Background(), td.user, passwd)
-		require.Equal(td.err, err)
-	}
+		for _, td := range testData {
+			_, err := db.CreateUser(context.Background(), td.user, passwd)
+			require.Equal(td.err, err)
+		}
 
-	err = userH.Delete(context.Background())
+		err = userH.Delete(context.Background())
+		require.Nil(err)
+		return nil
+	})
 	require.Nil(err)
 }
 func TestAuth(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
+	ctx := context.Background()
 	user := mockUser()
 	passwd := mockPasswd
-	_, err := db.CreateUser(context.Background(), user, passwd)
-	require.Nil(err)
 
-	var userH *UserH
-	{
-
-		// With a bad passwd
-		passwd = "93sdjfhkasdhfkjha"
-		_, err := db.Login(context.Background(), user.Email, passwd)
-		require.NotNil(err)
-	}
-	{
-		// Normal login
-		passwd = mockPasswd
-		uH, err := db.Login(context.Background(), user.Email, passwd)
-		userH = uH
+	err := execTx(ctx, db.db, func(ctx context.Context, tx DBTX) error {
+		db := db.withTx(tx)
+		_, err := db.CreateUser(ctx, user, passwd)
 		require.Nil(err)
-	}
 
-	// Clean
-	require.Nil(userH.Delete(context.Background()))
+		var userH *UserH
+		{
+			// With a bad passwd
+			passwd = "93sdjfhkasdhfkjha"
+			_, err := db.Login(ctx, user.Email, passwd)
+			require.NotNil(err)
+		}
+		{
+			// Normal login
+			passwd = mockPasswd
+			uH, err := db.Login(ctx, user.Email, passwd)
+			userH = uH
+			require.Nil(err)
+		}
+
+		// Clean
+		require.Nil(userH.Delete(ctx))
+		return nil
+	})
+	require.Nil(err)
 }
 func TestEssay(t *testing.T) {
 	require := require.New(t)
-	user := mockUser()
-	userH, err := db.CreateUser(context.Background(), user, mockPasswd)
-	require.Nil(err)
+	t.Parallel()
+	ctx := context.Background()
 
-	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
-	require.Nil(err)
-	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, mockSubdisceptoReq())
-	require.Nil(err)
+	err := execTx(ctx, db.db, func(ctx context.Context, tx DBTX) error {
+		db := db.withTx(tx)
+		user := mockUser()
+		userH, err := db.CreateUser(ctx, user, mockPasswd)
+		require.Nil(err)
 
-	essay := mockEssay(user.ID)
-	essayH, err := subH.CreateEssay(context.Background(), essay)
-	require.Nil(err)
+		disceptoH, err := db.GetDisceptoH(ctx, userH)
+		require.Nil(err)
+		subH, err := disceptoH.CreateSubdiscepto(ctx, *userH, mockSubdisceptoReq())
+		require.Nil(err)
 
-	essays, err := subH.ListEssays(context.Background())
-	require.NotNil(essays)
-	require.Nil(err)
+		essay := mockEssay(user.ID)
+		essayH, err := subH.CreateEssay(ctx, essay)
+		require.Nil(err)
 
-	// Test list recent essays from joined subs
-	// Create and fill second sub
-	sub2H, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, mockSubdisceptoReq2())
-	require.Nil(err)
-	essay2 := mockEssay(user.ID)
-	essay2.PostedIn = mockSubName2
-	essay2H, err := sub2H.CreateEssay(context.Background(), essay2)
-	require.Nil(err)
+		essays, err := subH.ListEssays(ctx)
+		require.NotNil(essays)
+		require.Nil(err)
 
-	// list
-	subs := []string{mockSubName, mockSubName2}
-	recentEssays, err := disceptoH.ListRecentEssaysIn(context.Background(), subs)
-	require.Nil(err)
-	require.Len(recentEssays, 2)
+		// Test list recent essays from joined subs
+		// Create and fill second sub
+		sub2H, err := disceptoH.CreateSubdiscepto(ctx, *userH, mockSubdisceptoReq2())
+		require.Nil(err)
+		essay2 := mockEssay(user.ID)
+		essay2.PostedIn = mockSubName2
+		essay2H, err := sub2H.CreateEssay(ctx, essay2)
+		require.Nil(err)
 
-	// Test list essays in favor
-	essay3 := mockEssay(user.ID)
-	essay3.InReplyTo = sql.NullInt32{Int32: int32(essay2.ID), Valid: true}
-	essay3.ReplyType = models.ReplyTypeSupports
-	parentEssayH, err := sub2H.GetEssayH(context.Background(), essay2.ID, userH)
-	require.Nil(err)
-	_, err = sub2H.CreateEssayReply(context.Background(), essay3, *parentEssayH)
-	require.Nil(err)
+		// list
+		subs := []string{mockSubName, mockSubName2}
+		recentEssays, err := disceptoH.ListRecentEssaysIn(ctx, subs)
+		require.Nil(err)
+		require.Len(recentEssays, 2)
 
-	// Create upvote
-	err = essayH.CreateVote(context.Background(), *userH, models.VoteTypeUpvote)
-	require.Nil(err)
-	updatedEssay, err := essayH.ReadView(context.Background())
-	require.Nil(err)
-	require.Equal(1, updatedEssay.Upvotes)
-	require.Equal(0, updatedEssay.Downvotes)
+		// Test list essays in favor
+		essay3 := mockEssay(user.ID)
+		essay3.InReplyTo = sql.NullInt32{Int32: int32(essay2.ID), Valid: true}
+		essay3.ReplyType = models.ReplyTypeSupports
+		parentEssayH, err := sub2H.GetEssayH(ctx, essay2.ID, userH)
+		require.Nil(err)
+		_, err = sub2H.CreateEssayReply(ctx, essay3, *parentEssayH)
+		require.Nil(err)
 
-	// Delete vote
-	err = essayH.DeleteVote(context.Background(), *userH)
-	require.Nil(err)
+		// Create upvote
+		err = essayH.CreateVote(ctx, *userH, models.VoteTypeUpvote)
+		require.Nil(err)
+		updatedEssay, err := essayH.ReadView(ctx)
+		require.Nil(err)
+		require.Equal(1, updatedEssay.Upvotes)
+		require.Equal(0, updatedEssay.Downvotes)
 
-	// Create downvote
-	err = essayH.CreateVote(context.Background(), *userH, models.VoteTypeDownvote)
-	require.Nil(err)
-	updatedEssay, err = essayH.ReadView(context.Background())
-	require.Nil(err)
-	require.Equal(0, updatedEssay.Upvotes)
-	require.Equal(1, updatedEssay.Downvotes)
+		// Delete vote
+		err = essayH.DeleteVote(ctx, *userH)
+		require.Nil(err)
 
-	// Check what a specific user did
-	did, err := essayH.GetUserDid(context.Background(), *userH)
-	require.Nil(err)
-	require.Equal(&models.EssayUserDid{
-		Vote: sql.NullString{String: string(models.VoteTypeDownvote), Valid: true},
-	}, did)
+		// Create downvote
+		err = essayH.CreateVote(ctx, *userH, models.VoteTypeDownvote)
+		require.Nil(err)
+		updatedEssay, err = essayH.ReadView(ctx)
+		require.Nil(err)
+		require.Equal(0, updatedEssay.Upvotes)
+		require.Equal(1, updatedEssay.Downvotes)
 
-	// list
-	essayReplies, err := sub2H.ListReplies(context.Background(), *essay2H, &models.ReplyTypeSupports.String)
-	require.Nil(err)
-	require.Len(essayReplies, 1)
+		// Check what a specific user did
+		did, err := essayH.GetUserDid(ctx, *userH)
+		require.Nil(err)
+		require.Equal(&models.EssayUserDid{
+			Vote: sql.NullString{String: string(models.VoteTypeDownvote), Valid: true},
+		}, did)
 
-	// Clean
-	err = subH.Delete(context.Background())
+		// list
+		essayReplies, err := sub2H.ListReplies(ctx, *essay2H, &models.ReplyTypeSupports.String)
+		require.Nil(err)
+		require.Len(essayReplies, 1)
+
+		// Clean
+		err = subH.Delete(ctx)
+		require.Nil(err)
+		err = sub2H.Delete(ctx)
+		require.Nil(err)
+		require.Nil(userH.Delete(ctx))
+		return nil
+	})
 	require.Nil(err)
-	err = sub2H.Delete(context.Background())
-	require.Nil(err)
-	require.Nil(userH.Delete(context.Background()))
 }
 
 func TestSubdiscepto(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
-	{
-		// user1
-		// Setup needed data
-		user := mockUser()
-		userH, err := db.CreateUser(context.Background(), user, mockPasswd)
+	ctx := context.Background()
+
+	err := execTx(ctx, db.db, func(ctx context.Context, tx DBTX) error {
+		db := db.withTx(tx)
+		{
+			// user1
+			// Setup needed data
+			user := mockUser()
+			userH, err := db.CreateUser(ctx, user, mockPasswd)
+			require.Nil(err)
+
+			subdis := mockSubdisceptoReq()
+			disceptoH, err := db.GetDisceptoH(ctx, userH)
+			require.Nil(err)
+
+			_, err = disceptoH.CreateSubdiscepto(ctx, *userH, subdis)
+			require.Nil(err)
+
+			subs, err := db.ListSubdisceptos(ctx, userH)
+			require.Nil(err)
+			require.Len(subs, 1)
+		}
+		{
+			// user2
+			// Join a sub
+			user := mockUser2()
+
+			userH, err := db.CreateUser(ctx, user, mockPasswd)
+			require.Nil(err)
+
+			disceptoH, err := db.GetDisceptoH(ctx, userH)
+			require.Nil(err)
+			subH, err := disceptoH.GetSubdisceptoH(ctx, mockSubdisceptoReq().Name, userH)
+			require.Nil(err)
+			err = subH.AddMember(ctx, *userH)
+			require.Nil(err)
+
+			mySubs, err := userH.ListMySubdisceptos(ctx)
+			require.Nil(err)
+			require.Len(mySubs, 1)
+			require.Equal(mockSubName, mySubs[0])
+
+			err = subH.RemoveMember(ctx, *userH)
+			require.Nil(err)
+
+			// Delete (should fail, because user2 doesn't have that permission)
+			err = subH.Delete(ctx)
+			require.NotNil(err)
+
+			require.Nil(userH.Delete(ctx))
+		}
+
+		// Clean
+		userH, err := db.Login(ctx, mockUser().Email, mockPasswd)
+		require.Nil(err)
+		disceptoH, err := db.GetDisceptoH(ctx, userH)
+		require.Nil(err)
+		subH, err := disceptoH.GetSubdisceptoH(ctx, mockSubName, userH)
+		require.Nil(err)
+		err = subH.Delete(ctx)
 		require.Nil(err)
 
-		subdis := mockSubdisceptoReq()
-		disceptoH, err := db.GetDisceptoH(context.Background(), userH)
-		require.Nil(err)
-
-		_, err = disceptoH.CreateSubdiscepto(context.Background(), *userH, subdis)
-		require.Nil(err)
-
-		subs, err := db.ListSubdisceptos(context.Background(), userH)
-		require.Nil(err)
-		require.Len(subs, 1)
-	}
-	{
-		// user2
-		// Join a sub
-		user := mockUser()
-		user.Email += "as"
-
-		userH, err := db.CreateUser(context.Background(), user, mockPasswd)
-		require.Nil(err)
-
-		disceptoH, err := db.GetDisceptoH(context.Background(), userH)
-		require.Nil(err)
-		subH, err := disceptoH.GetSubdisceptoH(context.Background(), mockSubdisceptoReq().Name, userH)
-		require.Nil(err)
-		err = subH.AddMember(context.Background(), *userH)
-		require.Nil(err)
-
-		mySubs, err := userH.ListMySubdisceptos(context.Background())
-		require.Nil(err)
-		require.Len(mySubs, 1)
-		require.Equal(mockSubName, mySubs[0])
-
-		err = subH.RemoveMember(context.Background(), *userH)
-		require.Nil(err)
-
-		// Delete (should fail, because user2 doesn't have that permission)
-		err = subH.Delete(context.Background())
-		require.NotNil(err)
-
-		require.Nil(userH.Delete(context.Background()))
-	}
-
-	// Clean
-	userH, err := db.Login(context.Background(), mockUser().Email, mockPasswd)
+		require.Nil(userH.Delete(ctx))
+		return nil
+	})
 	require.Nil(err)
-	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
-	require.Nil(err)
-	subH, err := disceptoH.GetSubdisceptoH(context.Background(), mockSubName, userH)
-	require.Nil(err)
-	err = subH.Delete(context.Background())
-	require.Nil(err)
-
-	require.Nil(userH.Delete(context.Background()))
 }
 func TestSearch(t *testing.T) {
 	require := require.New(t)
@@ -324,70 +357,154 @@ func TestSearch(t *testing.T) {
 	require.Nil(userH.Delete(context.Background()))
 }
 func TestRoles(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 	user := mockUser()
-	userH, err := db.CreateUser(context.Background(), user, mockPasswd)
-	require.Nil(err)
-	disceptoH, err := db.GetDisceptoH(context.Background(), userH)
-	require.Nil(err)
-	subH, err := disceptoH.CreateSubdiscepto(context.Background(), *userH, mockSubdisceptoReq())
-	require.Nil(err)
+	ctx := context.Background()
 
-	user2 := user
-	user2.Email = "asdfasdf@fasdf.com"
-	user2H, err := db.CreateUser(context.Background(), user2, mockPasswd)
-	require.Nil(err)
+	err := execTx(ctx, db.db, func(ctx context.Context, tx DBTX) error {
+		db := db.withTx(tx)
+		// Create necessary entities
+		userH, err := db.CreateUser(ctx, user, mockPasswd)
+		defer userH.Delete(ctx)
 
-	err = subH.AddMember(context.Background(), *user2H)
-	require.Nil(err)
+		require.Nil(err)
+		disceptoH, err := db.GetDisceptoH(ctx, userH)
+		require.Nil(err)
+		subH, err := disceptoH.CreateSubdiscepto(ctx, *userH, mockSubdisceptoReq())
+		require.Nil(err)
+		defer subH.Delete(ctx)
 
-	// Check "admin" global role
-	globalPerms, err := getUserPerms(context.Background(), db.db, models.RoleDomainDiscepto, userH.id)
-	require.Nil(err)
-	require.Equal(models.PermsGlobalAdmin, globalPerms)
+		user2 := mockUser2()
+		user2H, err := db.CreateUser(ctx, user2, mockPasswd)
+		require.Nil(err)
+		defer user2H.Delete(ctx)
 
-	// Check "common" global role
-	globalPerms2, err := getUserPerms(context.Background(), db.db, models.RoleDomainDiscepto, user2H.id)
-	require.Nil(err)
-	require.Equal(models.PermsGlobalCommon, globalPerms2)
+		err = subH.AddMember(ctx, *user2H)
+		require.Nil(err)
 
-	subPerms, err := getUserPerms(context.Background(), db.db, subH.RoleDomain(), userH.id)
-	require.Equal(models.PermsSubAdmin, subPerms)
-	require.Nil(err)
+		table := []struct {
+			Name string
+			Func func(db SharedDB) func(t *testing.T)
+		}{
+			{"Check default permissions", testRolesDefaultPerms},
+			{"Ban user from subdiscepto", testRolesBanUserFromSub},
+			{"Ban user globally", testRolesBanUserGlobally},
+		}
 
-	// Check "common" sub role
-	subPerms2, err := getUserPerms(context.Background(), db.db, subH.RoleDomain(), user2H.id)
+		for _, r := range table {
+			execTx(ctx, db.db, func(ctx context.Context, tx DBTX) error {
+				db := db.withTx(tx)
+				t.Run(r.Name, r.Func(db))
+				return nil
+			})
+		}
+		return nil
+	})
 	require.Nil(err)
-	require.Equal(models.PermsSubCommon, subPerms2)
+}
+func testRolesDefaultPerms(db SharedDB) func(t *testing.T) {
+	return func(t *testing.T) {
+		ctx := context.Background()
+		require := require.New(t)
 
-	// Remove "common" global role, banning the user
-	roleH, err := subH.GetRoleH(context.Background(), "common")
-	require.Nil(err)
-	err = subH.Unassign(context.Background(), user2H.id, *roleH)
-	require.Nil(err)
-	subPerms2, err = getUserPerms(context.Background(), db.db, subH.RoleDomain(), user2H.id)
-	require.Nil(err)
-	require.Equal(models.NewPerms(), subPerms2)
+		// Test first user (admin)
+		{
+			userH, _ := db.Login(ctx, mockUser().Email, mockPasswd)
+			disceptoH, _ := db.GetDisceptoH(ctx, userH)
+			subH, _ := disceptoH.GetSubdisceptoH(ctx, mockSubName, userH)
 
-	// A banned user shouldn't be able to leave the subdiscepto without a trace.
-	// The membership track record must be kept, to ensure the user stays banned
-	dis2H, err := db.GetDisceptoH(context.Background(), user2H)
-	sub2H, err := dis2H.GetSubdisceptoH(context.Background(), subH.Name(), user2H)
-	require.Nil(err)
-	err = sub2H.RemoveMember(context.Background(), *user2H)
-	require.Nil(err)
-	members, err := sub2H.ListMembers(context.Background())
-	require.Nil(err)
-	found := false
-	for _, m := range members {
-		if m.UserID == user2H.id {
-			found = true
-			break
+			// Check "admin" global role
+			require.Equal(models.PermsGlobalAdmin, disceptoH.Perms())
+
+			// Check "admin" sub role
+			require.Equal(models.PermsSubAdmin.Union(disceptoH.Perms()), subH.Perms())
+		}
+		// Test second user (common)
+		{
+			user2H, _ := db.Login(ctx, mockUser2().Email, mockPasswd)
+			discepto2H, _ := db.GetDisceptoH(ctx, user2H)
+			sub2H, _ := discepto2H.GetSubdisceptoH(ctx, mockSubName, user2H)
+
+			// Check "common" global role
+			require.Equal(models.PermsGlobalCommon, discepto2H.Perms())
+
+			// Check "common" sub role
+			require.Equal(models.PermsSubCommon.Union(discepto2H.Perms()), sub2H.Perms())
 		}
 	}
-	require.True(found)
+}
+func testRolesBanUserFromSub(db SharedDB) func(t *testing.T) {
+	return func(t *testing.T) {
+		require := require.New(t)
+		ctx := context.Background()
 
-	subH.Delete(context.Background())
-	userH.Delete(context.Background())
-	user2H.Delete(context.Background())
+		userH, err := db.Login(ctx, mockUser().Email, mockPasswd)
+		disceptoH, err := db.GetDisceptoH(ctx, userH)
+		user2H, err := db.Login(ctx, mockUser2().Email, mockPasswd)
+		subH, err := disceptoH.GetSubdisceptoH(ctx, mockSubName, userH)
+
+		// Remove "common" global role, banning the user
+		roleH, err := subH.GetRoleH(ctx, "common")
+		require.Nil(err)
+		err = subH.Unassign(ctx, user2H.id, *roleH)
+		require.Nil(err)
+		subPerms2, err := getUserPerms(ctx, db.db, subH.RoleDomain(), user2H.id)
+		require.Nil(err)
+		require.Equal(models.NewPerms(), subPerms2)
+
+		// A banned user shouldn't be able to leave the subdiscepto without a trace.
+		// The membership track record must be kept, to ensure the user stays banned
+		dis2H, err := db.GetDisceptoH(ctx, user2H)
+		sub2H, err := dis2H.GetSubdisceptoH(ctx, subH.Name(), user2H)
+		require.Nil(err)
+		err = sub2H.RemoveMember(ctx, *user2H)
+		require.Nil(err)
+		members, err := sub2H.ListMembers(ctx)
+		require.Nil(err)
+		found := false
+		for _, m := range members {
+			if m.UserID == user2H.id {
+				found = true
+				break
+			}
+		}
+		require.True(found)
+	}
+}
+func testRolesBanUserGlobally(db SharedDB) func(t *testing.T) {
+	return func(t *testing.T) {
+		require := require.New(t)
+		ctx := context.Background()
+		user2ID := 0
+		{
+			user2H, _ := db.Login(ctx, mockUser2().Email, mockPasswd)
+			user2ID = user2H.id
+		}
+
+		// As User1, unassign all roles to User2
+		{
+			userH, _ := db.Login(ctx, mockUser().Email, mockPasswd)
+			disceptoH, _ := db.GetDisceptoH(ctx, userH)
+
+			err := disceptoH.UnassignAll(ctx, user2ID)
+			require.Nil(err)
+		}
+		// As User2, list own permissions
+		{
+			user2H, _ := db.Login(ctx, mockUser2().Email, mockPasswd)
+			disceptoH, err := db.GetDisceptoH(ctx, user2H)
+			require.Nil(err)
+
+			// User is banned, so it shouldn't have any permission
+			require.Equal(models.NewPerms(), disceptoH.Perms())
+
+			// The user doesn't have "use_local_permissions" so it shouldn't be able
+			// to do anything inside a subdiscepto
+			// TODO: the use should be able to get a subdisceptoh with the public permissions
+			_, err = disceptoH.GetSubdisceptoH(ctx, mockSubName, user2H)
+			require.IsType(models.ErrMissingPerms{}, err)
+		}
+
+	}
 }

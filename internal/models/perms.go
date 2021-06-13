@@ -93,11 +93,11 @@ var PermsSubCommon = NewPerms(
 	PermCreateReport,
 )
 
-type MissingPerms struct {
+type ErrMissingPerms struct {
 	Perms []Perm
 }
 
-func (mp MissingPerms) Error() string {
+func (mp ErrMissingPerms) Error() string {
 	return fmt.Sprintf("missing permission %s", mp.Perms)
 }
 
@@ -106,7 +106,7 @@ func (ps Perms) Require(reqPerms ...Perm) error {
 	for _, p := range reqPerms {
 		if _, ok := ps[p]; !ok {
 			missing = append(missing, p)
-			return MissingPerms{missing}
+			return ErrMissingPerms{missing}
 		}
 	}
 	return nil
@@ -117,7 +117,7 @@ func (ps Perms) RequirePerms(reqPerms Perms) error {
 	for p := range reqPerms {
 		if _, ok := ps[p]; !ok {
 			missing = append(missing, p)
-			return MissingPerms{missing}
+			return ErrMissingPerms{missing}
 		}
 	}
 	return nil
