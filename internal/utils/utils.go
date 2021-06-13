@@ -108,20 +108,3 @@ func StructAnd(s1 interface{}, s2 interface{}) interface{} {
 	}
 	return out.Interface()
 }
-func StructToBoolMap(s interface{}, pMap ...*map[string]bool) map[string]bool {
-	vs1 := reflect.ValueOf(s)
-	ts1 := vs1.Type()
-	m := &map[string]bool{}
-	if len(pMap) > 0 {
-		m = pMap[0]
-	}
-	for i := 0; i < vs1.NumField(); i++ {
-		switch vs1.Field(i).Type().Kind() {
-		case reflect.Bool:
-			(*m)[ToSnakeCase(ts1.Field(i).Name)] = vs1.Field(i).Bool()
-		case reflect.Struct:
-			StructToBoolMap(vs1.Field(i).Interface(), m)
-		}
-	}
-	return *m
-}

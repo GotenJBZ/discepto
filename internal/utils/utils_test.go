@@ -2,8 +2,6 @@ package utils
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 func TestValidateEmail(t *testing.T) {
@@ -29,26 +27,4 @@ func TestValidateEmail(t *testing.T) {
 			t.Errorf("Email should be invalid: %s", v)
 		}
 	}
-}
-func TestBoolMapStruct(t *testing.T) {
-	require := require.New(t)
-	type Three struct {
-		FourtyTwo bool
-	}
-	s := struct {
-		One bool
-		Two bool
-		Three
-	}{
-		One: true,
-		Two: false,
-		Three: Three{
-			FourtyTwo: true,
-		},
-	}
-	require.Equal(map[string]bool{
-		"one":        true,
-		"two":        false,
-		"fourty_two": true,
-	}, StructToBoolMap(s))
 }

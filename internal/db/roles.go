@@ -211,16 +211,6 @@ func setPermissions(ctx context.Context, db DBTX, roleID int, perms models.Perms
 	return err
 }
 
-type HigherRole map[string]bool
-
-func isLowerRole(oldRole HigherRole, newRole map[string]bool) bool {
-	for k := range newRole {
-		if v, ok := oldRole[k]; !ok || !v {
-			return false
-		}
-	}
-	return true
-}
 func deleteRole(ctx context.Context, db DBTX, roleID int) error {
 	sql, args, _ := psql.Delete("roles").Where(sq.Eq{"id": roleID}).ToSql()
 
