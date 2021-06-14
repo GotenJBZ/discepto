@@ -56,7 +56,7 @@
                     <div class="field">
                         <label class="label">Confirm Password</label>
                         <div class="control has-icons-right">
-                            <input class="input" type="password" id="password" name="password" required>
+                            <input class="input" type="password" id="password2" name="password2" required>
                             <span class="icon is-small is-right">
                 <i class="fa fa-key"></i>
               </span>
@@ -67,7 +67,7 @@
                       By signing up you agree to our <a href="/terms">terms of service</a>
                     </p>
                     <div class="has-text-centered">
-                        <button class="button is-vcentered is-primary " type="submit">Sign Up!</button>
+                        <button class="button is-vcentered is-primary" id="signupButton" type="submit">Sign Up!</button>
                     </div>
                     <div class="has-text-centered">
                         <a href="login"> Already have an account? Log in now !</a>
@@ -83,15 +83,32 @@
             if (validateEmail(this.value)) {
                 this.classList.remove("is-danger")
                 this.classList.add("is-success")
+                document.getElementById("signupButton").disabled=false;
             } else {
                 this.classList.add("is-danger")
+                document.getElementById("signupButton").disabled=true;
             }
         }, false);
 
         function validateEmail(email) {
-            const re = /(?:[a-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+\/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
+            const re = /(?:[a-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+\/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])$/;
             return re.test(email);
         }
+
+
+
+
+        document.getElementById('password2').addEventListener("keyup", function(evt) {
+            if (password.value == password2.value) {
+                this.classList.remove("is-danger")
+                this.classList.add("is-success")
+                document.getElementById("signupButton").disabled=false;
+            } else {
+                document.getElementById("signupButton").disabled=true;
+                this.classList.add("is-danger")
+            }
+        }, false);
+
     </script>
 
 </body>

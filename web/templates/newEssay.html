@@ -11,7 +11,7 @@
                 <div class="field">
                     <label class="label">Title</label>
                     <div class="control has-icons-left">
-                        <input type="text" placeholder="Title of your discepto" class="input is-primary" name="thesis" required>
+                        <input type="text" placeholder="Title of your discepto" class="input is-primary" name="thesis" id="thesis" required>
                         <span class="icon is-small is-left">
                             <i class="fa fa-home"></i>
                         </span>
@@ -39,13 +39,16 @@
 
                     <div class="control">
                         <label class="radio">
-                            <input type="radio" name="replyType" value="supports" checked> supports
+                            <input type="radio" name="replyType" value="supports" checked> 
+                            <span class="tag is-success is-light is-medium">Supports</span>
                         </label>
                         <label class="radio">
-                            <input type="radio" name="replyType" value="refutes"> refutes
+                            <input type="radio" name="replyType" value="refutes">
+                            <span class="tag is-danger is-light is-medium">Refutes</span>
                         </label>
                         <label class="radio">
-                            <input type="radio" name="replyType" value="general"> general
+                            <input type="radio" name="replyType" value="general">
+                            <span class="tag is-warning is-light is-medium">General</span>
                         </label>
                     </div>
                 </div>
@@ -53,22 +56,7 @@
                 {{ end }}
 
 
-                <div class="field">
-                    <label class="label">Content</label>
-                    <div class="file is-warning">
-                        <label class="file-label">
-                            <input class="file-input" type="file" name="file">
-                            <span class="file-cta">
-                                <span class="file-icon">
-                                    <i class="fas fa-upload"></i>
-                                </span>
-                                <span class="file-label">
-                                    Upload video
-                                </span>
-                            </span>
-                        </label>
-                    </div>
-                </div>
+                
 
 
                 <div class="field">
@@ -222,6 +210,11 @@ Maximum length of 300 chars.
                         </button>                       
                     </div>
                 </div>
+                <div class="field">
+                    <p class="control">
+                        <button class="button is-primary" id="upload" type="submit" >Upload</button>
+                    </p>
+                </div>
                 <script>
                     var c=1;
                     document.getElementById("b").addEventListener("click", question)
@@ -237,12 +230,9 @@ Maximum length of 300 chars.
                             b.disabled=true;
                         }           
                     }    
+
                 </script>
-                <div class="field">
-                    <p class="control">
-                        <button class="button is-primary" type="submit">Upload</button>
-                    </p>
-                </div>
+                
                 </form>
             </div>
         </div>
