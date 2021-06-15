@@ -41,7 +41,6 @@ func (routes *Routes) EssayCtx(next http.Handler) http.Handler {
 		}
 		ctx := context.WithValue(r.Context(), EssayHCtxKey, esH)
 		next.ServeHTTP(w, r.WithContext(ctx))
-		return
 	})
 }
 func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) {
@@ -50,6 +49,10 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) {
 	disceptoH := GetDisceptoH(r)
 	userH := GetUserH(r)
 	mySubs, err := disceptoH.ListUserSubdisceptos(r.Context(), userH)
+	if err != nil {
+		routes.HandleErr(w, r, err)
+		return
+	}
 
 	rep, err := strconv.Atoi(r.URL.Query().Get("inReplyTo"))
 	inReplyTo := sql.NullInt32{Int32: int32(rep), Valid: err == nil}
@@ -68,7 +71,6 @@ func (routes *Routes) GetNewEssay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	routes.tmpls.RenderHTML(w, "newEssay", essay)
-	return
 }
 func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
@@ -152,7 +154,6 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	routes.tmpls.RenderHTML(w, "essay", data)
-	return
 }
 func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
@@ -201,7 +202,8 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) {
 	// Finally create the essay
 	// If it's a reply, check if the user can actually see the parent essay
 	if inReplyTo.Valid {
-		parentH, err := subH.GetEssayH(r.Context(), int(inReplyTo.Int32), userH)
+		var parentH *db.EssayH
+		parentH, err = subH.GetEssayH(r.Context(), int(inReplyTo.Int32), userH)
 		if err != nil {
 			routes.HandleErr(w, r, err)
 			return
@@ -209,6 +211,10 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) {
 		_, err = subH.CreateEssayReply(r.Context(), &essay, *parentH)
 	} else {
 		_, err = subH.CreateEssay(r.Context(), &essay)
+	}
+	if err != nil {
+		routes.HandleErr(w, r, err)
+		return
 	}
 
 	if err == models.ErrBadContentLen {
@@ -224,7 +230,6 @@ func (routes *Routes) PostEssay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/s/%s", essay.PostedIn), http.StatusSeeOther)
-	return
 }
 func (routes *Routes) PostReport(w http.ResponseWriter, r *http.Request) {
 	essayH := GetEssayH(r)
@@ -235,9 +240,7 @@ func (routes *Routes) PostReport(w http.ResponseWriter, r *http.Request) {
 	err := essayH.CreateReport(r.Context(), report, *userH)
 	if err != nil {
 		routes.HandleErr(w, r, err)
-		return
 	}
-	return
 }
 func (routes *Routes) DeleteEssay(w http.ResponseWriter, r *http.Request) {
 	essayH := GetEssayH(r)
@@ -248,7 +251,6 @@ func (routes *Routes) DeleteEssay(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("HX-Redirect", path.Dir(r.URL.Path))
 	http.Redirect(w, r, path.Dir(r.URL.Path), http.StatusAccepted)
-	return
 }
 func (routes *Routes) UpdateEssay(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Nope")
@@ -273,6 +275,7 @@ func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) {
 		err := esH.DeleteVote(r.Context(), *userH)
 		if err != nil {
 			routes.HandleErr(w, r, err)
+			return
 		}
 	}
 	if models.VoteType(userDid.Vote.String) != vote {
@@ -286,5 +289,4 @@ func (routes *Routes) PostVote(w http.ResponseWriter, r *http.Request) {
 	subdiscepto := chi.URLParam(r, "subdiscepto")
 	essayID := chi.URLParam(r, "essayID")
 	http.Redirect(w, r, fmt.Sprintf("/s/%s/%s", subdiscepto, essayID), http.StatusSeeOther)
-	return
 }

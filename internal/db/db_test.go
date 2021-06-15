@@ -28,7 +28,7 @@ func mockUser2() *models.User {
 		Email: "asdfasdf@fasdf.com",
 	}
 }
-func mockUrl() url.URL {
+func mockURL() url.URL {
 	url, _ := url.Parse("https://example.com")
 	return *url
 }
@@ -48,7 +48,7 @@ func mockEssay(userID int) *models.Essay {
 		PostedIn:       mockSubName,
 		Replying:       replyData,
 		Tags:           []string{"banana", "fruit", "best"},
-		Sources:        []url.URL{mockUrl()},
+		Sources:        []url.URL{mockURL()},
 	}
 }
 func mockSubdisceptoReq() *models.SubdisceptoReq {
@@ -441,10 +441,10 @@ func testRolesBanUserFromSub(db SharedDB) func(t *testing.T) {
 		require := require.New(t)
 		ctx := context.Background()
 
-		userH, err := db.Login(ctx, mockUser().Email, mockPasswd)
-		disceptoH, err := db.GetDisceptoH(ctx, userH)
-		user2H, err := db.Login(ctx, mockUser2().Email, mockPasswd)
-		subH, err := disceptoH.GetSubdisceptoH(ctx, mockSubName, userH)
+		userH, _ := db.Login(ctx, mockUser().Email, mockPasswd)
+		disceptoH, _ := db.GetDisceptoH(ctx, userH)
+		user2H, _ := db.Login(ctx, mockUser2().Email, mockPasswd)
+		subH, _ := disceptoH.GetSubdisceptoH(ctx, mockSubName, userH)
 
 		// Remove "common" global role, banning the user
 		roleH, err := subH.GetRoleH(ctx, "common")
@@ -457,7 +457,7 @@ func testRolesBanUserFromSub(db SharedDB) func(t *testing.T) {
 
 		// A banned user shouldn't be able to leave the subdiscepto without a trace.
 		// The membership track record must be kept, to ensure the user stays banned
-		dis2H, err := db.GetDisceptoH(ctx, user2H)
+		dis2H, _ := db.GetDisceptoH(ctx, user2H)
 		sub2H, err := dis2H.GetSubdisceptoH(ctx, subH.Name(), user2H)
 		require.Nil(err)
 		err = sub2H.RemoveMember(ctx, *user2H)

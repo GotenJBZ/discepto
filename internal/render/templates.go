@@ -1,3 +1,4 @@
+// Package render offers functions to render an http response
 package render
 
 import (

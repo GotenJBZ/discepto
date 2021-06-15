@@ -41,5 +41,4 @@ func (routes *Routes) renderMembers(w http.ResponseWriter, r *http.Request) {
 		Roles:   roles,
 	}
 	routes.tmpls.RenderHTML(w, "members", data)
-	return
 }

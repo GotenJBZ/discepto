@@ -50,5 +50,4 @@ func (routes *Routes) GetSearch(w http.ResponseWriter, r *http.Request) {
 		FilterType:     filterType,
 		SearchBy:       searchBy,
 	})
-	return
 }

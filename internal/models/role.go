@@ -10,7 +10,7 @@ const SubRoleAdminPreset = -123
 
 type RoleDomain int
 
-var ErrRolePreset = errors.New("Can't edit preset role")
+var ErrRolePreset = errors.New("can't edit preset role")
 
 const RoleDomainDiscepto = RoleDomain(-123)
 

@@ -79,7 +79,6 @@ func (routes *Routes) assignRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	routes.renderMembers(w, r)
-	return
 }
 
 func (routes *Routes) unassignRole(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +99,6 @@ func (routes *Routes) unassignRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	routes.renderMembers(w, r)
-	return
 }
 
 func (routes *Routes) getRolePerms(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +126,6 @@ func (routes *Routes) getRolePerms(w http.ResponseWriter, r *http.Request) {
 		ActivePerms:    activePerms,
 		RoleH:          roleH,
 	})
-	return
 }
 func (routes *Routes) putRolePerms(w http.ResponseWriter, r *http.Request) {
 	roleManager := GetRoleManager(r)
@@ -155,7 +152,6 @@ func (routes *Routes) putRolePerms(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	routes.getRolePerms(w, r)
-	return
 }
 
 // Should use better number
@@ -179,7 +175,6 @@ func (routes *Routes) listRoles(w http.ResponseWriter, r *http.Request) {
 		Roles:       roles,
 	}
 	routes.tmpls.RenderHTML(w, "roles", data)
-	return
 }
 func (routes *Routes) deleteRole(w http.ResponseWriter, r *http.Request) {
 	roleManager := GetRoleManager(r)
@@ -197,13 +192,12 @@ func (routes *Routes) deleteRole(w http.ResponseWriter, r *http.Request) {
 	path := path.Dir(r.URL.Path)
 	w.Header().Add("HX-Redirect", path)
 	http.Redirect(w, r, path, http.StatusAccepted)
-	return
 }
 func (routes *Routes) postNewRole(w http.ResponseWriter, r *http.Request) {
 	roleManager := GetRoleManager(r)
 	roleName := r.FormValue("roleName")
 	if roleName == "" {
-		err := &ErrBadRequest{Cause: errors.New("Fill required inputs")}
+		err := &ErrBadRequest{Cause: errors.New("fill required inputs")}
 		routes.HandleErr(w, r, err)
 		return
 	}
@@ -216,5 +210,4 @@ func (routes *Routes) postNewRole(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(path)
 	w.Header().Add("HX-Redirect", path)
 	http.Redirect(w, r, path, http.StatusSeeOther)
-	return
 }

@@ -59,13 +59,12 @@ func main() {
 
 type DisceptoServer struct {
 	models.EnvConfig
-	addr              string
-	logger            zerolog.Logger
-	router            chi.Router
-	httpServer        *http.Server
-	database          db.SharedDB
-	templates         render.Templates
-	cancelBaseContext context.Context
+	addr       string
+	logger     zerolog.Logger
+	router     chi.Router
+	httpServer *http.Server
+	database   db.SharedDB
+	templates  render.Templates
 }
 
 func (ds *DisceptoServer) setupLogger() {
@@ -97,7 +96,7 @@ func (ds *DisceptoServer) setupDB() {
 	}
 	ds.database = db
 }
-func (ds *DisceptoServer) setupHttpServer() {
+func (ds *DisceptoServer) setupHTTPServer() {
 	ds.addr = fmt.Sprintf("127.0.0.1:%s", ds.EnvConfig.Port)
 	ds.httpServer = &http.Server{
 		Addr:         ds.addr,
@@ -111,7 +110,7 @@ func (ds *DisceptoServer) Setup() {
 	ds.setupTemplates()
 	ds.setupRouter()
 	ds.setupDB()
-	ds.setupHttpServer()
+	ds.setupHTTPServer()
 }
 func (ds *DisceptoServer) Shutdown() {
 	if err := ds.httpServer.Shutdown(context.Background()); err != nil {

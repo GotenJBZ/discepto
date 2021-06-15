@@ -1,3 +1,4 @@
+// Package utils offers random utils which don't have a specific place
 package utils
 
 import (

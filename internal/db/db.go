@@ -1,3 +1,5 @@
+// Package db implements functions accessing the database, securely,
+// checking permissions
 package db
 
 import (
@@ -49,7 +51,7 @@ func migrator(dbURL string) (*migrate.Migrate, error) {
 	dbURL = strings.Replace(dbURL, "postgres", "pgx", 1)
 	d, err := iofs.New(migrations.FS, ".")
 	if err != nil {
-		return nil, fmt.Errorf("Error reading migrations: %s", err)
+		return nil, fmt.Errorf("error reading migrations: %s", err)
 	}
 	m, err := migrate.NewWithSourceInstance("iofs", d, dbURL)
 	return m, err
@@ -62,7 +64,7 @@ func MigrateUp(dbURL string) error {
 	defer m.Close()
 	err = m.Up()
 	if err != nil && err != migrate.ErrNoChange {
-		return fmt.Errorf("While migrating up: %s", err)
+		return fmt.Errorf("while migrating up: %s", err)
 	}
 	return nil
 }
@@ -74,7 +76,7 @@ func MigrateDown(dbURL string) error {
 	defer m.Close()
 	err = m.Down()
 	if err != nil && err != migrate.ErrNoChange {
-		return fmt.Errorf("While migrating down: %s", err)
+		return fmt.Errorf("while migrating down: %s", err)
 	}
 	return nil
 }
@@ -86,7 +88,7 @@ func Drop(dbURL string) error {
 	defer m.Close()
 	err = m.Drop()
 	if err != nil && err != migrate.ErrNoChange {
-		return fmt.Errorf("While dropping: %s", err)
+		return fmt.Errorf("while dropping: %s", err)
 	}
 	return nil
 }
@@ -94,7 +96,7 @@ func Drop(dbURL string) error {
 func Connect(config *models.EnvConfig) (SharedDB, error) {
 	db, err := pgxpool.Connect(context.Background(), config.DatabaseURL)
 	if err != nil {
-		err = fmt.Errorf("Failed to connect to postgres: %w", err)
+		err = fmt.Errorf("failed to connect to postgres: %w", err)
 	}
 	bcryptCost := bcrypt.DefaultCost + 2
 	if config.Debug {
@@ -122,8 +124,4 @@ func execTx(ctx context.Context, db DBTX, txFunc func(context.Context, DBTX) err
 
 	err = tx.Commit(ctx)
 	return err
-}
-
-func bool_or(col string) string {
-	return fmt.Sprintf("bool_or(%s) AS %s", col, col)
 }

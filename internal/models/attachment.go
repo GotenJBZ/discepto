@@ -5,6 +5,6 @@ import "net/url"
 type Attachment struct {
 	ID         int
 	Expanded   bool
-	Url        url.URL
+	URL        url.URL
 	AttachedTo Essay
 }

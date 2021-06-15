@@ -68,7 +68,7 @@ func (h *DisceptoH) ListMembers(ctx context.Context) ([]models.Member, error) {
 	}
 
 	for i := range members {
-		members[i].Roles, err = h.ListUserRoles(ctx, members[i].UserID)
+		members[i].Roles, _ = h.ListUserRoles(ctx, members[i].UserID)
 	}
 
 	return members, nil
@@ -77,11 +77,56 @@ func (h *DisceptoH) ReadPublicUser(ctx context.Context, userID int) (*models.Use
 	return readPublicUser(ctx, h.sharedDB, userID)
 }
 
+func (h *DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH *UserH) (*SubdisceptoH, error) {
+	rawSub, err := readRawSub(ctx, h.sharedDB, subdiscepto)
+	if err != nil {
+		return nil, err
+	}
+
+	subH := &SubdisceptoH{
+		sharedDB:     h.sharedDB,
+		rawSub:       rawSub,
+		notifService: h.notifService,
+	}
+
+	var subPerms models.Perms
+
+	if uH != nil && h.globalPerms.Check(models.PermUseLocalPermissions) {
+		// First, try getting user's permissions
+		perms, err := getUserPerms(ctx, h.sharedDB, subH.rawSub.RoledomainID, uH.id)
+		if err != nil {
+			return nil, err
+		}
+		subPerms = perms
+	}
+
+	subPerms = subPerms.Union(h.globalPerms)
+
+	// Check if the subdiscepto is publicly readable
+	if subH.rawSub.Public {
+		toAdd := models.NewPerms(models.PermReadSubdiscepto)
+		subPerms = subPerms.Union(toAdd)
+	}
+
+	if err := subPerms.Require(models.PermReadSubdiscepto); err != nil {
+		return nil, err
+	}
+
+	rolesH := RolesH{
+		contextPerms: subPerms,
+		rolesPerms:   subPerms, // TODO: fix subPerms may contain only ManageGlobalRole
+		domain:       subH.rawSub.RoledomainID,
+		sharedDB:     h.sharedDB,
+	}
+	subH.RolesH = rolesH
+	subH.subPerms = subPerms
+	return subH, nil
+}
 func (h *DisceptoH) CreateSubdiscepto(ctx context.Context, uH UserH, sub *models.SubdisceptoReq) (*SubdisceptoH, error) {
 	if err := h.globalPerms.Require(models.PermCreateSubdiscepto); err != nil {
 		return nil, err
 	}
-	r := regexp.MustCompile("^\\w+$")
+	r := regexp.MustCompile(`^\w+$`)
 	if !r.Match([]byte(sub.Name)) {
 		return nil, models.ErrInvalidFormat
 	}

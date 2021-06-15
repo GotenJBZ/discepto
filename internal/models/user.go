@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	ErrEmailAlreadyUsed = errors.New("Email already used")
-	ErrInvalidFormat    = errors.New("Invalid email format")
-	ErrWeakPasswd       = errors.New("Weak password")
+	ErrEmailAlreadyUsed = errors.New("email already used")
+	ErrInvalidFormat    = errors.New("invalid email format")
+	ErrWeakPasswd       = errors.New("weak password")
 )
 
 type User struct {

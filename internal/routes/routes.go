@@ -1,3 +1,4 @@
+// Package routes offers a router, with related routes, usable by a http.Server
 package routes
 
 import (
@@ -178,7 +179,6 @@ func (routes *Routes) DisceptoCtx(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), DisceptoHCtxKey, disceptoH)
 		next.ServeHTTP(w, r.WithContext(ctx))
-		return
 	})
 }
 func (routes *Routes) EnforceCtx(ctxValue disceptoCtxKey) func(http.Handler) http.Handler {
@@ -190,7 +190,6 @@ func (routes *Routes) EnforceCtx(ctxValue disceptoCtxKey) func(http.Handler) htt
 				return
 			}
 			next.ServeHTTP(w, r)
-			return
 		})
 	}
 }
@@ -262,7 +261,7 @@ type ErrMustLogin struct{}
 
 func (err *ErrMustLogin) Respond(w http.ResponseWriter, r *http.Request, routes *Routes) LoggableErr {
 	loggableErr := LoggableErr{
-		Cause:  errors.New("Not logged in"),
+		Cause:  errors.New("not logged in"),
 		Status: http.StatusSeeOther,
 	}
 	http.Redirect(w, r, "/login", loggableErr.Status)
@@ -298,7 +297,7 @@ func (err *ErrInsuffPerms) Error() string {
 
 func (err *ErrInsuffPerms) Respond(w http.ResponseWriter, r *http.Request, routes *Routes) LoggableErr {
 	loggableErr := LoggableErr{
-		Cause:   errors.New(fmt.Sprintf("Insufficient permissions: %s", err.Cause)),
+		Cause:   fmt.Errorf("insufficient permissions: %s", err.Cause),
 		Message: "Insufficient permissions to execute this action",
 		Status:  http.StatusBadRequest,
 	}
@@ -376,7 +375,6 @@ func (routes *Routes) GetHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	routes.tmpls.RenderHTML(w, "home", data)
-	return
 }
 func (routes *Routes) GetTerms(w http.ResponseWriter, r *http.Request) {
 	routes.tmpls.RenderHTML(w, "terms", nil)
@@ -386,7 +384,6 @@ func (routes *Routes) PostSignout(w http.ResponseWriter, r *http.Request) {
 	routes.sessionManager.Remove(r.Context(), "userID")
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
-	return
 }
 func (routes *Routes) GetUser(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
@@ -409,6 +406,10 @@ func (routes *Routes) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mySubs, err := disceptoH.ListUserSubdisceptos(r.Context(), userH)
+	if err != nil {
+		routes.HandleErr(w, r, err)
+		return
+	}
 	routes.tmpls.RenderHTML(w, "user", struct {
 		User            *models.UserView
 		Essays          []models.EssayView
@@ -420,7 +421,6 @@ func (routes *Routes) GetUser(w http.ResponseWriter, r *http.Request) {
 		FilterReplyType: "general",
 		MySubdisceptos:  mySubs,
 	})
-	return
 }
 func (routes *Routes) GetUserSelf(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
@@ -438,6 +438,10 @@ func (routes *Routes) GetUserSelf(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mySubs, err := disceptoH.ListUserSubdisceptos(r.Context(), userH)
+	if err != nil {
+		routes.HandleErr(w, r, err)
+		return
+	}
 	routes.tmpls.RenderHTML(w, "user", struct {
 		User            *models.UserView
 		Essays          []models.EssayView
@@ -449,7 +453,6 @@ func (routes *Routes) GetUserSelf(w http.ResponseWriter, r *http.Request) {
 		FilterReplyType: "general",
 		MySubdisceptos:  mySubs,
 	})
-	return
 }
 func (routes *Routes) GetSignup(w http.ResponseWriter, r *http.Request) {
 	routes.tmpls.RenderHTML(w, "signup", nil)
@@ -469,7 +472,6 @@ func (routes *Routes) GetNotifications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	routes.tmpls.RenderHTML(w, "notifications", notifs)
-	return
 }
 func (routes *Routes) ViewDeleteNotif(w http.ResponseWriter, r *http.Request) {
 	disceptoH := GetDisceptoH(r)
@@ -487,7 +489,6 @@ func (routes *Routes) ViewDeleteNotif(w http.ResponseWriter, r *http.Request) {
 	actionURL := r.URL.Query().Get("action_url")
 	w.Header().Add("HX-Redirect", actionURL)
 	http.Redirect(w, r, actionURL, http.StatusAccepted)
-	return
 }
 func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) {
 	userH, err := routes.db.Login(r.Context(), r.FormValue("email"), r.FormValue("password"))
@@ -507,7 +508,6 @@ func (routes *Routes) PostLogin(w http.ResponseWriter, r *http.Request) {
 	routes.sessionManager.Put(r.Context(), "userID", userH.ID())
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
-	return
 }
 func (routes *Routes) PostSignup(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
@@ -542,5 +542,4 @@ The password must:
 	}
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
-	return
 }

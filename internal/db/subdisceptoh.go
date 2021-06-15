@@ -23,51 +23,6 @@ type SubdisceptoH struct {
 	notifService models.NotificationService
 }
 
-func (dH *DisceptoH) GetSubdisceptoH(ctx context.Context, subdiscepto string, uH *UserH) (*SubdisceptoH, error) {
-	rawSub, err := readRawSub(ctx, dH.sharedDB, subdiscepto)
-	if err != nil {
-		return nil, err
-	}
-
-	h := &SubdisceptoH{
-		sharedDB:     dH.sharedDB,
-		rawSub:       rawSub,
-		notifService: dH.notifService,
-	}
-
-	var subPerms models.Perms
-
-	if uH != nil && dH.globalPerms.Check(models.PermUseLocalPermissions) {
-		// First, try getting user's permissions
-		perms, err := getUserPerms(ctx, dH.sharedDB, h.rawSub.RoledomainID, uH.id)
-		if err != nil {
-			return nil, err
-		}
-		subPerms = perms
-	}
-
-	subPerms = subPerms.Union(dH.globalPerms)
-
-	// Check if the subdiscepto is publicly readable
-	if h.rawSub.Public {
-		toAdd := models.NewPerms(models.PermReadSubdiscepto)
-		subPerms = subPerms.Union(toAdd)
-	}
-
-	if err := subPerms.Require(models.PermReadSubdiscepto); err != nil {
-		return nil, err
-	}
-
-	rolesH := RolesH{
-		contextPerms: subPerms,
-		rolesPerms:   subPerms, // TODO: fix subPerms may contain only ManageGlobalRole
-		domain:       h.rawSub.RoledomainID,
-		sharedDB:     dH.sharedDB,
-	}
-	h.RolesH = rolesH
-	h.subPerms = subPerms
-	return h, nil
-}
 func (h *SubdisceptoH) Perms() models.Perms {
 	return h.subPerms
 }
@@ -89,7 +44,7 @@ func (h *SubdisceptoH) CreateEssay(ctx context.Context, e *models.Essay) (*Essay
 		return nil, err
 	}
 	if e.InReplyTo.Valid {
-		return nil, fmt.Errorf("Can't reply with method CreateEssay")
+		return nil, fmt.Errorf("can't reply with method CreateEssay")
 	}
 	var essay *EssayH
 	return essay, execTx(ctx, h.sharedDB, func(ctx context.Context, tx DBTX) error {
@@ -142,7 +97,7 @@ func (h *SubdisceptoH) CreateEssayReply(ctx context.Context, e *models.Essay, pH
 	}
 	err = h.notifService.Send(ctx, &models.Notification{
 		Title:     user.Name,
-		Text:      fmt.Sprintf("replied to your essay"),
+		Text:      "replied to your essay",
 		NotifType: models.NotifTypeReply,
 		ActionURL: *url,
 	}, parentEssay.AttributedToID)
@@ -342,7 +297,7 @@ func (h *SubdisceptoH) ListMembers(ctx context.Context) ([]models.Member, error)
 	}
 
 	for i := range members {
-		members[i].Roles, err = h.ListUserRoles(ctx, members[i].UserID)
+		members[i].Roles, _ = h.ListUserRoles(ctx, members[i].UserID)
 	}
 
 	return members, nil
@@ -423,7 +378,7 @@ func insertTags(ctx context.Context, db DBTX, essayID int, tags []string) error 
 		_, err := db.Exec(ctx,
 			sql, args...)
 		if err != nil {
-			return fmt.Errorf("Error inserting essay_tag in db: %w", err)
+			return fmt.Errorf("error inserting essay_tag in db: %w", err)
 		}
 	}
 	return nil

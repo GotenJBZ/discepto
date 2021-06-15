@@ -14,11 +14,11 @@ var (
 	RoleDisceptoCommon = models.Role{ID: -100, Name: "common", Preset: true}
 )
 
-func createRoledomain(ctx context.Context, db DBTX, domain_type string) (models.RoleDomain, error) {
+func createRoledomain(ctx context.Context, db DBTX, domainType string) (models.RoleDomain, error) {
 	sql, args, _ := psql.
 		Insert("roledomains").
 		Columns("domain_type").
-		Values(domain_type).
+		Values(domainType).
 		Suffix("RETURNING id").
 		ToSql()
 

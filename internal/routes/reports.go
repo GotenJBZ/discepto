@@ -28,7 +28,6 @@ func (routes *Routes) GetReports(w http.ResponseWriter, r *http.Request) {
 		reports,
 		subH.Perms(),
 	})
-	return
 }
 func (routes *Routes) DeleteReport(w http.ResponseWriter, r *http.Request) {
 	subH := GetSubdisceptoH(r)
@@ -44,5 +43,4 @@ func (routes *Routes) DeleteReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	routes.GetReports(w, r)
-	return
 }

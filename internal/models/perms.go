@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-var ErrPermDenied = errors.New("Missing permissions to execute action")
+var ErrPermDenied = errors.New("missing permissions to execute action")
 
 type Perm string
 type Perms map[Perm]struct{}

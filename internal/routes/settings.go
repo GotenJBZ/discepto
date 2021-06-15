@@ -21,9 +21,7 @@ func (routes *Routes) GetSubSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	routes.tmpls.RenderHTML(w, "subsettings", struct{ Subdiscepto *models.Subdiscepto }{sub})
-	return
 }
 func (routes *Routes) GetGlobalSettings(w http.ResponseWriter, r *http.Request) {
 	routes.tmpls.RenderHTML(w, "subsettings", nil)
-	return
 }

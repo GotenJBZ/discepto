@@ -47,7 +47,6 @@ func (routes *Routes) SubdiscpetoCtx(next http.Handler) http.Handler {
 		}
 		ctx := context.WithValue(r.Context(), SubdisceptoHCtxKey, subH)
 		next.ServeHTTP(w, r.WithContext(ctx))
-		return
 	})
 }
 func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +81,6 @@ func (routes *Routes) LeaveSubdiscepto(w http.ResponseWriter, r *http.Request) {
 		SubdisceptoList: mySubs,
 		SubPerms:        subH.Perms(),
 	})
-	return
 }
 func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
@@ -116,7 +114,6 @@ func (routes *Routes) JoinSubdiscepto(w http.ResponseWriter, r *http.Request) {
 		SubdisceptoList: mySubs,
 		SubPerms:        subH.Perms(),
 	})
-	return
 }
 func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) {
 	disceptoH := GetDisceptoH(r)
@@ -140,7 +137,6 @@ func (routes *Routes) GetSubdisceptos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	routes.tmpls.RenderHTML(w, "subdisceptos", data)
-	return
 }
 func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
@@ -169,7 +165,6 @@ func (routes *Routes) GetSubdiscepto(w http.ResponseWriter, r *http.Request) {
 		SubdisceptoList: mySubs,
 		SubPerms:        subH.Perms(),
 	})
-	return
 }
 func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) {
 	userH := GetUserH(r)
@@ -188,7 +183,6 @@ func (routes *Routes) PostSubdiscepto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/s/%s", subReq.Name), http.StatusSeeOther)
-	return
 }
 
 func (routes *Routes) PutSubdiscepto(w http.ResponseWriter, r *http.Request) {
@@ -208,5 +202,4 @@ func (routes *Routes) PutSubdiscepto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	routes.tmpls.RenderHTML(w, "subdisceptoForm", struct{ Subdiscepto *models.SubdisceptoReq }{subReq})
-	return
 }

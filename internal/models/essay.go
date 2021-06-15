@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	ErrTooManyTags   = errors.New("Too many tags")
-	ErrBadContentLen = errors.New("Bad content length")
+	ErrTooManyTags   = errors.New("too many tags")
+	ErrBadContentLen = errors.New("bad content length")
 )
 var (
 	ReplyTypeSupports = sql.NullString{String: "supports", Valid: true}
