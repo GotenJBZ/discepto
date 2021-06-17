@@ -25,7 +25,7 @@
                     <div class="field">
                         <label class="label">Username</label>
                         <div class="control has-icons-right">
-                            <input class="input" type="text" name="name" required>
+                            <input class="input" type="text" id="name" name="name" required>
                             <span class="icon is-small is-right">
                 <i class="fa fa-user"></i>
               </span>
@@ -109,6 +109,21 @@
             }
         }, false);
 
+	document.getElementById('name').addEventListener("keyup", function(evt) {
+            if (validateUsername(this.value)) {
+                this.classList.remove("is-danger")
+                this.classList.add("is-success")
+                document.getElementById("signupButton").disabled=false;
+            } else {
+                this.classList.add("is-danger")
+                document.getElementById("signupButton").disabled=true;
+            }
+        }, false);
+                                                 
+	function validateUsername(user) {
+	    const re = /^\w+$/;
+            return user.length > 4 ? re.test(user) : false;
+        }
     </script>
 
 </body>
