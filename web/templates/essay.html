@@ -14,9 +14,14 @@
     <div class="container is-max-widescreen">
         <div class="columns  mr-2 ml-2">
             <div class="column is-8 is-narrow">
-
                 <div class="box">
-                        
+                            {{ if .Essay.InReplyTo.Valid }}
+                                Replying to:
+                                <a href="{{ .Essay.InReplyTo.Int32 }}">
+                                    {{ .ParentEssay.Thesis }}
+                                </a>
+                            <hr class="mt-4">
+                            {{ end }}
                             <div class="media">
                                 <div class="media-left">
                                     <figure class="image is-64x64">

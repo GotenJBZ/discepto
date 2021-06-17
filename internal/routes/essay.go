@@ -106,6 +106,21 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var parentEssayH *db.EssayH
+	var parentEssayView *models.EssayView
+	if essay.ReplyType.Valid {
+		parentEssayH, err = subH.GetEssayH(r.Context(), int(essay.Replying.InReplyTo.Int32), userH)
+		if err != nil {
+			routes.HandleErr(w, r, err)
+			return
+		}
+		parentEssayView, err = parentEssayH.ReadView(r.Context())
+		if err != nil {
+			routes.HandleErr(w, r, err)
+			return
+		}
+	}
+
 	mySubs, err := disceptoH.ListUserSubdisceptos(r.Context(), userH)
 	if err != nil {
 		routes.HandleErr(w, r, err)
@@ -131,6 +146,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		Subdiscepto     *models.SubdisceptoView
+		ParentEssay     *models.EssayView
 		Essay           *models.EssayView
 		Replies         []models.EssayView
 		RepliesCount    map[string]int
@@ -142,6 +158,7 @@ func (routes *Routes) GetEssay(w http.ResponseWriter, r *http.Request) {
 		Resources       []models.MDLink
 	}{
 		Subdiscepto:     subData,
+		ParentEssay:     parentEssayView,
 		Essay:           essay,
 		EssayUserDid:    essayUserDid,
 		SubdisceptoList: mySubs,
