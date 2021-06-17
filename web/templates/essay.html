@@ -139,19 +139,19 @@
                         <ul class="tabs-menu" hx-indicator="#replies" hx-swap="outerHTML" hx-target="#replies" hx-select="#replies">
                             <li class="{{if eq .FilterReplyType "general"}}is-active{{end}}">
                                 <a href="?replyType=general" hx-get="?replyType=general">
-                                    <span class="mr-2">Generals</span>
+                                    <span class="mr-2">General</span>
                                     <span class="tag is-white is-rounded">{{ index .RepliesCount "general" }}</span></a>
-                            </li>
-                            <li class="{{if eq .FilterReplyType "refutes"}}is-active{{end}}">
-                                <a href="?replyType=refutes" hx-get="?replyType=refutes">
-                                    <span class="mr-2">Refutes</span>
-                                    <span class="tag is-white is-rounded">{{ index .RepliesCount "refutes" }}</span></a>
-                                </a>
                             </li>
                             <li class="{{if eq .FilterReplyType "supports"}}is-active{{end}}">
                                 <a href="?replyType=supports" hx-get="?replyType=supports">
                                     <span class="mr-2">Supports</span>
                                     <span class="tag is-white is-rounded">{{ index .RepliesCount "supports" }}</span></a>
+                                </a>
+                            </li>
+                            <li class="{{if eq .FilterReplyType "refutes"}}is-active{{end}}">
+                                <a href="?replyType=refutes" hx-get="?replyType=refutes">
+                                    <span class="mr-2">Refutes</span>
+                                    <span class="tag is-white is-rounded">{{ index .RepliesCount "refutes" }}</span></a>
                                 </a>
                             </li>
                         </ul>
