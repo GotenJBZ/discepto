@@ -16,7 +16,7 @@
             <div class="column is-8 is-narrow">
                 <div class="box">
                             {{ if .Essay.InReplyTo.Valid }}
-                                Replying to:
+                                In reply to:
                                 <a href="{{ .Essay.InReplyTo.Int32 }}">
                                     {{ .ParentEssay.Thesis }}
                                 </a>
@@ -198,7 +198,7 @@
                     <nav class="panel is-primary ">
                         <p class="panel-heading ">Resources</p>
                         {{ $length := len .Resources }} {{ if eq $length 0 }}
-                        <a class="panel-block ">The user didn't provide any resource</a> {{ else }} {{ range .Resources }}
+                        <a class="panel-block ">No linked resources</a> {{ else }} {{ range .Resources }}
                         <a href="{{ .URL }}" class="panel-block ">{{ .URL }}</a> {{ end }} {{end}}
                     </nav>
                 </div>
